@@ -210,6 +210,7 @@
 - Concurrent settings writes (downloads, dictionary provisioning, the UI) are
   serialized, so none of them loses another's change or shares the temporary
   file.
+- An imported dictionary shows up in the open dictionary manager right away.
 
 ### Changed
 

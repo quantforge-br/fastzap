@@ -72,6 +72,7 @@ pub async fn spell_import(
     };
     let tag = store::import(&state.paths.dictionaries_dir(), &dic).map_err(user_error)?;
     spellcheck::apply_all(&app);
+    let _ = tauri::Emitter::emit(&app, spellcheck::SPELLCHECK_CHANGED, ());
     Ok(Some(tag))
 }
 
