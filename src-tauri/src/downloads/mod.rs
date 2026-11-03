@@ -92,6 +92,8 @@ pub enum DownloadDecision {
 
 struct Live {
     account_id: i64,
+    /// Matches completions that carry no path (failed WebKitGTK downloads).
+    url: String,
     name: String,
     staged: PathBuf,
     status: DownloadStatus,
@@ -300,6 +302,7 @@ pub fn handle_event<R: Runtime>(
                 seq,
                 Live {
                     account_id,
+                    url: url.to_string(),
                     name,
                     staged,
                     status: DownloadStatus::Active,
@@ -311,16 +314,25 @@ pub fn handle_event<R: Runtime>(
             emit_changed(app);
             true
         }
-        DownloadEvent::Finished { path, success, .. } => {
+        DownloadEvent::Finished { url, path, success } => {
             let mut inner = downloads.inner.lock().unwrap();
-            let found = inner.live.iter().find_map(|(seq, live)| {
+            let url = url.to_string();
+            let mut found = inner.live.iter().filter_map(|(seq, live)| {
                 let matches = match &path {
                     Some(p) => *p == live.staged,
-                    None => live.status == DownloadStatus::Active,
+                    None => {
+                        live.status == DownloadStatus::Active
+                            && live.account_id == account_id
+                            && live.url == url
+                    }
                 };
                 matches.then_some(*seq)
             });
-            let Some(seq) = found else { return true };
+            // An ambiguous pathless completion is left alone rather than
+            // failing another transfer.
+            let (Some(seq), None) = (found.next(), found.next()) else {
+                return true;
+            };
             if !success {
                 let live = inner.live.remove(&seq).expect("found above");
                 Downloads::record(&mut inner, seq, live.name, None, DownloadStatus::Failed);
@@ -458,16 +470,21 @@ async fn resolve<R: Runtime>(app: AppHandle<R>, seq: u64) {
             .unwrap_or_else(|| dir.clone())
     };
     let (target, open) = match settings.behavior {
-        DownloadBehavior::Automatic => (Some(naming::unique_target(&dir, &name)), false),
-        DownloadBehavior::AskEveryTime => (save_dialog(&app, &save_as_dir(), &name).await, false),
+        DownloadBehavior::Automatic => (Some(Target::Free(dir.join(&name))), false),
+        DownloadBehavior::AskEveryTime => (
+            save_dialog(&app, &save_as_dir(), &name)
+                .await
+                .map(Target::Chosen),
+            false,
+        ),
         DownloadBehavior::Dialog => loop {
             match prompt(&app, seq, PromptKind::Save, &dir).await {
-                DownloadDecision::Save => break (Some(naming::unique_target(&dir, &name)), false),
-                DownloadDecision::Open => break (Some(naming::unique_target(&dir, &name)), true),
+                DownloadDecision::Save => break (Some(Target::Free(dir.join(&name))), false),
+                DownloadDecision::Open => break (Some(Target::Free(dir.join(&name))), true),
                 DownloadDecision::SaveAs => {
                     // Cancelling "Save as" returns to the Download dialog.
                     if let Some(path) = save_dialog(&app, &save_as_dir(), &name).await {
-                        break (Some(path), false);
+                        break (Some(Target::Chosen(path)), false);
                     }
                 }
                 _ => break (None, false),
@@ -485,7 +502,7 @@ async fn resolve<R: Runtime>(app: AppHandle<R>, seq: u64) {
     };
     if settings.remember_last_save_as_directory
         && settings.behavior != DownloadBehavior::Automatic
-        && let Some(parent) = target.parent()
+        && let Some(parent) = target.path().parent()
     {
         state
             .downloads
@@ -498,6 +515,22 @@ async fn resolve<R: Runtime>(app: AppHandle<R>, seq: u64) {
     finish(&app, seq, Some(target), DownloadStatus::Completed, open);
 }
 
+/// Where a finished download goes.
+enum Target {
+    /// Picked in the save dialog, which already confirmed any overwrite.
+    Chosen(PathBuf),
+    /// The download folder's name, suffixed with ` (N)` when taken.
+    Free(PathBuf),
+}
+
+impl Target {
+    fn path(&self) -> &Path {
+        match self {
+            Target::Chosen(p) | Target::Free(p) => p,
+        }
+    }
+}
+
 fn move_file(from: &Path, to: &Path) -> std::io::Result<()> {
     if std::fs::rename(from, to).is_ok() {
         return Ok(());
@@ -507,10 +540,48 @@ fn move_file(from: &Path, to: &Path) -> std::io::Result<()> {
     std::fs::remove_file(from)
 }
 
+/// Move without replacing an existing file; `AlreadyExists` when taken.
+fn move_new(from: &Path, to: &Path) -> std::io::Result<()> {
+    match std::fs::hard_link(from, to) {
+        Ok(()) => return std::fs::remove_file(from),
+        Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => return Err(err),
+        // Across filesystems or without hard links: exclusive create + copy.
+        Err(_) => {}
+    }
+    let mut out = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(to)?;
+    let copied = std::io::copy(&mut std::fs::File::open(from)?, &mut out);
+    if let Err(err) = copied {
+        drop(out);
+        let _ = std::fs::remove_file(to);
+        return Err(err);
+    }
+    std::fs::remove_file(from)
+}
+
+/// Claim a free name next to `wanted`; concurrent downloads of the same name
+/// get distinct suffixes instead of replacing each other.
+fn move_to_free(from: &Path, wanted: &Path) -> std::io::Result<PathBuf> {
+    let dir = wanted.parent().unwrap_or(Path::new("."));
+    let name = wanted
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    loop {
+        let target = naming::unique_target(dir, &name);
+        match move_new(from, &target) {
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            other => return other.map(|()| target),
+        }
+    }
+}
+
 fn finish<R: Runtime>(
     app: &AppHandle<R>,
     seq: u64,
-    target: Option<PathBuf>,
+    target: Option<Target>,
     status: DownloadStatus,
     open: bool,
 ) {
@@ -521,8 +592,12 @@ fn finish<R: Runtime>(
     let mut status = status;
     let mut saved = None;
     if let Some(target) = target {
-        match move_file(&live.staged, &target) {
-            Ok(()) => saved = Some(target),
+        let moved = match target {
+            Target::Chosen(path) => move_file(&live.staged, &path).map(|()| path),
+            Target::Free(wanted) => move_to_free(&live.staged, &wanted),
+        };
+        match moved {
+            Ok(path) => saved = Some(path),
             Err(err) => {
                 log::warn!("could not save download: {err}");
                 status = DownloadStatus::Failed;
@@ -566,6 +641,20 @@ pub fn default_dir() -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn free_targets_never_replace_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let wanted = dir.path().join("photo.jpg");
+        std::fs::write(&wanted, b"first").unwrap();
+        let staged = dir.path().join("staged");
+        std::fs::write(&staged, b"second").unwrap();
+        let saved = move_to_free(&staged, &wanted).unwrap();
+        assert_eq!(saved, dir.path().join("photo (1).jpg"));
+        assert_eq!(std::fs::read(&wanted).unwrap(), b"first");
+        assert_eq!(std::fs::read(&saved).unwrap(), b"second");
+        assert!(!staged.exists());
+    }
 
     #[test]
     fn items_merge_session_and_history() {

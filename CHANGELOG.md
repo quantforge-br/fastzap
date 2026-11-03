@@ -204,6 +204,9 @@
   granting the new page.
 - Problem reports also remove quoted and unquoted credential assignments
   (passwords, tokens, API keys, Basic/Bearer authorization).
+- A failed download no longer fails another account's transfer, and concurrent
+  automatic downloads with the same name get distinct suffixes instead of
+  replacing each other.
 
 ### Changed
 
