@@ -141,6 +141,7 @@
   file sending through a local outbox, retry of failed sends, reactions,
   edits, deletes, read receipts, typing, cached media, older history requests,
   avatars and contacts.
+- Typed IPC wrappers and formatting helpers for the Evolution Go chat.
 
 ### Fixed
 

@@ -26,8 +26,24 @@ import type { SpellState } from "./generated/SpellState";
 import type { UiAction } from "./generated/UiAction";
 import type { UpdateInfo } from "./generated/UpdateInfo";
 import type { UnreadSnapshot } from "./generated/UnreadSnapshot";
+import type { ChatMessage } from "./generated/ChatMessage";
+import type { ChatSummary } from "./generated/ChatSummary";
+import type { Connection } from "./generated/Connection";
+import type { EvolutionInfo } from "./generated/EvolutionInfo";
+import type { EvolutionSetup } from "./generated/EvolutionSetup";
+import type { InstanceSummary } from "./generated/InstanceSummary";
+import type { QrCode } from "./generated/QrCode";
+import type { EvolutionEvent } from "./generated/EvolutionEvent";
 
 export type {
+  ChatMessage,
+  ChatSummary,
+  Connection,
+  EvolutionEvent,
+  EvolutionInfo,
+  EvolutionSetup,
+  InstanceSummary,
+  QrCode,
   Account,
   AppInfo,
   PerformanceSettings,
@@ -66,6 +82,7 @@ export const events = {
   permissionRequest: "permissions://request",
   spellcheckChanged: "spellcheck://changed",
   updateAvailable: "update://available",
+  evolution: "evolution://event",
 } as const;
 
 export const settings = {
@@ -116,6 +133,41 @@ export const reporting = {
   remove: (id: string) => invoke<void>("report_delete", { id }),
   clear: () => invoke<void>("report_clear"),
   openFolder: () => invoke<void>("report_open_folder"),
+};
+
+type Target = { accountId: number; chat: string };
+
+export const evolution = {
+  instances: (baseUrl: string, adminKey: string) =>
+    invoke<InstanceSummary[]>("evo_instances", { baseUrl, adminKey }),
+  setup: (setup: EvolutionSetup) => invoke<Account>("evo_setup", { setup }),
+  info: (accountId: number) => invoke<EvolutionInfo | null>("evo_info", { accountId }),
+  connection: (accountId: number) => invoke<Connection>("evo_connection", { accountId }),
+  reconnect: (accountId: number) => invoke<void>("evo_reconnect", { accountId }),
+  qr: (accountId: number) => invoke<QrCode>("evo_qr", { accountId }),
+  openPasskey: (accountId: number) => invoke<void>("evo_open_passkey", { accountId }),
+  pairPhone: (accountId: number, phone: string) => invoke<string>("evo_pair_phone", { accountId, phone }),
+  logout: (accountId: number) => invoke<void>("evo_logout", { accountId }),
+  chats: (accountId: number) => invoke<ChatSummary[]>("evo_chats", { accountId }),
+  messages: (t: Target, before: number | null, limit: number) =>
+    invoke<ChatMessage[]>("evo_messages", { ...t, before, limit }),
+  setOpenChat: (accountId: number, chat: string | null) =>
+    invoke<void>("evo_set_open_chat", { accountId, chat }),
+  markRead: (t: Target) => invoke<void>("evo_mark_read", t),
+  typing: (t: Target, composing: boolean) => invoke<void>("evo_typing", { ...t, composing }),
+  sendText: (t: Target, text: string, quote: string | null) =>
+    invoke<void>("evo_send_text", { ...t, text, quote }),
+  sendFile: (t: Target, caption: string, quote: string | null) =>
+    invoke<boolean>("evo_send_file", { ...t, caption, quote }),
+  retry: (t: Target, id: string) => invoke<void>("evo_retry", { ...t, id }),
+  react: (t: Target, id: string, emoji: string) => invoke<void>("evo_react", { ...t, id, emoji }),
+  edit: (t: Target, id: string, text: string) => invoke<void>("evo_edit", { ...t, id, text }),
+  remove: (t: Target, id: string) => invoke<void>("evo_delete", { ...t, id }),
+  media: (t: Target, id: string) => invoke<string>("evo_media", { ...t, id }),
+  saveMedia: (t: Target, id: string) => invoke<boolean>("evo_save_media", { ...t, id }),
+  loadOlder: (t: Target) => invoke<boolean>("evo_load_older", t),
+  avatar: (accountId: number, jid: string) => invoke<string | null>("evo_avatar", { accountId, jid }),
+  refreshContacts: (accountId: number) => invoke<void>("evo_refresh_contacts", { accountId }),
 };
 
 export const layout = {
