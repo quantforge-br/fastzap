@@ -33,6 +33,16 @@
     "allow-account-sync-photo",
     "allow-calling-codes",
     "allow-open-chat-by-number",
-    "allow-app-locale"
+    "allow-app-locale",
+    "allow-app-info",
+    "allow-panel-supports-positioning",
+    "allow-proxy-password-set",
+    "allow-proxy-password-present",
+    "allow-settings-reset",
+    "allow-dialog-pick-folder",
+    "allow-dialog-pick-files",
+    "allow-open-path",
+    "allow-reveal-path",
+    "allow-downloads-default-dir"
   ]
 }

@@ -51,6 +51,19 @@ pub fn dispatch_for<R: Runtime>(app: &AppHandle<R>, action: &str, account: Optio
         }
         "toggle_window" => window::toggle_visibility(app),
         "show_panel" => super::panel::show(app),
+        "restart" => app.restart(),
+        "devtools" => {
+            if let Some(webview) =
+                target.and_then(|id| app.get_webview(&crate::webview::manager::label(id)))
+            {
+                webview.open_devtools();
+            }
+        }
+        "compact_chat_list" => eval_on(
+            app,
+            target,
+            "window._zapZapResizableChatList && window._zapZapResizableChatList.compact();",
+        ),
         "fullscreen" => {
             if let Some(w) = window::main_window(app) {
                 let _ = w.set_fullscreen(!w.is_fullscreen().unwrap_or(false));
@@ -130,6 +143,22 @@ pub fn dispatch_for<R: Runtime>(app: &AppHandle<R>, action: &str, account: Optio
             );
         }
         other => log::debug!("unknown action {other}"),
+    }
+}
+
+/// Apply the interface scale to the local UI, the panel and every account page.
+pub fn apply_scale<R: Runtime>(app: &AppHandle<R>) {
+    let state = app.state::<AppState>();
+    let scale = crate::webview::manager::interface_scale(&state.settings.get());
+    for label in [crate::app::window::UI_WEBVIEW, super::panel::PANEL_WINDOW] {
+        if let Some(webview) = app.get_webview(label) {
+            let _ = webview.set_zoom(scale);
+        }
+    }
+    if let Ok(accounts) = state.accounts.list() {
+        for account in accounts {
+            state.webviews.set_zoom(app, account.id, account.zoom);
+        }
     }
 }
 

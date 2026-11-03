@@ -142,6 +142,7 @@
     if (event.shiftKey) {
       if (key === "V" || key === "v") return "paste_plain_text";
       if (key === "?") return "show_shortcuts";
+      if (key === "I" || key === "i") return "devtools";
       return null;
     }
     switch (key.toLowerCase()) {

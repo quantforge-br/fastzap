@@ -253,17 +253,10 @@ impl WebviewManager {
         #[cfg(target_os = "linux")]
         super::stage::attach_child(&webview);
         let _ = webview.hide();
-        let _ = webview.set_zoom(account.zoom);
+        let _ = webview.set_zoom(account.zoom * interface_scale(&settings));
         set_muted(&webview, settings.system.audio_muted);
         #[cfg(target_os = "linux")]
-        if scripts::strict_proxy(&settings) {
-            let _ = webview.with_webview(|platform| {
-                use webkit2gtk::{SettingsExt, WebViewExt};
-                if let Some(web_settings) = platform.inner().settings() {
-                    web_settings.set_enable_webrtc(false);
-                }
-            });
-        }
+        apply_engine_options(&webview, &settings);
         #[cfg(target_os = "linux")]
         install_plain_paste_shortcut(&webview, account.id);
         Ok(webview)
@@ -394,9 +387,11 @@ impl WebviewManager {
         }
     }
 
+    /// Apply an account zoom, combined with the interface scale.
     pub fn set_zoom<R: Runtime>(&self, app: &AppHandle<R>, account_id: i64, zoom: f64) {
         if let Some(webview) = app.get_webview(&label(account_id)) {
-            let _ = webview.set_zoom(zoom);
+            let scale = interface_scale(&app.state::<AppState>().settings.get());
+            let _ = webview.set_zoom(zoom * scale);
         }
     }
 
@@ -415,14 +410,64 @@ impl WebviewManager {
     }
 }
 
-/// Settings baked into a webview when it is created: init scripts and proxy.
-/// A reload keeps them, so a change requires new webviews.
-pub fn creation_config(settings: &Settings) -> (String, Option<&'static str>, Option<Url>) {
-    (
-        scripts::document_start(settings),
-        scripts::all_frames(settings),
-        crate::proxy::webview_proxy_url(&settings.proxy),
-    )
+/// ZapZap's interface scale (`system/scale`) as a zoom factor.
+pub fn interface_scale(settings: &Settings) -> f64 {
+    f64::from(settings.appearance.scale) / 100.0
+}
+
+/// Settings baked into a webview when it is created. A reload keeps them, so
+/// a change requires new webviews.
+#[derive(Debug, PartialEq)]
+pub struct CreationConfig {
+    document_start: String,
+    all_frames: Option<&'static str>,
+    proxy: Option<Url>,
+    engine: EngineOptions,
+}
+
+/// Engine preferences mapped from ZapZap's performance settings.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct EngineOptions {
+    pub hardware_acceleration: bool,
+    pub smooth_scrolling: bool,
+}
+
+impl EngineOptions {
+    pub fn from_settings(settings: &Settings) -> Self {
+        let p = &settings.performance;
+        Self {
+            hardware_acceleration: !(p.disable_gpu || p.software_rendering),
+            smooth_scrolling: p.scroll_animator,
+        }
+    }
+}
+
+pub fn creation_config(settings: &Settings) -> CreationConfig {
+    CreationConfig {
+        document_start: scripts::document_start(settings),
+        all_frames: scripts::all_frames(settings),
+        proxy: crate::proxy::webview_proxy_url(&settings.proxy),
+        engine: EngineOptions::from_settings(settings),
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn apply_engine_options<R: Runtime>(webview: &Webview<R>, settings: &Settings) {
+    let options = EngineOptions::from_settings(settings);
+    let strict = scripts::strict_proxy(settings);
+    let _ = webview.with_webview(move |platform| {
+        use webkit2gtk::{HardwareAccelerationPolicy, SettingsExt, WebViewExt};
+        let Some(web_settings) = platform.inner().settings() else {
+            return;
+        };
+        if strict {
+            web_settings.set_enable_webrtc(false);
+        }
+        if !options.hardware_acceleration {
+            web_settings.set_hardware_acceleration_policy(HardwareAccelerationPolicy::Never);
+        }
+        web_settings.set_enable_smooth_scrolling(options.smooth_scrolling);
+    });
 }
 
 fn place<R: Runtime>(webview: &Webview<R>, rect: Rect) {
@@ -570,6 +615,9 @@ mod tests {
         assert_eq!(creation_config(&old), creation_config(&new));
         new.privacy.webrtc_shield = !old.privacy.webrtc_shield;
         assert_ne!(creation_config(&old), creation_config(&new));
+        let mut gpu = old.clone();
+        gpu.performance.disable_gpu = true;
+        assert_ne!(creation_config(&old), creation_config(&gpu));
     }
 
     #[test]

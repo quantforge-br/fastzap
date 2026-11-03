@@ -66,6 +66,16 @@
   modes, staying on top and remembering or locking its position.
 - Interface translations imported from ZapZap's po/ catalogs, with live
   language switching in the UI.
+- Settings window with ZapZap's pages (appearance, notifications, permissions,
+  system and startup, language and downloads, network and privacy,
+  performance, about), a restart bar for startup-only options, restore
+  defaults and proxy password storage in the keyring.
+- Optional menu bar with ZapZap's File, View, Chat, Users and Help menus as
+  native popups, and Ctrl+Shift+I to open the web inspector of the active
+  account.
+- Interface scale applied to the shell and to every account zoom; WebKitGTK
+  hardware acceleration, smooth scrolling and disable animations performance
+  options.
 
 ### Fixed
 

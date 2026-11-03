@@ -2,7 +2,12 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, tick } from "svelte";
 
+  import MenuBar from "$lib/components/MenuBar.svelte";
   import TitleBar from "$lib/components/TitleBar.svelte";
+  import { t } from "$lib/i18n/index.svelte";
+  import SettingsView from "$lib/settings/SettingsView.svelte";
+  import { DEFAULT_PAGE } from "$lib/settings/pages";
+  import { patchSettings, startSettings, store } from "$lib/stores/settings.svelte";
 
   import {
     accounts as accountsApi,
@@ -10,11 +15,8 @@
     events,
     layout as layoutApi,
     on,
-    settings as settingsApi,
     type Account,
-    type AppearanceSettings,
     type LayoutState,
-    type Settings,
     type UiAction,
     type UnreadSnapshot,
   } from "$lib/ipc";
@@ -28,8 +30,12 @@
   // covers Quit from the tray or Ctrl+Q.
   let confirm = $state<{ quit: boolean } | null>(null);
   let dontAskAgain = $state(false);
+  let settingsPage = $state(DEFAULT_PAGE);
   let content: HTMLElement;
-  let appearance = $state<AppearanceSettings | null>(null);
+  const appearance = $derived(store.settings?.appearance ?? null);
+  // The interface scale zooms this webview; the native webviews are placed in
+  // logical pixels.
+  const scale = $derived((appearance?.scale ?? 100) / 100);
   let desktop = $state("");
   let maximized = $state(false);
 
@@ -52,6 +58,9 @@
   $effect(() => {
     void csr;
     void maximized;
+    void scale;
+    void appearance?.sidebar;
+    void appearance?.menubar;
     tick().then(reportBounds);
   });
 
@@ -67,7 +76,24 @@
   function reportBounds() {
     if (!content) return;
     const r = content.getBoundingClientRect();
-    layoutApi.setBounds({ x: r.left, y: r.top, width: r.width, height: r.height });
+    layoutApi.setBounds({
+      x: r.left * scale,
+      y: r.top * scale,
+      width: r.width * scale,
+      height: r.height * scale,
+    });
+  }
+
+  // Menu bar actions owned by the UI.
+  function onMenuAction(action: string) {
+    if (action === "toggle_sidebar") {
+      patchSettings({ appearance: { sidebar: !(appearance?.sidebar ?? true) } });
+    } else if (action === "about") {
+      settingsPage = "about";
+      openPanel("settings");
+    } else {
+      onUiAction({ action, account_id: null });
+    }
   }
 
   function onUiAction(action: UiAction) {
@@ -78,7 +104,9 @@
       return;
     }
     // "accounts" shows the grid, so any panel covering it is closed.
-    openPanel(action.action === "accounts" ? null : action.action);
+    if (action.action === "accounts") return openPanel(null);
+    if (action.action === "settings") settingsPage = DEFAULT_PAGE;
+    openPanel(action.action);
   }
 
   async function answerClose(confirmed: boolean) {
@@ -94,10 +122,9 @@
       on<LayoutState>(events.layoutChanged, (state) => (layout = state)),
       on<UnreadSnapshot>(events.unreadChanged, (snapshot) => (unread = snapshot)),
       on<UiAction>(events.uiAction, onUiAction),
-      on<Settings>(events.settingsChanged, (s) => (appearance = s.appearance)),
       win.onResized(async () => (maximized = await win.isMaximized())),
     ];
-    settingsApi.get().then((s) => (appearance = s.appearance));
+    startSettings();
     app.desktop().then((d) => (desktop = d));
     win.isMaximized().then((m) => (maximized = m));
     Promise.all([accountsApi.list(), layoutApi.get(), app.unread()]).then(([a, l, u]) => {
@@ -123,8 +150,12 @@
 {#if csr && appearance}
   <TitleBar {appearance} {desktop} {maximized} />
 {/if}
+{#if appearance?.menubar}
+  <MenuBar {accounts} {scale} sidebar={appearance.sidebar} onaction={onMenuAction} />
+{/if}
 <div class="shell">
-  <nav class="sidebar" aria-label="Accounts">
+  {#if appearance?.sidebar !== false}
+  <nav class="sidebar" aria-label={t("Accounts")}>
     {#each visible as account (account.id)}
       {@const badge = unreadLabel(unread.per_account[account.id] ?? 0)}
       <button
@@ -144,12 +175,22 @@
       </button>
     {/each}
     <div class="spacer"></div>
-    <button class="tool" title="Grid view (Ctrl+G)" onclick={() => app.action("toggle_grid")}>▦</button>
-    <button class="tool" title="Settings (Ctrl+P)" onclick={() => openPanel("settings")}>⚙</button>
+    <button class="tool" title={`${t("Grid View")} (Ctrl+G)`} onclick={() => app.action("toggle_grid")}>▦</button>
+    <button
+      class="tool"
+      title={`${t("Settings")} (Ctrl+P)`}
+      onclick={() => {
+        settingsPage = DEFAULT_PAGE;
+        openPanel("settings");
+      }}>⚙</button
+    >
   </nav>
+  {/if}
 
   <main class="content" bind:this={content}>
-    {#if panel}
+    {#if panel === "settings"}
+      <SettingsView bind:page={settingsPage} onclose={() => openPanel(null)} ondonate={() => openPanel("donate")} />
+    {:else if panel}
       <section class="panel">
         <header>
           <h1>{panel}</h1>

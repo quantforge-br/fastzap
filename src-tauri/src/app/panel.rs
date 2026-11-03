@@ -95,13 +95,13 @@ fn panel_settings<R: Runtime>(app: &AppHandle<R>) -> FloatingPanelSettings {
 }
 
 #[cfg(target_os = "linux")]
-fn supports_positioning() -> bool {
+pub fn supports_positioning() -> bool {
     use gtk::glib::prelude::ObjectExt;
     gtk::gdk::Display::default().is_none_or(|d| !d.type_().name().contains("Wayland"))
 }
 
 #[cfg(not(target_os = "linux"))]
-fn supports_positioning() -> bool {
+pub fn supports_positioning() -> bool {
     true
 }
 

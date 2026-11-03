@@ -3,6 +3,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type { Account } from "./generated/Account";
+import type { AppInfo } from "./generated/AppInfo";
+import type { PerformanceSettings } from "./generated/PerformanceSettings";
+import type { ProxySettings } from "./generated/ProxySettings";
 import type { AppearanceSettings } from "./generated/AppearanceSettings";
 import type { AccountPatch } from "./generated/AccountPatch";
 import type { ChatTarget } from "./generated/ChatTarget";
@@ -16,6 +19,9 @@ import type { UnreadSnapshot } from "./generated/UnreadSnapshot";
 
 export type {
   Account,
+  AppInfo,
+  PerformanceSettings,
+  ProxySettings,
   AppearanceSettings,
   AccountPatch,
   ChatTarget,
@@ -65,6 +71,17 @@ export const app = {
   unread: () => invoke<UnreadSnapshot>("unread_get"),
   desktop: () => invoke<string>("app_desktop"),
   locale: () => invoke<string>("app_locale"),
+  info: () => invoke<AppInfo>("app_info"),
+  panelSupportsPositioning: () => invoke<boolean>("panel_supports_positioning"),
+  setProxyPassword: (password: string) => invoke<void>("proxy_password_set", { password }),
+  proxyPasswordPresent: () => invoke<boolean>("proxy_password_present"),
+  resetSettings: () => invoke<void>("settings_reset"),
+  pickFolder: (start?: string) => invoke<string | null>("dialog_pick_folder", { start: start ?? null }),
+  pickFiles: (title: string, filterName: string, extensions: string[], multiple = false) =>
+    invoke<string[]>("dialog_pick_files", { title, filterName, extensions, multiple }),
+  openPath: (path: string) => invoke<void>("open_path", { path }),
+  revealPath: (path: string) => invoke<void>("reveal_path", { path }),
+  downloadsDefaultDir: () => invoke<string>("downloads_default_dir"),
   callingCodes: () => invoke<RegionCallingCode[]>("calling_codes"),
   openChatByNumber: (target: ChatTarget, accountId?: number) =>
     invoke<void>("open_chat_by_number", { target, accountId: accountId ?? null }),

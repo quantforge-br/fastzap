@@ -47,6 +47,7 @@ const REMOTE_ACTIONS: &[&str] = &[
     "open_chat_by_number",
     "new_chat",
     "show_shortcuts",
+    "devtools",
 ];
 
 fn remote_action_allowed(action: &str) -> bool {

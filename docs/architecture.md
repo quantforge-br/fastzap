@@ -138,6 +138,27 @@ preferência, vale o tema da janela informado pelo toolkit
 (`WindowEvent::ThemeChanged`). O tema é aplicado à janela (decorações e
 `prefers-color-scheme` da UI) e às páginas pelo `theme_controller.js`.
 
+## Configurações e barra de menus
+
+`src/lib/stores/settings.svelte.ts` mantém uma cópia reativa das
+preferências (`settings_get` + evento `settings-changed`) e grava com
+`settings_patch`. `src/lib/settings/` reúne a navegação (`pages.ts`, na
+ordem do ZapZap), `SettingsView.svelte` e uma página por domínio em
+`pages/`; os controles comuns ficam em `src/lib/components/settings/`.
+Preferências lidas só na inicialização mostram `RestartBar`, que chama a
+ação `restart`. `commands::app` expõe informações do build (`build_info`,
+preenchido por `FASTZAP_BUILD_*`), senha do proxy no keyring, restauração
+dos padrões, diálogos de arquivo/pasta e abertura de caminhos.
+
+`MenuBar.svelte` reproduz os menus Arquivo/Exibir/Chat/Usuários/Ajuda com
+menus nativos (`@tauri-apps/api/menu`), porque menus HTML ficariam sob as
+webviews nativas das contas. A escala da interface vira zoom da webview
+`ui` e multiplica o zoom de cada conta; a UI converte os limites que
+informa para pixels lógicos da janela. `webview::manager::EngineOptions`
+aplica no WebKitGTK a política de aceleração de hardware, a rolagem suave e
+o WebRTC do proxy estrito; `disable_animations.js` entra nos scripts de
+início quando `performance.disable_animations` está ativo.
+
 ## Traduções
 
 `po/*.po` vem do ZapZap (mesmo domínio e idiomas). `pnpm i18n`

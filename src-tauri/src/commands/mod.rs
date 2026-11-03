@@ -1,6 +1,7 @@
 //! IPC surface. `bridge` is callable from WhatsApp Web; the rest from the local UI.
 
 pub mod accounts;
+pub mod app;
 pub mod bridge;
 pub mod settings;
 pub mod webview;

@@ -1,6 +1,7 @@
 pub mod accounts;
 pub mod app;
 pub mod autostart;
+pub mod build_info;
 pub mod commands;
 pub mod customizations;
 pub mod downloads;
@@ -15,7 +16,7 @@ pub mod settings;
 pub mod tray;
 pub mod webview;
 
-use commands::{accounts as acc, bridge, settings as set, webview as wv};
+use commands::{accounts as acc, app as appcmd, bridge, settings as set, webview as wv};
 use tauri::Manager;
 use tauri_plugin_window_state::StateFlags;
 
@@ -88,6 +89,7 @@ pub fn run() {
                 autostart::sync(handle, settings.system.start_system);
             }
             app::panel::init(handle)?;
+            app::actions::apply_scale(handle);
             let hidden = app::lifecycle::starts_hidden(
                 &options,
                 settings.system.start_background,
@@ -127,6 +129,16 @@ pub fn run() {
             wv::calling_codes,
             wv::open_chat_by_number,
             set::app_locale,
+            appcmd::app_info,
+            appcmd::panel_supports_positioning,
+            appcmd::proxy_password_set,
+            appcmd::proxy_password_present,
+            appcmd::settings_reset,
+            appcmd::dialog_pick_folder,
+            appcmd::dialog_pick_files,
+            appcmd::open_path,
+            appcmd::reveal_path,
+            appcmd::downloads_default_dir,
             bridge::wa_title_changed,
             bridge::wa_shortcut,
             bridge::wa_theme_event,

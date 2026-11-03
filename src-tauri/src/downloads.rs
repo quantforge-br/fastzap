@@ -1,5 +1,7 @@
 //! Downloads started by WhatsApp Web pages.
 
+use std::path::PathBuf;
+
 use tauri::webview::DownloadEvent;
 use tauri::{AppHandle, Runtime};
 
@@ -22,4 +24,11 @@ pub fn handle_event<R: Runtime>(
         DownloadEvent::Finished { .. } => true,
         _ => true,
     }
+}
+
+/// The system Downloads folder, falling back to the home directory.
+pub fn default_dir() -> PathBuf {
+    dirs::download_dir()
+        .or_else(dirs::home_dir)
+        .unwrap_or_else(std::env::temp_dir)
 }

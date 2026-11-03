@@ -9,6 +9,7 @@ const STRICT_PROXY: &str = include_str!("scripts/strict_proxy.js");
 const THEME_CONTROLLER: &str = include_str!("scripts/theme_controller.js");
 const PDF_CLICK_CONTROLLER: &str = include_str!("scripts/pdf_click_controller.js");
 const RESIZABLE_CHAT_LIST: &str = include_str!("scripts/resizable_chat_list.js");
+const DISABLE_ANIMATIONS: &str = include_str!("scripts/disable_animations.js");
 
 const VIEW_GRID_ICON: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 256 256"><path d="M104,40H48A8,8,0,0,0,40,48v56a8,8,0,0,0,8,8h56a8,8,0,0,0,8-8V48A8,8,0,0,0,104,40Zm-8,48H56V56h40ZM208,40H152a8,8,0,0,0-8,8v56a8,8,0,0,0,8,8h56a8,8,0,0,0,8-8V48A8,8,0,0,0,208,40Zm-8,48H160V56h40ZM104,144H48a8,8,0,0,0-8,8v56a8,8,0,0,0,8,8h56a8,8,0,0,0,8-8V152A8,8,0,0,0,104,144Zm-8,48H56V160h40ZM208,144H152a8,8,0,0,0-8,8v56a8,8,0,0,0,8,8h56a8,8,0,0,0,8-8V152A8,8,0,0,0,208,144Zm-8,48H160V160h40Z"></path></svg>"#;
 
@@ -34,6 +35,10 @@ pub fn document_start(settings: &Settings) -> String {
     if settings.privacy.webrtc_shield {
         out.push('\n');
         out.push_str(WEBRTC_SHIELD);
+    }
+    if settings.performance.disable_animations {
+        out.push('\n');
+        out.push_str(DISABLE_ANIMATIONS);
     }
     out
 }

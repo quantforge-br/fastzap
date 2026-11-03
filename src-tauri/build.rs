@@ -23,6 +23,16 @@ const UI_COMMANDS: &[&str] = &[
     "calling_codes",
     "open_chat_by_number",
     "app_locale",
+    "app_info",
+    "panel_supports_positioning",
+    "proxy_password_set",
+    "proxy_password_present",
+    "settings_reset",
+    "dialog_pick_folder",
+    "dialog_pick_files",
+    "open_path",
+    "reveal_path",
+    "downloads_default_dir",
 ];
 
 /// Commands exposed to https://web.whatsapp.com.
