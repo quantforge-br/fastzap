@@ -269,6 +269,10 @@
 - Evolution Go: the WebSocket reconnects when nothing (not even a pong)
   arrives for 65 seconds, and its writes and close are time-limited, so a
   silently dead network no longer looks online.
+- Evolution Go: an open conversation is no longer reloaded (clearing the draft
+  and sending another read request) every time the chat list refreshes, and an
+  older page that arrives after switching chats is discarded instead of shown
+  in the new chat.
 
 ### Changed
 

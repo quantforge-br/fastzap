@@ -24,7 +24,10 @@
 
   const PAGE = 50;
   const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
-  const target = $derived({ accountId, chat: chat.jid });
+  // Primitive, so refreshing the chat list (a new `chat` object for the same
+  // JID) does not rerun the effects below.
+  const chatJid = $derived(chat.jid);
+  const target = $derived({ accountId, chat: chatJid });
 
   let messages = $state<ChatMessage[]>([]);
   let exhausted = $state(false);
@@ -55,7 +58,7 @@
 
   // A new chat: load its newest page and mark it read.
   $effect(() => {
-    const jid = chat.jid;
+    const jid = chatJid;
     messages = [];
     exhausted = false;
     replyTo = null;
@@ -63,7 +66,7 @@
     draft = "";
     requestedOlder = false;
     evolution.messages({ accountId, chat: jid }, null, PAGE).then(async (page) => {
-      if (jid !== chat.jid) return;
+      if (jid !== chatJid) return;
       messages = page;
       exhausted = page.length < PAGE;
       await scrollToBottom();
@@ -76,10 +79,10 @@
   // Live changes: reload the newest page and merge it.
   $effect(() => {
     if (version === 0) return;
-    const jid = chat.jid;
+    const jid = chatJid;
     const stick = nearBottom();
     evolution.messages({ accountId, chat: jid }, null, PAGE).then(async (page) => {
-      if (jid !== chat.jid) return;
+      if (jid !== chatJid) return;
       messages = mergeMessages(messages, page);
       if (stick) await scrollToBottom();
       if (document.visibilityState === "visible" && page.some((m) => !m.from_me)) {
@@ -88,15 +91,25 @@
     });
   });
 
+  let loadingOlder = false;
+
   async function loadOlder() {
-    if (exhausted || messages.length === 0) return;
+    if (loadingOlder || exhausted || messages.length === 0) return;
+    const from = target;
     const before = messages[0].seq;
     const height = list.scrollHeight;
-    const page = await evolution.messages(target, before, PAGE);
-    exhausted = page.length < PAGE;
-    messages = mergeMessages(messages, page);
-    await tick();
-    list.scrollTop = list.scrollHeight - height;
+    loadingOlder = true;
+    try {
+      const page = await evolution.messages(from, before, PAGE);
+      // The user may have switched chats meanwhile.
+      if (from.chat !== chatJid || from.accountId !== accountId) return;
+      exhausted = page.length < PAGE;
+      messages = mergeMessages(messages, page);
+      await tick();
+      list.scrollTop = list.scrollHeight - height;
+    } finally {
+      loadingOlder = false;
+    }
   }
 
   // The phone sends older messages later as a history sync.
