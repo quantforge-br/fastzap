@@ -300,6 +300,8 @@
 - Flatpak builds on the NVIDIA driver turn off WebKitGTK's DMA-BUF renderer at
   startup, which otherwise made Wayland drop the connection (Error 71) and the
   app exit; an explicit `WEBKIT_DISABLE_DMABUF_RENDERER` still wins.
+- The snap recipe reads `build-info.env` line by line instead of sourcing it,
+  so values with spaces (`GitHub Actions`) no longer run as commands.
 
 ### Changed
 

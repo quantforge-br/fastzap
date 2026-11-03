@@ -57,9 +57,11 @@ parts:
     override-build: |
       set -eu
       if [ -f packaging/common/build-info.env ]; then
-        set -a
-        . packaging/common/build-info.env
-        set +a
+        # KEY=value lines in GITHUB_ENV format: values may hold spaces, so
+        # they are read literally instead of sourced as shell.
+        while IFS='=' read -r key value; do
+          export "$key=$value"
+        done < packaging/common/build-info.env
       else
         export FASTZAP_BUILD_PACKAGING=Snap
       fi
