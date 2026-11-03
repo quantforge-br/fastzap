@@ -63,6 +63,7 @@ pub fn run() {
             let handle = app.handle();
             app::bootstrap::init_state(handle)?;
             let state = handle.state::<app::state::AppState>();
+            let started_with_system = state.settings.get().system.start_system;
             if !options.set_settings.is_empty() {
                 state.settings.update(|s| {
                     app::cli::apply_set_settings(&options, s);
@@ -81,9 +82,10 @@ pub fn run() {
                 app::theme::monitor_system(handle);
             }
             // Keep the entry pointing at this executable (e.g. after an
-            // update moved it); turning it off is left to the preference.
-            if settings.system.start_system {
-                autostart::sync(handle, true);
+            // update moved it); turning it off is left to the preference,
+            // including a change made by `--setSettings` on this launch.
+            if settings.system.start_system || started_with_system {
+                autostart::sync(handle, settings.system.start_system);
             }
             app::panel::init(handle)?;
             let hidden = app::lifecycle::starts_hidden(
@@ -101,6 +103,7 @@ pub fn run() {
                     break;
                 }
             }
+            app::lifecycle::mark_ready(handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

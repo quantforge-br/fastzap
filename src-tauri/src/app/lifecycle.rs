@@ -2,6 +2,8 @@
 //! (ZapZap's `window_lifecycle.py`, `single_application.py` and
 //! `unix_signal_bridge.py`).
 
+use std::sync::Mutex;
+
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 use super::actions::UiAction;
@@ -74,11 +76,42 @@ pub fn handle_arguments<R: Runtime>(app: &AppHandle<R>, options: &StartupOptions
     }
 }
 
+/// Second launches received before setup finished; `None` once ready.
+static EARLY_LAUNCHES: Mutex<Option<Vec<Vec<String>>>> = Mutex::new(Some(Vec::new()));
+
 /// Second launch: forward arguments, or just bring the window up.
+///
+/// The plugin calls this from the D-Bus service (Linux), which starts before
+/// setup registers the app state, and from `WM_COPYDATA` (Windows), where
+/// creating webviews synchronously deadlocks WebView2. Launches are queued
+/// until [`mark_ready`] and then handled on a worker.
 pub fn on_second_instance<R: Runtime>(app: &AppHandle<R>, args: Vec<String>) {
+    if let Some(queue) = EARLY_LAUNCHES.lock().unwrap().as_mut() {
+        queue.push(args);
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move { forward_launch(&app, args) });
+}
+
+fn forward_launch<R: Runtime>(app: &AppHandle<R>, args: Vec<String>) {
     let options = cli::parse(args.into_iter().skip(1));
     handle_arguments(app, &options);
     window::show(app);
+}
+
+/// Setup finished: handle the launches that arrived meanwhile.
+pub fn mark_ready<R: Runtime>(app: &AppHandle<R>) {
+    let queued = EARLY_LAUNCHES.lock().unwrap().take().unwrap_or_default();
+    if queued.is_empty() {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        for args in queued {
+            forward_launch(&app, args);
+        }
+    });
 }
 
 /// Open a `whatsapp:`/wa.me link in the active WhatsApp Web account, once

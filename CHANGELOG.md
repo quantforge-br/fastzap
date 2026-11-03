@@ -113,3 +113,8 @@
   and returns to the active account afterwards; keys used to go to the hidden
   WhatsApp page.
 - The window starts with the configured theme instead of the toolkit default.
+- Second launches arriving before startup finished are queued instead of
+  crashing, and are handled off the Windows message callback to avoid a
+  WebView2 deadlock.
+- Turning start with the system off through --setSettings on launch removes
+  the autostart entry.

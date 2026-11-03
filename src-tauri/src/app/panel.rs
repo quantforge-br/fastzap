@@ -325,6 +325,9 @@ pub fn dismiss<R: Runtime>(app: &AppHandle<R>) {
 }
 
 pub fn on_settings_changed<R: Runtime>(app: &AppHandle<R>, old: &Settings, new: &Settings) {
+    if app.try_state::<PanelController>().is_none() {
+        return;
+    }
     let (old, new) = (
         &old.appearance.floating_panel,
         &new.appearance.floating_panel,
