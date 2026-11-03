@@ -17,13 +17,19 @@ pub fn create_main<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Window<R>> {
         .inner_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1)
         .min_inner_size(480.0, 400.0)
         .decorations(!settings.appearance.csr)
+        .theme(super::theme::window_theme(&settings))
         .visible(false)
         .build()?;
     let close_app = app.clone();
     window.on_window_event(move |event| {
-        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-            api.prevent_close();
-            super::lifecycle::request_close(&close_app, false);
+        match event {
+            tauri::WindowEvent::CloseRequested { api, .. } => {
+                api.prevent_close();
+                super::lifecycle::request_close(&close_app, false);
+            }
+            // The toolkit theme changed while `auto` follows it.
+            tauri::WindowEvent::ThemeChanged(_) => super::actions::apply_page_theme(&close_app),
+            _ => {}
         }
     });
     #[cfg(target_os = "linux")]

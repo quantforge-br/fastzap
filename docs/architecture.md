@@ -104,6 +104,15 @@ webview (scripts de inicialização e proxy) recriam as contas quando mudam. O s
 substitui `window.Notification` e observa `document.title` para extrair a
 contagem de não lidas, como o ZapZap fazia pelo título da página.
 
+### Tema
+
+`app::theme` resolve o esquema efetivo. Em `auto`, a chave
+`org.freedesktop.appearance color-scheme` do portal Settings prevalece quando
+indica preferência, com `SettingChanged` monitorado (`monitor_system`); sem
+preferência, vale o tema da janela informado pelo toolkit
+(`WindowEvent::ThemeChanged`). O tema é aplicado à janela (decorações e
+`prefers-color-scheme` da UI) e às páginas pelo `theme_controller.js`.
+
 ## Bandeja e badge
 
 `tray` renderiza com `resvg` os SVGs do ZapZap (`default`, `symbolic_light`,

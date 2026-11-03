@@ -76,7 +76,10 @@ pub fn run() {
             #[cfg(unix)]
             app::lifecycle::install_signal_handler(handle);
             #[cfg(target_os = "linux")]
-            app::lifecycle::start_dbus(handle);
+            {
+                app::lifecycle::start_dbus(handle);
+                app::theme::monitor_system(handle);
+            }
             // Keep the entry pointing at this executable (e.g. after an
             // update moved it); turning it off is left to the preference.
             if settings.system.start_system {

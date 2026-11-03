@@ -34,7 +34,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Correção de `Ctrl+←/→` | `ctrl_arrow_visual_navigation_fix.js` | idem | |
 | Clique em PDF | `pdf_click_controller.js` | idem | |
 | Lista de chats redimensionável | `resizable_chat_list.js` | idem | |
-| Tema auto/claro/escuro | `core/theme`, `theme_controller.js` | `theme` + script portado | |
+| Tema auto/claro/escuro | `core/theme`, `theme_controller.js` | `theme` + script portado | `auto` segue o portal `color-scheme` |
 | Idioma da interface | gettext `po/` | `i18n` (catálogos JSON gerados dos `.po`) | |
 | Verificação de atualizações | `core/update_checker.py` | `update` | mesma política por empacotamento |
 | Relatórios de problemas | `core/reporting`, `features/reporting` | `reporting` | |

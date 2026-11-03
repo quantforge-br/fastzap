@@ -56,6 +56,8 @@
 - Start with the system: the Background portal in Flatpak, an XDG autostart
   entry on other Linux installs and tauri-plugin-autostart on Windows and
   macOS, always with --hideStart.
+- Auto theme follows the XDG Settings portal color-scheme and its changes,
+  falling back to the toolkit theme.
 
 ### Fixed
 
@@ -104,3 +106,4 @@
 - Keyboard focus moves to FastZap's own screens while they cover the accounts
   and returns to the active account afterwards; keys used to go to the hidden
   WhatsApp page.
+- The window starts with the configured theme instead of the toolkit default.

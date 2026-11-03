@@ -194,6 +194,12 @@ pub fn apply_theme<R: Runtime>(app: &AppHandle<R>) {
     if let Some(w) = window::main_window(app) {
         let _ = w.set_theme(super::theme::window_theme(&settings));
     }
-    let dark = super::theme::is_dark(app, &settings);
+    apply_page_theme(app);
+}
+
+/// Push the effective theme to every WhatsApp page only.
+pub fn apply_page_theme<R: Runtime>(app: &AppHandle<R>) {
+    let state = app.state::<AppState>();
+    let dark = super::theme::is_dark(app, &state.settings.get());
     state.webviews.eval_all(app, &scripts::apply_theme(dark));
 }
