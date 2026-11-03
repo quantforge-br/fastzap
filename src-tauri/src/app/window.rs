@@ -50,6 +50,24 @@ pub fn show<R: Runtime>(app: &AppHandle<R>) {
     }
 }
 
+/// Show and focus the window using an XDG activation / startup token so
+/// Wayland and X11 compositors allow the focus change.
+pub fn show_with_token<R: Runtime>(app: &AppHandle<R>, token: Option<String>) {
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        #[cfg(target_os = "linux")]
+        if let (Some(token), Some(window)) = (token.as_deref(), main_window(&handle))
+            && let Ok(gtk_window) = window.gtk_window()
+        {
+            use gtk::prelude::GtkWindowExt;
+            gtk_window.set_startup_id(token);
+        }
+        #[cfg(not(target_os = "linux"))]
+        let _ = token;
+        show(&handle);
+    });
+}
+
 pub fn hide<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = main_window(app) {
         let _ = window.hide();

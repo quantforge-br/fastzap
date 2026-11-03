@@ -29,6 +29,8 @@ const BRIDGE_COMMANDS: &[&str] = &[
     "wa_theme_event",
     "wa_open_account_selector",
     "wa_profile_photo",
+    "wa_notify",
+    "wa_notification_close",
 ];
 
 fn main() {

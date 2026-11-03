@@ -129,6 +129,9 @@ pub fn activate_nth<R: Runtime>(app: &AppHandle<R>, n: usize) {
 
 pub fn activate<R: Runtime>(app: &AppHandle<R>, account_id: i64) {
     let state = app.state::<AppState>();
+    if !state.accounts.get(account_id).is_ok_and(|a| a.enabled) {
+        return;
+    }
     state.webviews.set_active(app, Some(account_id));
     let _ = app.emit(LAYOUT_CHANGED, state.webviews.state());
 }

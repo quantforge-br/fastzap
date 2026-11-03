@@ -101,6 +101,19 @@ valor alimenta `Window::set_badge_count`. O menu é reconstruído quando idioma,
 mudo ou painel flutuante mudam. Em bandejas StatusNotifierItem (Linux) cliques
 no ícone não chegam ao app; só o menu.
 
+## Notificações
+
+`bridge.js` substitui `window.Notification` e envia `wa_notify`/
+`wa_notification_close`. `notifications::policy` aplica `notifications.*`, o
+DND da conta e o modo silencioso (`sound` desligado ou `audio_muted`). O
+backend é escolhido como no ZapZap: portal no Flatpak,
+`org.freedesktop.Notifications` (via `zbus`, com `ActionInvoked` e
+`ActivationToken`) nas demais instalações Linux e `tauri-plugin-notification`
+em Windows/macOS, que não informa cliques. Uma notificação nova com a mesma
+`tag` fecha as anteriores. O clique mostra a janela com o token de ativação,
+ativa a conta e chama `notificationClicked` na página, que abre a conversa.
+Fotos circulares ficam em `<cache>/notification-images/`.
+
 ## Contas Evolution Go
 
 Contas do tipo Evolution Go não criam webview remoto. `evolution::session`

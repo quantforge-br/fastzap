@@ -54,5 +54,10 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
   importação cada conta precisa ler o QR de novo.
 - **Dicionários `.bdic`**: formato exclusivo do Chromium. O FastZap usa
   Hunspell.
+- **Notificações em Windows/macOS** não informam cliques ao app
+  (`tauri-plugin-notification`); clicar não abre a conversa. O portal não
+  recebe o pedido de som silencioso.
+- **Mudo** só tem efeito no Linux (WebKitGTK); WebView2/WKWebView não expõem
+  mudo pelo Tauri.
 - **Áudio/vídeo chamadas** continuam indisponíveis no WhatsApp Web, como no
   ZapZap.

@@ -5,7 +5,9 @@ pub mod customizations;
 pub mod downloads;
 pub mod i18n;
 pub mod migration;
+pub mod notifications;
 pub mod paths;
+pub mod platform;
 pub mod proxy;
 pub mod secrets;
 pub mod settings;
@@ -14,6 +16,8 @@ pub mod webview;
 
 use commands::{accounts as acc, bridge, settings as set, webview as wv};
 use tauri::Manager;
+
+pub const APP_ID: &str = "io.github.quantmind_br.fastzap";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -27,6 +31,8 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
+        .manage(notifications::NotificationService::default())
         .setup(|app| {
             let handle = app.handle();
             app::bootstrap::init_state(handle)?;
@@ -62,6 +68,8 @@ pub fn run() {
             bridge::wa_theme_event,
             bridge::wa_open_account_selector,
             bridge::wa_profile_photo,
+            bridge::wa_notify,
+            bridge::wa_notification_close,
         ])
         .run(tauri::generate_context!())
         .expect("error while running FastZap");

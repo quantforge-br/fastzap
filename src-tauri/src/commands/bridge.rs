@@ -99,6 +99,24 @@ pub fn wa_open_account_selector(
 }
 
 #[tauri::command]
+pub async fn wa_notify(
+    app: AppHandle,
+    webview: Webview,
+    notification: crate::notifications::policy::WebNotification,
+) -> CommandResult<()> {
+    let id = caller(&webview)?;
+    crate::notifications::notify(&app, id, notification).await;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn wa_notification_close(app: AppHandle, webview: Webview, id: u64) -> CommandResult<()> {
+    let account_id = caller(&webview)?;
+    crate::notifications::close_web(&app, account_id, id).await;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn wa_profile_photo(
     app: AppHandle,
     webview: Webview,

@@ -33,6 +33,12 @@
 - System tray with ZapZap's three icon themes and red unread counter, the
   Show/Accounts/monitoring panel/Mute/Settings/Support/Quit menu, launcher
   badge, and audio muting of WhatsApp Web pages (Linux).
+- Native notifications for WhatsApp Web messages: XDG portal in Flatpak,
+  `org.freedesktop.Notifications` elsewhere on Linux and the system
+  notification center on Windows/macOS, with ZapZap's privacy options, per
+  account do-not-disturb, silent mode, circular sender photos, tag
+  replacement, closing when read and click-to-open-chat with activation
+  tokens.
 
 ### Fixed
 
