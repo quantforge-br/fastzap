@@ -17,3 +17,16 @@
   `ZapZap.conf` preferences including legacy keys, accounts from `zapzap.db`,
   customization files and the proxy password.
 - TypeScript bindings generated from Rust types with ts-rs.
+- WhatsApp Web shell: one isolated child webview per enabled account with
+  per-account User-Agent, zoom and storage, navigation allowlist, external
+  links in the system browser, grid view and active-account switching.
+- Injected bridge for unread counts from the page title, app shortcuts inside
+  WhatsApp Web, plain-text paste (including spreadsheet tables), theme
+  controller, account selector, profile photo sync and the ported ZapZap
+  page scripts (Ctrl+arrow fix, PDF click, resizable chat list, WebRTC shield).
+- Open chat by number and `whatsapp:`/wa.me deep link helpers.
+- Command ACL: local UI and WhatsApp Web capabilities with an explicit
+  per-command allowlist.
+- Linux overlay stage so child webviews can be positioned under Wayland.
+- Minimal Svelte shell: account sidebar with avatars, unread badges and
+  do-not-disturb marker, grid and settings buttons.

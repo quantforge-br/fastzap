@@ -1,5 +1,6 @@
 //! Accounts persisted in SQLite (`accounts.db`).
 
+pub mod avatar;
 pub mod user_agent;
 
 use std::path::Path;

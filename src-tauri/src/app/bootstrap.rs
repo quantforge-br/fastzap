@@ -49,6 +49,8 @@ pub fn init_state<R: Runtime>(app: &AppHandle<R>) -> anyhow::Result<()> {
         settings,
         accounts,
         secrets,
+        webviews: Default::default(),
+        unread: Default::default(),
     });
     Ok(())
 }

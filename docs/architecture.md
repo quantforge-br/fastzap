@@ -5,7 +5,7 @@
 FastZap é um aplicativo Tauri v2. O processo Rust (`src-tauri/`) é a autoridade
 sobre estado, preferências, contas, segredos e integrações nativas. A interface
 local é uma SPA SvelteKit (`src/`, `adapter-static`) carregada no webview
-`main`. Cada conta do tipo WhatsApp Web é um **child webview** separado,
+`ui` da janela `main`. Cada conta do tipo WhatsApp Web é um **child webview** separado,
 carregando `https://web.whatsapp.com/`, posicionado dentro da mesma janela.
 
 ```text
@@ -68,17 +68,27 @@ habilitada, `webview::manager` cria um child webview com `Window::add_child`
 - `proxy_url` quando o proxy global está ativo.
 
 O frontend informa a área livre (à direita da sidebar) via
-`set_content_bounds`; o manager posiciona a conta ativa nessa área e oculta as
-demais. No modo grade, as contas visíveis são distribuídas em colunas. Quando
-uma tela local precisa cobrir o conteúdo (configurações, diálogos), o frontend
-chama `set_overlay(true)` e os child webviews são ocultados.
+`layout_set_bounds`; o manager posiciona a conta ativa nessa área e oculta as
+demais. No modo grade, as contas visíveis são distribuídas em `grid_cols`
+colunas. Quando uma tela local precisa cobrir o conteúdo (configurações,
+diálogos), o frontend chama `layout_set_overlay(true)` e os child webviews são
+ocultados.
+
+No Linux o Tauri empilha child webviews num `GtkBox` vertical e ignora
+`set_position`. `webview::stage` insere um `GtkOverlay` na janela: o webview
+`ui` é o filho principal (ocupa a janela inteira) e cada conta é um filho de
+overlay posicionado por margens e `size_request`.
 
 ### Ponte remota
 
-`capabilities/whatsapp-remote.json` permite que páginas em
+`build.rs` declara todos os comandos do app em um `AppManifest`, então o ACL
+do Tauri exige permissão explícita para cada um. `capabilities/default.json`
+libera os comandos locais apenas para o webview `ui`;
+`capabilities/whatsapp-remote.json` permite que webviews `wa-*` em
 `https://web.whatsapp.com/*` invoquem apenas os comandos `wa_*` de
-`commands::bridge` (título, notificação, foto de perfil, estado do tema,
-menu de contexto, atalhos e pedidos de download). O script de ponte
+`commands::bridge` (título, atalhos, eventos do tema, seletor de contas e foto
+de perfil; notificações entram com a fase de integração com o desktop). A
+conta chamadora é sempre derivada do rótulo do webview, nunca de argumentos. O script de ponte
 substitui `window.Notification` e observa `document.title` para extrair a
 contagem de não lidas, como o ZapZap fazia pelo título da página.
 

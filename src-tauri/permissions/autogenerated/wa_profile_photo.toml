@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-wa-profile-photo"
+description = "Enables the wa_profile_photo command without any pre-configured scope."
+commands.allow = ["wa_profile_photo"]
+
+[[permission]]
+identifier = "deny-wa-profile-photo"
+description = "Denies the wa_profile_photo command without any pre-configured scope."
+commands.deny = ["wa_profile_photo"]

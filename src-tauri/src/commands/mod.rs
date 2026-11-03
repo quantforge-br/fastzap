@@ -1,7 +1,9 @@
-//! IPC surface invoked by the local frontend.
+//! IPC surface. `bridge` is callable from WhatsApp Web; the rest from the local UI.
 
 pub mod accounts;
+pub mod bridge;
 pub mod settings;
+pub mod webview;
 
 use serde::Serialize;
 

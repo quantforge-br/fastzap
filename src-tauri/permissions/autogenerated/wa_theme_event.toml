@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-wa-theme-event"
+description = "Enables the wa_theme_event command without any pre-configured scope."
+commands.allow = ["wa_theme_event"]
+
+[[permission]]
+identifier = "deny-wa-theme-event"
+description = "Denies the wa_theme_event command without any pre-configured scope."
+commands.deny = ["wa_theme_event"]

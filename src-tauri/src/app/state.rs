@@ -6,10 +6,14 @@ use crate::accounts::AccountStore;
 use crate::paths::AppPaths;
 use crate::secrets::SecretStore;
 use crate::settings::store::SettingsStore;
+use crate::webview::manager::WebviewManager;
+use crate::webview::unread::UnreadRegistry;
 
 pub struct AppState {
     pub paths: AppPaths,
     pub settings: SettingsStore,
     pub accounts: AccountStore,
     pub secrets: Arc<dyn SecretStore>,
+    pub webviews: WebviewManager,
+    pub unread: UnreadRegistry,
 }

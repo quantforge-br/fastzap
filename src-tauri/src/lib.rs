@@ -1,12 +1,18 @@
 pub mod accounts;
 pub mod app;
 pub mod commands;
+pub mod customizations;
+pub mod downloads;
+pub mod i18n;
 pub mod migration;
 pub mod paths;
+pub mod proxy;
 pub mod secrets;
 pub mod settings;
+pub mod webview;
 
-use commands::{accounts as acc, settings as set};
+use commands::{accounts as acc, bridge, settings as set, webview as wv};
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -15,7 +21,14 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            app::bootstrap::init_state(app.handle())?;
+            let handle = app.handle();
+            app::bootstrap::init_state(handle)?;
+            let state = handle.state::<app::state::AppState>();
+            let settings = state.settings.get();
+            i18n::set_language(&settings.system.interface_language);
+            app::window::create_main(handle)?;
+            state.webviews.sync(handle)?;
+            app::window::show(handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -27,6 +40,20 @@ pub fn run() {
             acc::accounts_delete,
             acc::accounts_reorder,
             acc::user_agent_presets,
+            wv::layout_get,
+            wv::layout_set_bounds,
+            wv::layout_set_overlay,
+            wv::account_activate,
+            wv::app_action,
+            wv::unread_get,
+            wv::account_sync_photo,
+            wv::calling_codes,
+            wv::open_chat_by_number,
+            bridge::wa_title_changed,
+            bridge::wa_shortcut,
+            bridge::wa_theme_event,
+            bridge::wa_open_account_selector,
+            bridge::wa_profile_photo,
         ])
         .run(tauri::generate_context!())
         .expect("error while running FastZap");

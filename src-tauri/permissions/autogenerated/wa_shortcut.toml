@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-wa-shortcut"
+description = "Enables the wa_shortcut command without any pre-configured scope."
+commands.allow = ["wa_shortcut"]
+
+[[permission]]
+identifier = "deny-wa-shortcut"
+description = "Denies the wa_shortcut command without any pre-configured scope."
+commands.deny = ["wa_shortcut"]

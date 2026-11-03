@@ -10,17 +10,7 @@
     "frontendDist": "../build"
   },
   "app": {
-    "windows": [
-      {
-        "label": "main",
-        "title": "FastZap",
-        "width": 1000,
-        "height": 700,
-        "minWidth": 480,
-        "minHeight": 400,
-        "visible": true
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
     }

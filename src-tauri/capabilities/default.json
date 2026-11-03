@@ -1,10 +1,29 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
+  "description": "Local FastZap UI",
+  "webviews": [
+    "ui"
+  ],
   "permissions": [
     "core:default",
-    "opener:default"
+    "opener:default",
+    "allow-settings-get",
+    "allow-settings-patch",
+    "allow-accounts-list",
+    "allow-accounts-create",
+    "allow-accounts-update",
+    "allow-accounts-delete",
+    "allow-accounts-reorder",
+    "allow-user-agent-presets",
+    "allow-layout-get",
+    "allow-layout-set-bounds",
+    "allow-layout-set-overlay",
+    "allow-account-activate",
+    "allow-app-action",
+    "allow-unread-get",
+    "allow-account-sync-photo",
+    "allow-calling-codes",
+    "allow-open-chat-by-number"
   ]
 }

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-unread-get"
+description = "Enables the unread_get command without any pre-configured scope."
+commands.allow = ["unread_get"]
+
+[[permission]]
+identifier = "deny-unread-get"
+description = "Denies the unread_get command without any pre-configured scope."
+commands.deny = ["unread_get"]

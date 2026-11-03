@@ -20,7 +20,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Deep links `whatsapp:` / wa.me | `deeplink.py` | `webview::deeplink` | |
 | Chat por número (`Ctrl+M`) | `open_chat.py` | `webview::deeplink` + diálogo | |
 | Colar como texto e tabelas de planilha | `clipboard_table.py`, `web_view.py` | `webview::clipboard` | |
-| Menu de contexto | `web_view.py` | `webview::context_menu` | menu nativo do Tauri |
+| Menu de contexto | `web_view.py` | menu padrão do motor; `webview::context_menu` com a fase de corretor | itens de idioma/corretor ainda ausentes |
 | CSS/JS personalizados | `features/customizations` | `customizations` | mesma árvore de arquivos |
 | Corretor ortográfico | `features/dictionaries` (`.bdic`) | `spellcheck` | **formato Hunspell** (`.dic/.aff`); `.bdic` não é importado |
 | Downloads e histórico (`Ctrl+J`) | `features/downloads` | `downloads` | |

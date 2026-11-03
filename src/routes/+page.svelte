@@ -1,156 +1,220 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+  import { onMount } from "svelte";
 
-  let name = $state("");
-  let greetMsg = $state("");
+  import {
+    accounts as accountsApi,
+    app,
+    events,
+    layout as layoutApi,
+    on,
+    type Account,
+    type LayoutState,
+    type UiAction,
+    type UnreadSnapshot,
+  } from "$lib/ipc";
+  import { initials, isImageIcon, unreadLabel } from "$lib/shell/format";
 
-  async function greet(event: Event) {
-    event.preventDefault();
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    greetMsg = await invoke("greet", { name });
+  let accounts = $state<Account[]>([]);
+  let layout = $state<LayoutState>({ active: null, grid: false, overlay: false });
+  let unread = $state<UnreadSnapshot>({ per_account: {}, total: 0 });
+  let panel = $state<string | null>(null);
+  let content: HTMLElement;
+
+  const visible = $derived(accounts.filter((a) => a.enabled));
+  const active = $derived(visible.find((a) => a.id === layout.active) ?? null);
+
+  // Owned UI panels cover the native webviews, which are hidden meanwhile.
+  async function openPanel(name: string | null) {
+    panel = name;
+    await layoutApi.setOverlay(name !== null);
   }
+
+  function reportBounds() {
+    if (!content) return;
+    const r = content.getBoundingClientRect();
+    layoutApi.setBounds({ x: r.left, y: r.top, width: r.width, height: r.height });
+  }
+
+  function onUiAction(action: UiAction) {
+    openPanel(action.action);
+  }
+
+  onMount(() => {
+    const unlisten = [
+      on<Account[]>(events.accountsChanged, (list) => (accounts = list)),
+      on<LayoutState>(events.layoutChanged, (state) => (layout = state)),
+      on<UnreadSnapshot>(events.unreadChanged, (snapshot) => (unread = snapshot)),
+      on<UiAction>(events.uiAction, onUiAction),
+    ];
+    Promise.all([accountsApi.list(), layoutApi.get(), app.unread()]).then(([a, l, u]) => {
+      accounts = a;
+      layout = l;
+      unread = u;
+    });
+
+    const observer = new ResizeObserver(reportBounds);
+    observer.observe(content);
+    window.addEventListener("resize", reportBounds);
+    reportBounds();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", reportBounds);
+      unlisten.forEach((p) => p.then((f) => f()));
+    };
+  });
 </script>
 
-<main class="container">
-  <h1>Welcome to Tauri + Svelte</h1>
+<div class="shell">
+  <nav class="sidebar" aria-label="Accounts">
+    {#each visible as account (account.id)}
+      {@const badge = unreadLabel(unread.per_account[account.id] ?? 0)}
+      <button
+        class="account"
+        class:active={!layout.grid && account.id === layout.active}
+        title={account.name}
+        aria-label={account.name}
+        onclick={() => accountsApi.activate(account.id)}
+      >
+        {#if isImageIcon(account.icon)}
+          <img src={account.icon} alt="" />
+        {:else}
+          <span class="initials">{initials(account.name)}</span>
+        {/if}
+        {#if badge}<span class="badge">{badge}</span>{/if}
+        {#if !account.notifications}<span class="dnd" title="Do not disturb"></span>{/if}
+      </button>
+    {/each}
+    <div class="spacer"></div>
+    <button class="tool" title="Grid view (Ctrl+G)" onclick={() => app.action("toggle_grid")}>▦</button>
+    <button class="tool" title="Settings (Ctrl+P)" onclick={() => openPanel("settings")}>⚙</button>
+  </nav>
 
-  <div class="row">
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo vite" alt="Vite Logo" />
-    </a>
-    <a href="https://tauri.app" target="_blank">
-      <img src="/tauri.svg" class="logo tauri" alt="Tauri Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank">
-      <img src="/svelte.svg" class="logo svelte-kit" alt="SvelteKit Logo" />
-    </a>
-  </div>
-  <p>Click on the Tauri, Vite, and SvelteKit logos to learn more.</p>
-
-  <form class="row" onsubmit={greet}>
-    <input id="greet-input" placeholder="Enter a name..." bind:value={name} />
-    <button type="submit">Greet</button>
-  </form>
-  <p>{greetMsg}</p>
-</main>
+  <main class="content" bind:this={content}>
+    {#if panel}
+      <section class="panel">
+        <header>
+          <h1>{panel}</h1>
+          <button onclick={() => openPanel(null)}>Close</button>
+        </header>
+        <p>This section is not available yet.</p>
+      </section>
+    {:else if active?.kind === "evolution_go"}
+      <section class="placeholder">
+        <p>{active.name}: Evolution Go accounts are not available yet.</p>
+      </section>
+    {:else if visible.length === 0}
+      <section class="placeholder"><p>No enabled accounts.</p></section>
+    {/if}
+  </main>
+</div>
 
 <style>
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
-
-.logo.svelte-kit:hover {
-  filter: drop-shadow(0 0 2em #ff3e00);
-}
-
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
-
-.container {
-  margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
-
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-}
-
-button {
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
-}
-
-input,
-button {
-  outline: none;
-}
-
-#greet-input {
-  margin-right: 5px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
+  :global(:root) {
+    color-scheme: light dark;
+    --sidebar-bg: #f0f2f5;
+    --accent: #00a884;
+    --fg: #111b21;
+    --bg: #ffffff;
   }
-
-  a:hover {
-    color: #24c8db;
+  @media (prefers-color-scheme: dark) {
+    :global(:root) {
+      --sidebar-bg: #202c33;
+      --fg: #e9edef;
+      --bg: #111b21;
+    }
   }
-
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
+  :global(html, body) {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, sans-serif;
   }
-  button:active {
-    background-color: #0f0f0f69;
+  .shell {
+    display: flex;
+    height: 100vh;
   }
-}
-
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 64px;
+    padding: 10px 0;
+    background: var(--sidebar-bg);
+  }
+  .spacer {
+    flex: 1;
+  }
+  .account,
+  .tool {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    padding: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 18px;
+  }
+  .account.active {
+    border-color: var(--accent);
+  }
+  .account img,
+  .initials {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .initials {
+    display: grid;
+    place-items: center;
+    background: var(--accent);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .badge {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    min-width: 18px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background: #e53935;
+    color: #fff;
+    font-size: 11px;
+    line-height: 18px;
+  }
+  .dnd {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #8696a0;
+  }
+  .content {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+  }
+  .panel,
+  .placeholder {
+    padding: 24px;
+  }
+  .panel header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel h1 {
+    text-transform: capitalize;
+  }
 </style>
