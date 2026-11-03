@@ -43,6 +43,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Doação e lembrete | `features/donation` | `donation` + `src/lib/donation/` | as doações vão para o autor do ZapZap; lembrete é um diálogo e esconde as webviews enquanto aberto |
 | Onboarding | `features/initial_setup` | `src/lib/onboarding/` | o idioma é aplicado ao concluir; seção Flatpak mostra o comando `flatpak override` sem link para o Flatseal |
 | Desempenho | `core/config/settings/performance.py` | `settings::performance` | ver lacunas |
+| Empacotamento | `.github/packaging`, `tools/com.rtosta.zapzap.yaml`, `share/` | `packaging/`, `.github/workflows/build-*.yml` | deb, rpm, AppImage, Flatpak (GNOME 50), snap, Windows NSIS/MSI (x86_64; arm64 só NSIS) e dmg universal; sem COPR, sem Flathub (manifesto baixa dependências pela rede) e macOS sem notarização |
 | Conta Evolution Go (novo) | — | `evolution` + `src/lib/evolution/` | chat nativo sobre uma instância Evolution Go: pareamento por QR, código ou passkey; texto, mídia, respostas, reações, edição, exclusão, recibos e digitação; ver lacunas |
 
 ## Lacunas conhecidas

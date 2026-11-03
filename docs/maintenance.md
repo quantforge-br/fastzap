@@ -28,5 +28,28 @@ Ao atualizar `po/*.po`, rode `pnpm i18n` e versione os JSON gerados em
 
 ## Empacotamento
 
-Os artefatos e manifestos ficam em `packaging/`; os workflows em
-`.github/workflows/`. Veja [arquitetura](architecture.md#empacotamento).
+Os manifestos ficam em `packaging/` e os workflows em `.github/workflows/`;
+veja [arquitetura](architecture.md#empacotamento). Depois de clonar, rode
+`git submodule update --init` (módulos compartilhados do Flathub).
+
+Builds locais:
+
+```bash
+pnpm tauri build --bundles deb,rpm,appimage
+flatpak-builder --user --install --force-clean --state-dir=.flatpak-builder \
+  --install-deps-from=flathub .flatpak-build \
+  packaging/flatpak/io.github.quantmind_br.fastzap.yml
+packaging/snap/prepare.sh && snapcraft pack
+```
+
+Validadores: `packaging/common/version.sh --check`,
+`desktop-file-validate packaging/share/applications/*.desktop`,
+`appstreamcli validate --no-net packaging/share/metainfo/*.xml` e
+`shellcheck packaging/common/*.sh packaging/snap/prepare.sh` (também no job
+`packaging` de `quality.yml`).
+
+Publicação: `Release Candidate` (entrada `rc`) cria a tag
+`<versão>-rc.<n>` como pre-release e anexa todos os pacotes; publicar uma
+release estável dispara `Release Deploy`, que anexa os pacotes e publica o
+snap no canal `stable` (segredo `SNAPCRAFT_STORE_CREDENTIALS`). Ao alterar a
+versão, atualize também a entrada `<release>` do metainfo.

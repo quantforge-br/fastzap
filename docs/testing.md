@@ -41,6 +41,14 @@ cobre:
 Testes do frontend (Vitest) cobrem funções puras de `src/lib/` (formatação,
 i18n, validação, `src/lib/evolution/format.ts`).
 
+## Empacotamento
+
+`packaging/common/version.sh --check`, `desktop-file-validate`,
+`appstreamcli validate --no-net`, `shellcheck` e `actionlint` validam
+metadados, scripts e workflows (os quatro primeiros também no job
+`packaging` de `quality.yml`). Os pacotes em si só são verificados
+construindo-os; veja [manutenção](maintenance.md#empacotamento).
+
 ## Verificações manuais
 
 Child webviews, foco, tray, notificações e compositor não são verificáveis em

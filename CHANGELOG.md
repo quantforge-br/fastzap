@@ -328,3 +328,6 @@
   makes both the NSIS and MSI installers), and both keep the release check.
 - pnpm is pinned through packageManager (pnpm@12.9.1) and the lockfile records
   it, so CI, Flatpak and snap builds use the same version.
+- Documentation covers packaging: identifiers, bundle formats, the Flatpak and
+  snap recipes, local build and validation commands, the release process and
+  the installation section of the README.

@@ -409,7 +409,36 @@ conversa), que conversa com o backend pelos comandos `evo_*` e pelo evento
 
 ## Empacotamento
 
-`tauri build` gera deb, rpm e AppImage no Linux, NSIS/MSI no Windows e dmg no
-macOS. O manifesto Flatpak (`packaging/flatpak/`) usa `org.gnome.Platform`
-por causa do WebKitGTK. Arquivos de desktop, AppStream e ícones ficam em
-`packaging/share/`.
+- Identificadores: o App ID `io.github.quantmind_br.fastzap` nomeia Flatpak,
+  `.desktop`, AppStream, nome D-Bus (`app::dbus` e
+  `<APP_ID>.SingleInstance`), serviço do keyring e as pastas de
+  configuração, dados e cache (`AppPaths`). O `identifier` do Tauri é
+  `io.github.quantmind-br.fastzap`, porque o bundler recusa `_`; ele só
+  aparece no bundle ID do macOS, no AUMID do Windows e na pasta do
+  `tauri-plugin-window-state`. `enableGtkAppId` fica desligado, então o
+  app_id Wayland/WM_CLASS é `fastzap` (`StartupWMClass=fastzap`).
+- `pnpm tauri build` gera deb (`fast-zap`), rpm e AppImage no Linux, NSIS e
+  MSI no Windows (arm64 só NSIS) e dmg universal no macOS, com assinatura
+  ad-hoc e sem notarização. O `.desktop` de deb/rpm vem de
+  `packaging/linux/fastzap.desktop.hbs` (`FastZap.desktop`, ícone `fastzap`,
+  esquemas `whatsapp:` e `fastzap:`).
+- `packaging/share/`: `.desktop`, metainfo AppStream e ícone SVG nomeados
+  pelo App ID, usados por Flatpak e snap; os ícones de `src-tauri/icons/`
+  são gerados a partir desse SVG com `pnpm tauri icon`.
+- `packaging/flatpak/`: manifesto sobre `org.gnome.Platform` 50 (WebKitGTK
+  4.1), extensões `rust-stable` e `node24`, e `libayatana-appindicator` do
+  submódulo `shared-modules` (o tray carrega a biblioteca em runtime). O
+  módulo do app baixa crates e pacotes npm (`--share=network`), então serve
+  para builds locais e de CI, não para o Flathub.
+  No Flatpak com driver NVIDIA, `platform::disable_dmabuf_renderer` define
+  `WEBKIT_DISABLE_DMABUF_RENDERER=1` antes do GTK; sem isso o Wayland derruba
+  a conexão (Error 71) e o app fecha.
+- `packaging/snap/`: `snapcraft.yaml` (core24, extensão `gnome`) copiado para
+  `snap/` por `prepare.sh`; o slot D-Bus cobre o nome do single-instance.
+- `packaging/common/`: `build-info.sh` marca builds oficiais
+  (`FASTZAP_BUILD_*`, lidas em tempo de compilação por `build_info`) e
+  `version.sh` imprime e confere a versão nos três manifestos.
+- Workflows: `build-{deb,rpm,appimage,flatpak,snap,windows,macos}.yml`
+  (manuais ou chamados), `release-candidate.yml` (tag `X.Y.Z-rc.N` e
+  pre-release) e `release-deploy.yml` (release publicada). O setup comum está
+  em `.github/actions/setup-build/`.

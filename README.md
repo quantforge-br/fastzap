@@ -10,12 +10,19 @@ ser de dois tipos:
   [Evolution Go](https://github.com/EvolutionAPI/evolution-go), com pareamento
   por QR ou código de telefone e uma interface de chat nativa.
 
+## Instalação
+
+Os pacotes (deb, rpm, AppImage, Flatpak, snap, instaladores do Windows e dmg
+do macOS) são anexados às releases do GitHub. Para gerar localmente, veja
+[`docs/maintenance.md`](docs/maintenance.md#empacotamento).
+
 ## Desenvolvimento
 
-Requisitos: Rust estável, Node 20+, pnpm e as dependências de sistema do Tauri
+Requisitos: Rust estável, Node 24+, pnpm (versão em `packageManager`) e as dependências de sistema do Tauri
 (no Linux: `webkit2gtk-4.1`, `libsoup-3.0`, `libappindicator`/`ayatana`).
 
 ```bash
+git submodule update --init
 pnpm install
 pnpm tauri dev
 ```
