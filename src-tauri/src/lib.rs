@@ -140,6 +140,15 @@ pub fn run() {
         // Windows still exist here, unlike at `Exit`.
         tauri::RunEvent::ExitRequested { .. } => app::panel::shutdown(handle),
         tauri::RunEvent::Exit => app::lifecycle::shutdown(handle),
+        // macOS delivers `whatsapp:` links as Apple events, not arguments.
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Opened { urls } => {
+            for url in urls {
+                if app::lifecycle::open_link(handle, url.as_str()) {
+                    break;
+                }
+            }
+        }
         _ => {}
     });
 }

@@ -128,6 +128,7 @@
   signals interleave, and clicks on other applications' notifications are
   ignored.
 - A link forwarded while its account page finished loading is no longer lost.
+- macOS opens whatsapp: links delivered as Apple events.
 
 ### Changed
 
