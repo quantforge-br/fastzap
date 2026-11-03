@@ -160,6 +160,10 @@
 - Snap recipe (core24, gnome extension, WebKitGTK layout, D-Bus slot for the
   single-instance name, Secret Service plug) in packaging/snap, copied to
   snap/ by prepare.sh.
+- Flatpak manifest `packaging/flatpak/io.github.quantmind_br.fastzap.yml` on
+  the GNOME 50 runtime (WebKitGTK 4.1) with the rust-stable and node24
+  extensions, and libayatana-appindicator from the flathub shared-modules
+  submodule.
 
 ### Fixed
 

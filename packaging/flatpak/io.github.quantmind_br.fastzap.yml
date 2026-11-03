@@ -1,0 +1,83 @@
+# Local and CI builds; the fastzap module downloads crates and npm packages,
+# so it needs --share=network (Flathub would need generated offline sources).
+#
+#   flatpak-builder --user --install --force-clean \
+#     --install-deps-from=flathub .flatpak-build \
+#     packaging/flatpak/io.github.quantmind_br.fastzap.yml
+id: io.github.quantmind_br.fastzap
+runtime: org.gnome.Platform
+runtime-version: "50"
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.node24
+command: fastzap
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  # Camera and microphone for calls and voice messages.
+  - --device=all
+  - --filesystem=xdg-download
+  - --filesystem=xdg-documents
+  - --filesystem=xdg-pictures
+  - --filesystem=xdg-run/pipewire-0
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  # Proxy password and Evolution Go keys live in the Secret Service.
+  - --talk-name=org.freedesktop.secrets
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/man
+  - "*.la"
+  - "*.a"
+
+modules:
+  # The tray loads libayatana-appindicator at runtime.
+  - shared-modules/libayatana-appindicator/libayatana-appindicator-gtk3.json
+
+  - name: fastzap
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/node24/bin:/run/build/fastzap/pnpm
+      build-args:
+        - --share=network
+      env:
+        CARGO_HOME: /run/build/fastzap/cargo
+        COREPACK_HOME: /run/build/fastzap/corepack
+        COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+        FASTZAP_BUILD_CHANNEL: FlatpakRunner
+        FASTZAP_BUILD_PROVIDER: org.flatpak.Builder
+        FASTZAP_BUILD_REPOSITORY: ./fastzap/
+        FASTZAP_BUILD_PACKAGING: Flatpak
+    build-commands:
+      # tauri.conf.json's beforeBuildCommand calls pnpm by name.
+      - mkdir -p /run/build/fastzap/pnpm && corepack enable --install-directory /run/build/fastzap/pnpm pnpm
+      - pnpm install --frozen-lockfile
+      - pnpm tauri build --no-bundle
+      - install -Dm755 src-tauri/target/release/fastzap ${FLATPAK_DEST}/bin/fastzap
+      - install -Dm644 packaging/share/icons/${FLATPAK_ID}.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
+      - |
+        for size in 32 64 128; do
+          install -Dm644 src-tauri/icons/${size}x${size}.png \
+            ${FLATPAK_DEST}/share/icons/hicolor/${size}x${size}/apps/${FLATPAK_ID}.png
+        done
+      - install -Dm644 src-tauri/icons/128x128@2x.png ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/${FLATPAK_ID}.png
+      - install -Dm644 packaging/share/applications/${FLATPAK_ID}.desktop ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
+      - install -Dm644 packaging/share/metainfo/${FLATPAK_ID}.metainfo.xml ${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - .git
+          - .flatpak-build
+          - .flatpak-builder
+          - .svelte-kit
+          - build
+          - node_modules
+          - src-tauri/target
+          - packaging/flatpak/shared-modules
