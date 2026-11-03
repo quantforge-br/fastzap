@@ -154,6 +154,9 @@
   fastzap: links), an app-ID .desktop file and AppStream metainfo in
   packaging/share, and bundle metadata (publisher, license, descriptions,
   NSIS/WiX languages, ad-hoc macOS signing) in tauri.conf.json.
+- packaging/common/build-info.sh marks official builds (FASTZAP_BUILD_* for
+  build_info) and version.sh prints the version and checks that package.json,
+  Cargo.toml and tauri.conf.json agree.
 
 ### Fixed
 
