@@ -120,3 +120,5 @@
   the autostart entry.
 - Autostart entries escape % and refuse paths with line breaks, and quick
   toggles of start with the system can no longer finish out of order.
+- Notification photos are decoded with size and memory limits, off the async
+  workers and two at a time.

@@ -2,12 +2,16 @@
 //! or the app icon.
 
 use base64::Engine;
-use image::{ImageFormat, Rgba, RgbaImage};
+use image::{ImageFormat, ImageReader, Limits, Rgba, RgbaImage};
 
 use super::policy::MAX_ICON_URL;
 use crate::settings::TrayTheme;
 
 const SIZE: u32 = 128;
+/// Decoding limits: page-supplied photos are small, and a highly compressed
+/// image must not expand into a huge allocation.
+const MAX_DECODED_SIDE: u32 = 1024;
+const MAX_DECODED_BYTES: u64 = 16 * 1024 * 1024;
 
 fn decode_data_url(url: &str) -> Option<Vec<u8>> {
     if url.len() > MAX_ICON_URL {
@@ -22,7 +26,16 @@ fn decode_data_url(url: &str) -> Option<Vec<u8>> {
 
 /// Circular PNG of the photo carried by a `data:image/...;base64` URL.
 pub fn circular_photo(data_url: &str) -> Option<Vec<u8>> {
-    let img = image::load_from_memory(&decode_data_url(data_url)?).ok()?;
+    let bytes = decode_data_url(data_url)?;
+    let mut limits = Limits::default();
+    limits.max_image_width = Some(MAX_DECODED_SIDE);
+    limits.max_image_height = Some(MAX_DECODED_SIDE);
+    limits.max_alloc = Some(MAX_DECODED_BYTES);
+    let mut reader = ImageReader::new(std::io::Cursor::new(bytes))
+        .with_guessed_format()
+        .ok()?;
+    reader.limits(limits);
+    let img = reader.decode().ok()?;
     let img = img
         .resize_to_fill(SIZE, SIZE, image::imageops::FilterType::Lanczos3)
         .to_rgba8();

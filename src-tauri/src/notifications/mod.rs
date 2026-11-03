@@ -145,6 +145,8 @@ fn image_for(app: &AppHandle, account_id: i64, title: &str, photo: Option<&str>)
     }
 }
 
+static IMAGE_JOBS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(2);
+
 /// Show a notification created by `account_id`'s page.
 pub async fn notify(app: &AppHandle, account_id: i64, web: WebNotification) {
     let state = app.state::<AppState>();
@@ -154,8 +156,22 @@ pub async fn notify(app: &AppHandle, account_id: i64, web: WebNotification) {
     let Some(content) = policy::compose(&state.settings.get(), &account, &web) else {
         return;
     };
-    let photo = content.photo.then_some(web.icon.as_deref()).flatten();
-    let mut outgoing = image_for(app, account_id, &content.title, photo);
+    let photo = content.photo.then(|| web.icon.clone()).flatten();
+    let mut outgoing = {
+        // Decoding is CPU-bound: keep it off the async workers, two at a time.
+        let Ok(_permit) = IMAGE_JOBS.acquire().await else {
+            return;
+        };
+        let (app, title) = (app.clone(), content.title.clone());
+        match tauri::async_runtime::spawn_blocking(move || {
+            image_for(&app, account_id, &title, photo.as_deref())
+        })
+        .await
+        {
+            Ok(outgoing) => outgoing,
+            Err(_) => return,
+        }
+    };
     outgoing.title = content.title;
     outgoing.body = content.body;
     outgoing.silent = content.silent;
