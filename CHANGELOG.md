@@ -252,6 +252,9 @@
 - Evolution Go: journal pages are applied in their original order in one
   transaction, so a read receipt no longer lands before its message and the
   cursor only advances when every event was stored.
+- Evolution Go: a transient journal error (HTTP 503, network, timeout) is
+  retried with backoff instead of turning recovery off for the session, and a
+  backlog longer than one batch keeps being read.
 
 ### Changed
 

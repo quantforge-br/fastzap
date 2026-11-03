@@ -15,7 +15,7 @@ pub mod ws;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -42,6 +42,9 @@ const NOTIFY_MAX_BATCH: usize = 5;
 const RECONNECT_DELAY: Duration = Duration::from_secs(10);
 const AVATAR_TTL: Duration = Duration::from_secs(6 * 3600);
 const JOURNAL_MAX_PAGES: usize = 200;
+const JOURNAL_PAUSE: Duration = Duration::from_secs(1);
+const JOURNAL_RETRY: Duration = Duration::from_secs(30);
+const JOURNAL_RETRY_MAX: Duration = Duration::from_secs(30 * 60);
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
 #[serde(tag = "state", rename_all = "snake_case")]
@@ -119,6 +122,8 @@ pub struct Session {
     connection: Mutex<Connection>,
     open_chat: Mutex<Option<String>>,
     journal: AtomicBool,
+    journal_reader: tokio::sync::Mutex<()>,
+    journal_failures: AtomicU32,
     contacts_loaded: AtomicBool,
     avatars: Mutex<HashMap<String, (Instant, Option<String>)>>,
     stop: watch::Sender<bool>,
@@ -299,6 +304,8 @@ fn start(app: &AppHandle, account: &Account) {
         connection: Mutex::new(Connection::Connecting),
         open_chat: Mutex::new(None),
         journal: AtomicBool::new(true),
+        journal_reader: tokio::sync::Mutex::new(()),
+        journal_failures: AtomicU32::new(0),
         contacts_loaded: AtomicBool::new(false),
         avatars: Mutex::new(HashMap::new()),
         stop: stop_tx,
@@ -411,15 +418,32 @@ async fn catch_up(app: &AppHandle, session: &Session) {
     if !session.journal.load(Ordering::SeqCst) {
         return;
     }
+    // One reader at a time: socket reconnects and continuations overlap.
+    let _reading = session.journal_reader.lock().await;
     for _ in 0..JOURNAL_MAX_PAGES {
         let Ok(cursor) = session.store.cursor() else {
             return;
         };
         let page = match session.client.chat_events(&session.token, &cursor).await {
-            Ok(page) => page,
-            Err(EvoError::NotFound | EvoError::Http { status: 503, .. }) => {
-                // The server runs without PRIVATE_CHAT_HISTORY.
+            Ok(page) => {
+                session.journal_failures.store(0, Ordering::SeqCst);
+                page
+            }
+            Err(EvoError::NotFound) => {
+                // The server predates the journal.
                 session.journal.store(false, Ordering::SeqCst);
+                return;
+            }
+            // 503 is both "PRIVATE_CHAT_HISTORY off" and a storage outage.
+            Err(
+                e @ (EvoError::Http { status: 503, .. } | EvoError::Network(_) | EvoError::Timeout),
+            ) => {
+                let failures = session.journal_failures.fetch_add(1, Ordering::SeqCst);
+                let delay = JOURNAL_RETRY
+                    .saturating_mul(1 << failures.min(5))
+                    .min(JOURNAL_RETRY_MAX);
+                log::warn!("evolution journal read failed, retrying in {delay:?}: {e}");
+                spawn_catch_up(app, session.account_id, delay);
                 return;
             }
             Err(e) => {
@@ -471,6 +495,18 @@ async fn catch_up(app: &AppHandle, session: &Session) {
             return;
         }
     }
+    // A long backlog: keep going from the saved cursor after a pause.
+    spawn_catch_up(app, session.account_id, JOURNAL_PAUSE);
+}
+
+fn spawn_catch_up(app: &AppHandle, account_id: i64, delay: Duration) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(delay).await;
+        if let Some(session) = app.state::<Evolution>().session(account_id) {
+            catch_up(&app, &session).await;
+        }
+    });
 }
 
 fn handle(app: &AppHandle, session: &Session, payload: &serde_json::Value, live: bool) {
