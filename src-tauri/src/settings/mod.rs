@@ -14,6 +14,7 @@ use ts_rs::TS;
 pub const SETTINGS_VERSION: u32 = 1;
 pub const DEFAULT_MAX_ACCOUNTS: u32 = 5;
 pub const MAX_SPELLCHECK_LANGUAGES: usize = 10;
+pub const MAX_RECENT_SPELLCHECK_LANGUAGES: usize = 4;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default)]
@@ -68,7 +69,8 @@ impl Settings {
         let sp = &mut self.spellcheck;
         sp.languages.dedup();
         sp.languages.truncate(MAX_SPELLCHECK_LANGUAGES);
-        sp.recent_languages.truncate(MAX_SPELLCHECK_LANGUAGES);
+        sp.recent_languages
+            .truncate(MAX_RECENT_SPELLCHECK_LANGUAGES);
         self.downloads.recent.truncate(crate::downloads::MAX_RECENT);
         if self.proxy.port > 65535 {
             self.proxy.port = 0;

@@ -6,6 +6,7 @@ pub mod bridge;
 pub mod customizations;
 pub mod downloads;
 pub mod settings;
+pub mod spellcheck;
 pub mod webview;
 
 use serde::Serialize;

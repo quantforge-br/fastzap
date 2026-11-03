@@ -54,6 +54,12 @@ const UI_COMMANDS: &[&str] = &[
     "custom_pick_preview",
     "custom_preview",
     "custom_reload",
+    "spell_state",
+    "spell_set_languages",
+    "spell_install",
+    "spell_remove",
+    "spell_import",
+    "spell_open_folder",
 ];
 
 /// Commands exposed to https://web.whatsapp.com.

@@ -206,6 +206,32 @@ por URL aceita só HTTPS, 15 s e 2 MB, com prévia do userstyles.world. A
 página `Customizations.svelte` grava arquivos na hora e as chaves de
 ativação e herança só em Salvar.
 
+## Corretor ortográfico
+
+`spellcheck` usa Enchant + Hunspell do WebKitGTK. `lib.rs` define
+`ENCHANT_CONFIG_DIR` como `<data>/dictionaries` antes do GTK iniciar, e os
+dicionários do app ficam em `<data>/dictionaries/hunspell/<tag>.{aff,dic}`;
+`/usr/share/hunspell` e `/usr/share/myspell` são listados como somente
+leitura. As tags seguem a normalização do Enchant (`pt-PT` → `pt_PT`).
+
+- `catalog`: catálogo embutido (`src-tauri/resources/hunspell-catalog.json`,
+  gerado por `scripts/hunspell-catalog.mjs` a partir de um commit fixo do
+  `wooorm/dictionaries`). Cada arquivo é conferido pelo tamanho e pelo SHA-1
+  de blob do git antes de ser gravado via `.part` + rename.
+- Seleção: até 10 idiomas, mapeados para tags instaladas (exata, depois
+  idioma); vazia, cai no dicionário do locale do sistema e depois no primeiro
+  instalado. Recentes: até 4, novos primeiro.
+- `provision` instala uma vez o dicionário do locale do sistema
+  (`spellcheck.provisioned_locale`); falhas são tentadas de novo no próximo
+  início.
+- `apply_all` aplica idiomas e estado ao `WebContext` de cada conta; roda na
+  criação do webview, em mudanças de `spellcheck` e após instalar/remover.
+- O menu de contexto (`linux.rs`) remove itens de navegação e inspeção e
+  acrescenta "Verificar ortografia" (ação `GAction` com estado) e
+  "Idiomas…", que emite a ação de UI `spellcheck_languages`.
+- UI: seção da página Idioma e Download, `LanguagePicker` e
+  `DictionaryManager`; o evento `spellcheck://changed` atualiza ambos.
+
 ## Traduções
 
 `po/*.po` vem do ZapZap (mesmo domínio e idiomas). `pnpm i18n`

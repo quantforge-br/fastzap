@@ -42,6 +42,9 @@ pub fn on_settings_changed<R: Runtime>(app: &AppHandle<R>, old: &Settings, new: 
             log::warn!("failed to recreate account webviews: {e}");
         }
     }
+    if old.spellcheck != new.spellcheck {
+        crate::spellcheck::apply_all(app);
+    }
     if old.appearance.theme != new.appearance.theme {
         super::actions::apply_theme(app);
     }

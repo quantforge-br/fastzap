@@ -98,6 +98,15 @@
   userstyles filtered to WhatsApp Web, injection after every page load, and a
   settings page to create, edit, import (file or HTTPS URL up to 2 MB),
   duplicate, delete, enable and preview files; CSS changes refresh open pages.
+- Spell checker on Linux with Hunspell dictionaries through Enchant: a catalog
+  pinned to a wooorm/dictionaries commit with git blob SHA-1 verification,
+  one-time install for the system locale, the language picker (up to 10
+  languages, 4 recent), the dictionary manager with install, removal and .dic
+  import, and system dictionaries listed read-only.
+- Page context menu on Linux without navigation, link-opening and inspector
+  entries, with Check Spelling and Languages… items.
+- scripts/hunspell-catalog.mjs regenerates the embedded Hunspell catalog from
+  a wooorm/dictionaries commit.
 
 ### Fixed
 

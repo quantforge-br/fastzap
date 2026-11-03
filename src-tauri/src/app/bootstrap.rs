@@ -69,6 +69,7 @@ pub fn init_state<R: Runtime>(app: &AppHandle<R>) -> anyhow::Result<()> {
         unread: Default::default(),
         downloads,
         permissions: Default::default(),
+        spellcheck: Default::default(),
     });
     Ok(())
 }

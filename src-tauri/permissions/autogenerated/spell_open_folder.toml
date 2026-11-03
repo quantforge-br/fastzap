@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-spell-open-folder"
+description = "Enables the spell_open_folder command without any pre-configured scope."
+commands.allow = ["spell_open_folder"]
+
+[[permission]]
+identifier = "deny-spell-open-folder"
+description = "Denies the spell_open_folder command without any pre-configured scope."
+commands.deny = ["spell_open_folder"]

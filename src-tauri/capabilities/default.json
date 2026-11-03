@@ -64,6 +64,12 @@
     "allow-custom-open-folder",
     "allow-custom-pick-preview",
     "allow-custom-preview",
-    "allow-custom-reload"
+    "allow-custom-reload",
+    "allow-spell-state",
+    "allow-spell-set-languages",
+    "allow-spell-install",
+    "allow-spell-remove",
+    "allow-spell-import",
+    "allow-spell-open-folder"
   ]
 }

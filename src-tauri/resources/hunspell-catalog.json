@@ -1,0 +1,1018 @@
+{
+ "repository": "wooorm/dictionaries",
+ "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+ "dictionaries": [
+  {
+   "code": "bg",
+   "aff": {
+    "sha": "84e1bbb99c8a16980074db28c487621a9aa59272",
+    "size": 58189
+   },
+   "dic": {
+    "sha": "c71b72a8e4e61582d6a27757bdba1275225ffb73",
+    "size": 1566242
+   }
+  },
+  {
+   "code": "br",
+   "aff": {
+    "sha": "17dee341c85c58075cda2b2cd1af22d090fa5608",
+    "size": 13888
+   },
+   "dic": {
+    "sha": "d3c1aa599ed6dc432adb94749b6e15697446b583",
+    "size": 3967626
+   }
+  },
+  {
+   "code": "ca",
+   "aff": {
+    "sha": "a00e65b156788fb8ac3d4be9f2d56b24e18c3a99",
+    "size": 49922
+   },
+   "dic": {
+    "sha": "d1ab153c03e59dc0ad5345afaa7d00b359547da6",
+    "size": 2876608
+   }
+  },
+  {
+   "code": "ca-valencia",
+   "aff": {
+    "sha": "e118acac527da3b03d34511343e8650faff7f21b",
+    "size": 50122
+   },
+   "dic": {
+    "sha": "3035ff3a783089aa109fa4149bbd9033470e4f8f",
+    "size": 2881104
+   }
+  },
+  {
+   "code": "cs",
+   "aff": {
+    "sha": "3dc3b73ff6eeaec6000e4a53e933c3c17449cac6",
+    "size": 112714
+   },
+   "dic": {
+    "sha": "8f889db815b182dcdbc5695b8d3251180bececcf",
+    "size": 3648134
+   }
+  },
+  {
+   "code": "cy",
+   "aff": {
+    "sha": "e38379bc6bd0408f711db17c75e1bd96487f2730",
+    "size": 7489
+   },
+   "dic": {
+    "sha": "c981131364799b7eb720fa45c78518bbb52e02c1",
+    "size": 888651
+   }
+  },
+  {
+   "code": "da",
+   "aff": {
+    "sha": "31813a45615fecd7af5dff3549dbd67037320c56",
+    "size": 81584
+   },
+   "dic": {
+    "sha": "ac7a3c9f5a125b5caa127767d1462c9301169f6c",
+    "size": 3719300
+   }
+  },
+  {
+   "code": "de",
+   "aff": {
+    "sha": "825f3fa5fcc57afcd253f76568d756ef44713ebe",
+    "size": 19199
+   },
+   "dic": {
+    "sha": "5bb091ebbb23e18812c28f9e72a7ee0907fee6e3",
+    "size": 1118194
+   }
+  },
+  {
+   "code": "de-AT",
+   "aff": {
+    "sha": "904a091b0b6ff066fb44e7d77fcb16edca74ef6a",
+    "size": 19199
+   },
+   "dic": {
+    "sha": "1fff43bb8c7525f9660cc507b9e0b969fe75534c",
+    "size": 1121822
+   }
+  },
+  {
+   "code": "de-CH",
+   "aff": {
+    "sha": "05ee27aedfcb6b2d221e55d14b691d51a6a7a614",
+    "size": 19199
+   },
+   "dic": {
+    "sha": "437a23f0b9b9aaad13811b5d005223e29b98e08e",
+    "size": 1119710
+   }
+  },
+  {
+   "code": "el",
+   "aff": {
+    "sha": "c85beebd333105355340dcd434f8286460b3e285",
+    "size": 20058
+   },
+   "dic": {
+    "sha": "e490e628150303209f174d806f74708d46b7ca2a",
+    "size": 19421967
+   }
+  },
+  {
+   "code": "el-polyton",
+   "aff": {
+    "sha": "547ed9441de739dd9512683c86cc36f6bf238d95",
+    "size": 18678
+   },
+   "dic": {
+    "sha": "6b974ed72bbaaa055b69b069b4175ccddaaa0a34",
+    "size": 16669155
+   }
+  },
+  {
+   "code": "en",
+   "aff": {
+    "sha": "9e7cb1e2f1c2cc3faff5a7ae2d5c041091017bdb",
+    "size": 3086
+   },
+   "dic": {
+    "sha": "b41fd203e6daf76934db99dec6572a230516368a",
+    "size": 551762
+   }
+  },
+  {
+   "code": "en-AU",
+   "aff": {
+    "sha": "9e7cb1e2f1c2cc3faff5a7ae2d5c041091017bdb",
+    "size": 3086
+   },
+   "dic": {
+    "sha": "c7e8ccb71535d1c854ee0ba71cf27cfc93ac48ba",
+    "size": 554336
+   }
+  },
+  {
+   "code": "en-CA",
+   "aff": {
+    "sha": "9e7cb1e2f1c2cc3faff5a7ae2d5c041091017bdb",
+    "size": 3086
+   },
+   "dic": {
+    "sha": "8399e7ca1906e0f89f0fe4da5a05b67f4ccf787f",
+    "size": 551583
+   }
+  },
+  {
+   "code": "en-GB",
+   "aff": {
+    "sha": "9e7cb1e2f1c2cc3faff5a7ae2d5c041091017bdb",
+    "size": 3086
+   },
+   "dic": {
+    "sha": "85edde560296b643498da7292eabd09740682dd8",
+    "size": 552106
+   }
+  },
+  {
+   "code": "en-ZA",
+   "aff": {
+    "sha": "a0c8c3375daf0f89d2e81006060fc1016bb86297",
+    "size": 35805
+   },
+   "dic": {
+    "sha": "ed83c1eefc9096073357b6fcc9106d3fb0c703e2",
+    "size": 596444
+   }
+  },
+  {
+   "code": "eo",
+   "aff": {
+    "sha": "ec97d154754a94e2b18ab18013af6fd84741dd99",
+    "size": 16322
+   },
+   "dic": {
+    "sha": "a24ef932881fbc0ae86994b0cb396dc614935d79",
+    "size": 382137
+   }
+  },
+  {
+   "code": "es",
+   "aff": {
+    "sha": "4bab8067f3bbcce50c9d5ea48243911681beb062",
+    "size": 167135
+   },
+   "dic": {
+    "sha": "719bc8ca190a1866485ddf088d20733b64e3e4da",
+    "size": 706202
+   }
+  },
+  {
+   "code": "es-AR",
+   "aff": {
+    "sha": "206676e7f1ed065ac7f2f58d0a791121314a387c",
+    "size": 169460
+   },
+   "dic": {
+    "sha": "59cb6dc0f0b4bcb15ab944d2e36cf6d6c0825257",
+    "size": 698035
+   }
+  },
+  {
+   "code": "es-BO",
+   "aff": {
+    "sha": "bafbd28c1f1aff100591bb74d67c5cb31b23fb68",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "c0d747c9a4b24095b594208017344cca12461bbf",
+    "size": 693089
+   }
+  },
+  {
+   "code": "es-CL",
+   "aff": {
+    "sha": "bafbd28c1f1aff100591bb74d67c5cb31b23fb68",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "8ce1a057054d34ec1cf28836e3e168c80f079602",
+    "size": 695714
+   }
+  },
+  {
+   "code": "es-CO",
+   "aff": {
+    "sha": "34f0c88bc78a8f8ec6786edf596f626c260aaac6",
+    "size": 158014
+   },
+   "dic": {
+    "sha": "79a24a6ee5490d414ddb5210d0486c8a729a5bd7",
+    "size": 742304
+   }
+  },
+  {
+   "code": "es-CR",
+   "aff": {
+    "sha": "bafbd28c1f1aff100591bb74d67c5cb31b23fb68",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "94b06614c195a90bf8002ab82d0e9d992703e654",
+    "size": 691139
+   }
+  },
+  {
+   "code": "es-CU",
+   "aff": {
+    "sha": "bafbd28c1f1aff100591bb74d67c5cb31b23fb68",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "ce4451da6e920fde0c923287ad7d128b39b7d46d",
+    "size": 693050
+   }
+  },
+  {
+   "code": "es-DO",
+   "aff": {
+    "sha": "bafbd28c1f1aff100591bb74d67c5cb31b23fb68",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "0f556a335435b6b358261bcdc8677c7104205318",
+    "size": 689843
+   }
+  },
+  {
+   "code": "es-EC",
+   "aff": {
+    "sha": "bafbd28c1f1aff100591bb74d67c5cb31b23fb68",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "3c5e6fbc3b8f5e3685faa5d16433e2113864b381",
+    "size": 691730
+   }
+  },
+  {
+   "code": "es-GT",
+   "aff": {
+    "sha": "d106d1115cdeddf7d5a86760acae963b3d0ea5e8",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "f4b322ed65b4343329d2cb625dd31ca05d5656b2",
+    "size": 690768
+   }
+  },
+  {
+   "code": "es-HN",
+   "aff": {
+    "sha": "bafbd28c1f1aff100591bb74d67c5cb31b23fb68",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "d7e8de2b3a528c4573bf3a5d5ee026c30d7d37c4",
+    "size": 692774
+   }
+  },
+  {
+   "code": "es-MX",
+   "aff": {
+    "sha": "34f0c88bc78a8f8ec6786edf596f626c260aaac6",
+    "size": 158014
+   },
+   "dic": {
+    "sha": "3b18cbe9f70d0bd2ef92ca035e8f70fe0d6d3d63",
+    "size": 714044
+   }
+  },
+  {
+   "code": "es-NI",
+   "aff": {
+    "sha": "bafbd28c1f1aff100591bb74d67c5cb31b23fb68",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "d94221d8c5927ad0a9061029180a9e6da99c8861",
+    "size": 691690
+   }
+  },
+  {
+   "code": "es-PA",
+   "aff": {
+    "sha": "bafbd28c1f1aff100591bb74d67c5cb31b23fb68",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "7b1f91c0e4655023451a7eb1fa0c447a6982279d",
+    "size": 690426
+   }
+  },
+  {
+   "code": "es-PE",
+   "aff": {
+    "sha": "34f0c88bc78a8f8ec6786edf596f626c260aaac6",
+    "size": 158014
+   },
+   "dic": {
+    "sha": "3bafa206985ace2cb3bcb64de0b22e5fd46bbdd7",
+    "size": 705766
+   }
+  },
+  {
+   "code": "es-PH",
+   "aff": {
+    "sha": "53eec9cdeeb782012eb5f476451897cda85dc5e6",
+    "size": 169457
+   },
+   "dic": {
+    "sha": "8cee2369f19ae2f7719a4e99f3d99c4d0e024dd7",
+    "size": 788629
+   }
+  },
+  {
+   "code": "es-PR",
+   "aff": {
+    "sha": "bafbd28c1f1aff100591bb74d67c5cb31b23fb68",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "ca973b45d0245f554be4ecfd2ac868ed2555c665",
+    "size": 689965
+   }
+  },
+  {
+   "code": "es-PY",
+   "aff": {
+    "sha": "bafbd28c1f1aff100591bb74d67c5cb31b23fb68",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "7131fb34504cbf7db7043d547381150db96f2801",
+    "size": 690557
+   }
+  },
+  {
+   "code": "es-SV",
+   "aff": {
+    "sha": "bafbd28c1f1aff100591bb74d67c5cb31b23fb68",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "0cbc43e58d52f0e8ba36ce81141f1773ddb962df",
+    "size": 691130
+   }
+  },
+  {
+   "code": "es-US",
+   "aff": {
+    "sha": "53eec9cdeeb782012eb5f476451897cda85dc5e6",
+    "size": 169457
+   },
+   "dic": {
+    "sha": "4d16267e50f98c97a64c8993efff9ca6f935b338",
+    "size": 686440
+   }
+  },
+  {
+   "code": "es-UY",
+   "aff": {
+    "sha": "bafbd28c1f1aff100591bb74d67c5cb31b23fb68",
+    "size": 160328
+   },
+   "dic": {
+    "sha": "52963f3c76e40ebc6fb1e3ccb8ed67437876951b",
+    "size": 692682
+   }
+  },
+  {
+   "code": "es-VE",
+   "aff": {
+    "sha": "34f0c88bc78a8f8ec6786edf596f626c260aaac6",
+    "size": 158014
+   },
+   "dic": {
+    "sha": "c5b2cf78b3fa4d53fd6ad664f58f2e08ce4983fb",
+    "size": 694769
+   }
+  },
+  {
+   "code": "et",
+   "aff": {
+    "sha": "13ae97de757a24c21805c330c4d367a6adba6056",
+    "size": 240016
+   },
+   "dic": {
+    "sha": "28c0d156120b5ccda91846abbb4ff656186b1075",
+    "size": 4457441
+   }
+  },
+  {
+   "code": "eu",
+   "aff": {
+    "sha": "c3df8365a05ff295c15d0fb73f0429f8cf9438f7",
+    "size": 2729393
+   },
+   "dic": {
+    "sha": "c556b7c668df8ed7f12a1db94ad605140481dc59",
+    "size": 2303418
+   }
+  },
+  {
+   "code": "fa",
+   "aff": {
+    "sha": "a852cca210905fe329cd7562cfe401862b5f4fa6",
+    "size": 5440
+   },
+   "dic": {
+    "sha": "a9de32bc9833896f47f8b6fc82691ee710252ea2",
+    "size": 2575990
+   }
+  },
+  {
+   "code": "fo",
+   "aff": {
+    "sha": "b8b9881025e2a0e7677d6aeb982c7f1ca1248492",
+    "size": 170213
+   },
+   "dic": {
+    "sha": "74f77c5c7bf36a0491615c7c188473dc8ccef4e5",
+    "size": 1716099
+   }
+  },
+  {
+   "code": "fr",
+   "aff": {
+    "sha": "5c24e468f8344f8d044a4107c887535c5a8a5e38",
+    "size": 199870
+   },
+   "dic": {
+    "sha": "bd1e9b0fed954db8f07c7c9d20888afd55f35305",
+    "size": 1229133
+   }
+  },
+  {
+   "code": "fur",
+   "aff": {
+    "sha": "a23a4fe50fcbc7a1b5aea5c7e6bc2e6802298f24",
+    "size": 17832
+   },
+   "dic": {
+    "sha": "956d50d4babe4ecc77db77fd02e7f92d655524eb",
+    "size": 384726
+   }
+  },
+  {
+   "code": "fy",
+   "aff": {
+    "sha": "23acc0837acec1b9fa9b0f392272d6d9fd0f93c3",
+    "size": 7020461
+   },
+   "dic": {
+    "sha": "8d86bf265505fc7d8d90f94ffca50460c736b6ea",
+    "size": 3612120
+   }
+  },
+  {
+   "code": "ga",
+   "aff": {
+    "sha": "051d542931a632b383246615514e542ae6f9a997",
+    "size": 20537
+   },
+   "dic": {
+    "sha": "eef469aa2b98c7f3e7e00ef33e7a31222e0739f6",
+    "size": 1582329
+   }
+  },
+  {
+   "code": "gd",
+   "aff": {
+    "sha": "63f976d3bf91bca7780dccf133de8e9691c1ecab",
+    "size": 11019
+   },
+   "dic": {
+    "sha": "a43e0fa6ebca489001331ef595da21d8293f2869",
+    "size": 2361638
+   }
+  },
+  {
+   "code": "gl",
+   "aff": {
+    "sha": "51f026101d3200377ede92a864ca5fbe9fff563d",
+    "size": 1159910
+   },
+   "dic": {
+    "sha": "d14784115432bcf781082941de64f1c5e1776b22",
+    "size": 8636406
+   }
+  },
+  {
+   "code": "he",
+   "aff": {
+    "sha": "7e4f3c0a1b7c180a2005534cb35e75eb1526073c",
+    "size": 78883
+   },
+   "dic": {
+    "sha": "16c199937300e156ab039661d0a618ba344f6d6e",
+    "size": 5688111
+   }
+  },
+  {
+   "code": "hr",
+   "aff": {
+    "sha": "01a62e95334af3cffef841584f390bee5001f8a4",
+    "size": 96099
+   },
+   "dic": {
+    "sha": "937bf820af51433d0d725cadbfc9961dd8f1955d",
+    "size": 732589
+   }
+  },
+  {
+   "code": "hu",
+   "aff": {
+    "sha": "efb2e1ea52e9c17a87e3c8e92b101ea6f029cf28",
+    "size": 807888
+   },
+   "dic": {
+    "sha": "976805d67cc4a4e7d922db05287c6bf3d737cb05",
+    "size": 3153800
+   }
+  },
+  {
+   "code": "hy",
+   "aff": {
+    "sha": "5b0380b1b8f49571662fcc9a33e6c0c4cc86f22c",
+    "size": 25543
+   },
+   "dic": {
+    "sha": "64a25592f30433c96bd29feaaf53254b2247b400",
+    "size": 2210856
+   }
+  },
+  {
+   "code": "hyw",
+   "aff": {
+    "sha": "2661b2da50206b57c1a505d5c58a76386ca0d911",
+    "size": 96878
+   },
+   "dic": {
+    "sha": "f64af084e35e9b1d57b5acc96547caaa65dd233e",
+    "size": 2068288
+   }
+  },
+  {
+   "code": "ia",
+   "aff": {
+    "sha": "7882a30b236774e1e0d84883ef0f4bdc68eba9c9",
+    "size": 34025
+   },
+   "dic": {
+    "sha": "108e17782c95bc811ec247acf5f08b28b92ccc5c",
+    "size": 713481
+   }
+  },
+  {
+   "code": "ie",
+   "aff": {
+    "sha": "ebe567a97945f8c2c32560d837333fd8436e8ce1",
+    "size": 5686
+   },
+   "dic": {
+    "sha": "6662e8d2b816166e960a2edd6da5c80cec3fbf22",
+    "size": 252917
+   }
+  },
+  {
+   "code": "is",
+   "aff": {
+    "sha": "888cc1a5adfdd8f9460851c129d80d3a58771bba",
+    "size": 309734
+   },
+   "dic": {
+    "sha": "e17932e4e8dbd2dc401d20aba15f53ef2de697fa",
+    "size": 2454138
+   }
+  },
+  {
+   "code": "it",
+   "aff": {
+    "sha": "3154d0846a6330b0c66c4e919ae20b44c842fc1c",
+    "size": 70020
+   },
+   "dic": {
+    "sha": "0f224a23da400b3aeea4e9201be7361b7983e79a",
+    "size": 1295754
+   }
+  },
+  {
+   "code": "ka",
+   "aff": {
+    "sha": "3c092eba8b69f6fafaefee5522ef66e9671311e9",
+    "size": 63577
+   },
+   "dic": {
+    "sha": "e2683a4eb846969b5cf7364e3abfab2c3ea7b950",
+    "size": 3884579
+   }
+  },
+  {
+   "code": "ko",
+   "aff": {
+    "sha": "26b65caa0a2e9d5939d2d55f9cfadbfdd796d38b",
+    "size": 11094418
+   },
+   "dic": {
+    "sha": "4f727662c151367b9569fc18ab1e6cdd79a0d6bd",
+    "size": 2864525
+   }
+  },
+  {
+   "code": "la",
+   "aff": {
+    "sha": "ba7386d3f4378a4383ef31a215db20da0d92f0b7",
+    "size": 441477
+   },
+   "dic": {
+    "sha": "a5001a6764f577e4c17441de60f3cc6a699b184f",
+    "size": 1710586
+   }
+  },
+  {
+   "code": "lb",
+   "aff": {
+    "sha": "4e3f9a90101919e980e249c7d70f1255f1138ae1",
+    "size": 79066
+   },
+   "dic": {
+    "sha": "7b866a950afcb50ecaa4a6a6e961b2293bd664ed",
+    "size": 3704091
+   }
+  },
+  {
+   "code": "lt",
+   "aff": {
+    "sha": "29cdfc05350e4e9fa5a6f72358792db5c8735a0b",
+    "size": 99714
+   },
+   "dic": {
+    "sha": "31af587645d2ad1d1e1f3718bc88203cb2dd996e",
+    "size": 1181184
+   }
+  },
+  {
+   "code": "ltg",
+   "aff": {
+    "sha": "02a65791392e6446587c1fb09a83c36aabaa8b06",
+    "size": 210162
+   },
+   "dic": {
+    "sha": "c8d28d4c2892938959e458142d4781102f623b3f",
+    "size": 134293
+   }
+  },
+  {
+   "code": "lv",
+   "aff": {
+    "sha": "ad29c4cee3d2e3a5731bf23a249273d45e692d5c",
+    "size": 130475
+   },
+   "dic": {
+    "sha": "fcdad2047aea7fd27914490ff73ccba90878680b",
+    "size": 1844831
+   }
+  },
+  {
+   "code": "mk",
+   "aff": {
+    "sha": "191e1fd621357c9b469a4b5ee6d64d47509e0e6c",
+    "size": 181552
+   },
+   "dic": {
+    "sha": "fc593a5f8d4fcda5cecf9b93e21240ddf4a0a6b3",
+    "size": 2279845
+   }
+  },
+  {
+   "code": "mn",
+   "aff": {
+    "sha": "728b0f6b5e6234dae7ddcf45a671ff5f3024bab9",
+    "size": 490281
+   },
+   "dic": {
+    "sha": "cd60991e0aae60c5d42feb42d8fa156b0ecaa95d",
+    "size": 17417591
+   }
+  },
+  {
+   "code": "nb",
+   "aff": {
+    "sha": "7639880ae1bcd55d0e1bcdec66a2d9c1f8367e99",
+    "size": 17381
+   },
+   "dic": {
+    "sha": "857b681802cdf865cb4b22e9fd98553726d685c1",
+    "size": 5349724
+   }
+  },
+  {
+   "code": "nds",
+   "aff": {
+    "sha": "8c00cbb1728ed73f86df85a4c48c4ef49b070dee",
+    "size": 12733
+   },
+   "dic": {
+    "sha": "9fb5b59ae3230c9e237d6f8396682b76f4c40edf",
+    "size": 103126
+   }
+  },
+  {
+   "code": "ne",
+   "aff": {
+    "sha": "c272173c6e3ca998722dcc133782cf5698172969",
+    "size": 69405
+   },
+   "dic": {
+    "sha": "c6f72034f0c96f2cdfc54c3d61eb07ccc97c18ac",
+    "size": 876717
+   }
+  },
+  {
+   "code": "nl",
+   "aff": {
+    "sha": "42dcd0445337237b83c6748b877f7edb83e1fd4b",
+    "size": 46732
+   },
+   "dic": {
+    "sha": "d71da6b2ed11332bdd94f7442be4cbab7b2595a8",
+    "size": 2489166
+   }
+  },
+  {
+   "code": "nn",
+   "aff": {
+    "sha": "682395689ad15ff53c1595214e477c0934550abc",
+    "size": 13615
+   },
+   "dic": {
+    "sha": "877ee4a24812d32492739ce3b1e758772529dd91",
+    "size": 3338635
+   }
+  },
+  {
+   "code": "oc",
+   "aff": {
+    "sha": "54cca74c1590d998baa967f7230c5b0e393980b7",
+    "size": 19560
+   },
+   "dic": {
+    "sha": "10195e0c3c59f9c8e6c084b9ad1b2372e6f6377a",
+    "size": 2767078
+   }
+  },
+  {
+   "code": "pl",
+   "aff": {
+    "sha": "114777eb782bcafa60a5baff0001ac68f162fd04",
+    "size": 268824
+   },
+   "dic": {
+    "sha": "c7dbafb8966cae673a623bdd9748356def4124cb",
+    "size": 4683579
+   }
+  },
+  {
+   "code": "pt",
+   "aff": {
+    "sha": "8e2a1442775e3e25f827c4e693bcd6874ba020e5",
+    "size": 979789
+   },
+   "dic": {
+    "sha": "f6ce0d73f0301caa112be347645f7c5bdfb73c4b",
+    "size": 4477692
+   }
+  },
+  {
+   "code": "pt-PT",
+   "aff": {
+    "sha": "ef6aaf55ccc2cfba2948cf5a92eb5f4849634c12",
+    "size": 95089
+   },
+   "dic": {
+    "sha": "d29bf2eec9a47e010bd06c1c7b43e6da9650c4e4",
+    "size": 1475328
+   }
+  },
+  {
+   "code": "ro",
+   "aff": {
+    "sha": "ec057f82d8a713854ba919bb78972cdc2f3c9a8d",
+    "size": 55040
+   },
+   "dic": {
+    "sha": "1a843e14aaa3458b6550a06567d648749903293c",
+    "size": 2202394
+   }
+  },
+  {
+   "code": "ru",
+   "aff": {
+    "sha": "b6bef6d261914c579542b59c89dd03b83ae5927c",
+    "size": 71236
+   },
+   "dic": {
+    "sha": "e5cfd3614c2303be12da481198b5d914e592da9c",
+    "size": 3473191
+   }
+  },
+  {
+   "code": "rw",
+   "aff": {
+    "sha": "3dd90f467359deb2d8d832a2a6a9dc13a2d63671",
+    "size": 38203967
+   },
+   "dic": {
+    "sha": "0d9cd6c52b27b1a5005c81cf778e14a98df3b2aa",
+    "size": 542
+   }
+  },
+  {
+   "code": "sk",
+   "aff": {
+    "sha": "7ea3f69dc35070cd2ee69285c89556528965628d",
+    "size": 99298
+   },
+   "dic": {
+    "sha": "18dc378dad69213b3522ba9d72f7ec2aabf01b01",
+    "size": 3502147
+   }
+  },
+  {
+   "code": "sl",
+   "aff": {
+    "sha": "179c7e6842a9338fa49591fb40960cb5cdc9c2f8",
+    "size": 15054
+   },
+   "dic": {
+    "sha": "af84c2cfafdc0c6239c90b6d4df9730e04d1c96c",
+    "size": 3084448
+   }
+  },
+  {
+   "code": "sr",
+   "aff": {
+    "sha": "ce9334e5c8713aa08a716425e998b8055c41717b",
+    "size": 1296
+   },
+   "dic": {
+    "sha": "b0c3bc760567c94f92156a0b372fec5fb7af4485",
+    "size": 4447970
+   }
+  },
+  {
+   "code": "sr-Latn",
+   "aff": {
+    "sha": "764276d2e7b23dd05b7e16bee2a7bdfc24f9966b",
+    "size": 704
+   },
+   "dic": {
+    "sha": "f96a3524621912151fc3e687f5fbb443ca20a8c8",
+    "size": 2489827
+   }
+  },
+  {
+   "code": "sv",
+   "aff": {
+    "sha": "795902c06eae9cded2632e236569e28007ba2b5a",
+    "size": 18581
+   },
+   "dic": {
+    "sha": "70f1a1509fa9b8e74f702123b4b094d23153d94a",
+    "size": 2344199
+   }
+  },
+  {
+   "code": "sv-FI",
+   "aff": {
+    "sha": "f30e572469e97d90c2deefd54569a53c1c236120",
+    "size": 18581
+   },
+   "dic": {
+    "sha": "589139e6fcd82cf412cb530acc61c179faad4c40",
+    "size": 2339364
+   }
+  },
+  {
+   "code": "tk",
+   "aff": {
+    "sha": "1ee6d2d9fc7c39d857fd8f3f33839d594881b6d3",
+    "size": 369118
+   },
+   "dic": {
+    "sha": "bf85af9263b09c3c42f51f668cf469fab2ff5b49",
+    "size": 784836
+   }
+  },
+  {
+   "code": "tlh",
+   "aff": {
+    "sha": "bb29f0a48e4b35c7cc411d301edf6fbb3e47ee8a",
+    "size": 2242
+   },
+   "dic": {
+    "sha": "88aab90bee6bad4abcbbfe727335c1ee843f26a9",
+    "size": 93976
+   }
+  },
+  {
+   "code": "tlh-Latn",
+   "aff": {
+    "sha": "344fd42cf2f86595c513cdeb9cb8183295fe1024",
+    "size": 1774
+   },
+   "dic": {
+    "sha": "4e4542f71c11dfdb15679a87244b773776fa6f8c",
+    "size": 44710
+   }
+  },
+  {
+   "code": "tr",
+   "aff": {
+    "sha": "c663303c9a9c0549c4ec825a1840249c5ab67601",
+    "size": 240814
+   },
+   "dic": {
+    "sha": "8462432906aded651c05dedc13c3b5f127035837",
+    "size": 9117192
+   }
+  },
+  {
+   "code": "uk",
+   "aff": {
+    "sha": "2343c2a539b1250e563e6853ce62384061a5ed93",
+    "size": 203292
+   },
+   "dic": {
+    "sha": "2fc4d272a1ccda61d835330f1fd5ee46edf58da7",
+    "size": 8493094
+   }
+  },
+  {
+   "code": "vi",
+   "aff": {
+    "sha": "bb3fa19ca1518e1aef3fc0f0d9629338afd49ec9",
+    "size": 1081
+   },
+   "dic": {
+    "sha": "5447c42d645c5ac63ab8d040b5a51d12fc0827aa",
+    "size": 39858
+   }
+  }
+ ]
+}

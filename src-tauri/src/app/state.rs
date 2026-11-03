@@ -19,4 +19,5 @@ pub struct AppState {
     pub unread: UnreadRegistry,
     pub downloads: Downloads,
     pub permissions: crate::permissions::Granted,
+    pub spellcheck: crate::spellcheck::Spellcheck,
 }

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-spell-set-languages"
+description = "Enables the spell_set_languages command without any pre-configured scope."
+commands.allow = ["spell_set_languages"]
+
+[[permission]]
+identifier = "deny-spell-set-languages"
+description = "Denies the spell_set_languages command without any pre-configured scope."
+commands.deny = ["spell_set_languages"]

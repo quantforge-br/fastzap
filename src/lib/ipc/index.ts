@@ -18,6 +18,7 @@ import type { PermissionPrompt } from "./generated/PermissionPrompt";
 import type { Rect } from "./generated/Rect";
 import type { RegionCallingCode } from "./generated/RegionCallingCode";
 import type { Settings } from "./generated/Settings";
+import type { SpellState } from "./generated/SpellState";
 import type { UiAction } from "./generated/UiAction";
 import type { UnreadSnapshot } from "./generated/UnreadSnapshot";
 
@@ -38,6 +39,7 @@ export type {
   Rect,
   RegionCallingCode,
   Settings,
+  SpellState,
   UiAction,
   UnreadSnapshot,
 };
@@ -52,6 +54,7 @@ export const events = {
   downloadPrompt: "downloads://prompt",
   downloadSaved: "downloads://saved",
   permissionRequest: "permissions://request",
+  spellcheckChanged: "spellcheck://changed",
 } as const;
 
 export const settings = {
@@ -79,6 +82,15 @@ export const downloads = {
   deleteFile: (path: string) => invoke<void>("download_delete_file", { path }),
   open: (path: string) => invoke<void>("download_open", { path }),
   reveal: (path: string) => invoke<void>("download_reveal", { path }),
+};
+
+export const spellcheck = {
+  state: () => invoke<SpellState>("spell_state"),
+  setLanguages: (languages: string[]) => invoke<void>("spell_set_languages", { languages }),
+  install: (tag: string) => invoke<void>("spell_install", { tag }),
+  remove: (tag: string, disable: boolean) => invoke<void>("spell_remove", { tag, disable }),
+  import: () => invoke<string | null>("spell_import"),
+  openFolder: () => invoke<void>("spell_open_folder"),
 };
 
 export const layout = {

@@ -10,6 +10,7 @@
   import TitleBar from "$lib/components/TitleBar.svelte";
   import { t } from "$lib/i18n/index.svelte";
   import SettingsView from "$lib/settings/SettingsView.svelte";
+  import { spellPicker } from "$lib/spellcheck/request.svelte";
   import { DEFAULT_PAGE } from "$lib/settings/pages";
   import { patchSettings, startSettings, store } from "$lib/stores/settings.svelte";
 
@@ -150,6 +151,11 @@
       // At the limit the backend refuses and the page shows the limit.
       addAccount().catch(() => {});
       settingsPage = "accounts";
+      return openPanel("settings");
+    }
+    if (action.action === "spellcheck_languages") {
+      spellPicker.requested = true;
+      settingsPage = "language_downloads";
       return openPanel("settings");
     }
     if (action.action === "settings") settingsPage = DEFAULT_PAGE;

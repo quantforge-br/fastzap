@@ -14,12 +14,13 @@ pub mod platform;
 pub mod proxy;
 pub mod secrets;
 pub mod settings;
+pub mod spellcheck;
 pub mod tray;
 pub mod webview;
 
 use commands::{
     accounts as acc, app as appcmd, bridge, customizations as custom, downloads as dl,
-    settings as set, webview as wv,
+    settings as set, spellcheck as spell, webview as wv,
 };
 use tauri::Manager;
 use tauri_plugin_window_state::StateFlags;
@@ -38,6 +39,18 @@ pub fn run() {
     ) {
         // SAFETY: no other thread exists yet; GTK reads this when it starts.
         unsafe { std::env::set_var("GDK_BACKEND", backend) };
+    }
+    // Enchant reads its Hunspell dictionaries from here; `AppPaths` resolves
+    // the same directory once Tauri runs.
+    #[cfg(target_os = "linux")]
+    if let Some(data) = dirs::data_dir() {
+        // SAFETY: still single-threaded, as above.
+        unsafe {
+            std::env::set_var(
+                "ENCHANT_CONFIG_DIR",
+                data.join(APP_ID).join(paths::DICTIONARIES_DIR),
+            )
+        };
     }
 
     let builder = tauri::Builder::default()
@@ -78,6 +91,7 @@ pub fn run() {
             i18n::set_language(&settings.system.interface_language);
             app::window::create_main(handle)?;
             state.webviews.sync(handle)?;
+            spellcheck::provision(handle);
             tray::init(handle)?;
             #[cfg(unix)]
             app::lifecycle::install_signal_handler(handle);
@@ -164,6 +178,12 @@ pub fn run() {
             custom::custom_pick_preview,
             custom::custom_preview,
             custom::custom_reload,
+            spell::spell_state,
+            spell::spell_set_languages,
+            spell::spell_install,
+            spell::spell_remove,
+            spell::spell_import,
+            spell::spell_open_folder,
             bridge::wa_title_changed,
             bridge::wa_shortcut,
             bridge::wa_theme_event,

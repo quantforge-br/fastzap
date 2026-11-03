@@ -30,6 +30,7 @@ const UI_OWNED: &[&str] = &[
     "show_shortcuts",
     "donate",
     "report_problem",
+    "spellcheck_languages",
 ];
 
 pub fn dispatch<R: Runtime>(app: &AppHandle<R>, action: &str) {

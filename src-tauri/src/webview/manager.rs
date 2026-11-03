@@ -261,6 +261,8 @@ impl WebviewManager {
         install_plain_paste_shortcut(&webview, account.id);
         #[cfg(target_os = "linux")]
         crate::permissions::install(&webview, account.id);
+        #[cfg(target_os = "linux")]
+        crate::spellcheck::install_context_menu(&webview);
         Ok(webview)
     }
 

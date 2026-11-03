@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-spell-state"
+description = "Enables the spell_state command without any pre-configured scope."
+commands.allow = ["spell_state"]
+
+[[permission]]
+identifier = "deny-spell-state"
+description = "Denies the spell_state command without any pre-configured scope."
+commands.deny = ["spell_state"]

@@ -4,6 +4,8 @@ use std::path::PathBuf;
 
 use tauri::{AppHandle, Manager, Runtime};
 
+pub const DICTIONARIES_DIR: &str = "dictionaries";
+
 #[derive(Debug, Clone)]
 pub struct AppPaths {
     pub config_dir: PathBuf,
@@ -42,8 +44,9 @@ impl AppPaths {
         self.data_dir.join("evolution").join(account_id.to_string())
     }
 
+    /// Enchant configuration directory; dictionaries go to its `hunspell/`.
     pub fn dictionaries_dir(&self) -> PathBuf {
-        self.data_dir.join("dictionaries")
+        self.data_dir.join(DICTIONARIES_DIR)
     }
 
     pub fn reports_dir(&self) -> PathBuf {

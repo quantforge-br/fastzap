@@ -22,9 +22,9 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Deep links `whatsapp:` / wa.me | `deeplink.py` | `webview::deeplink` | |
 | Chat por número (`Ctrl+M`) | `open_chat.py` | `webview::deeplink` + diálogo | |
 | Colar como texto e tabelas de planilha | `clipboard_table.py`, `web_view.py` | `webview::clipboard` | |
-| Menu de contexto | `web_view.py` | menu padrão do motor; `webview::context_menu` com a fase de corretor | itens de idioma/corretor ainda ausentes |
+| Menu de contexto | `web_view.py` | `spellcheck::linux` (sinal `context-menu` do WebKitGTK) | Linux; remove navegação/abrir link/inspecionar e acrescenta "Verificar ortografia" e "Idiomas…"; rótulos padrão vêm do WebKit no idioma do sistema |
 | CSS/JS personalizados | `features/customizations` | `customizations` + página Customizações avançadas | mesma árvore de arquivos; CSS é reaplicado nas páginas abertas ao salvar |
-| Corretor ortográfico | `features/dictionaries` (`.bdic`) | `spellcheck` | **formato Hunspell** (`.dic/.aff`); `.bdic` não é importado |
+| Corretor ortográfico | `features/dictionaries` (`.bdic`) | `spellcheck` + `src/lib/spellcheck/` | **formato Hunspell** (`.dic/.aff`) do `wooorm/dictionaries` em commit fixo; `.bdic` não é importado; Linux |
 | Downloads e histórico (`Ctrl+J`) | `features/downloads` | `downloads` + `src/lib/downloads/` | decisão após o término do download; ver lacunas |
 | Notificações (portal, D-Bus, Windows, macOS) | `features/notifications` | `notifications` | |
 | Bandeja, temas de ícone, contador, badge | `features/tray` | `tray` | |
@@ -55,7 +55,10 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 - **Sessão do WhatsApp Web**: perfis do QtWebEngine não são migráveis; após a
   importação cada conta precisa ler o QR de novo.
 - **Dicionários `.bdic`**: formato exclusivo do Chromium. O FastZap usa
-  Hunspell.
+  Hunspell via Enchant. O catálogo é embutido (sem `manifest.json`/ETag) e
+  importar substitui o diálogo de troca por um erro de conflito; a importação
+  de pasta não existe. Windows e macOS usam o corretor do sistema sem seleção
+  de idiomas pelo app; o menu de contexto também só é ajustado no Linux.
 - **Notificações em Windows/macOS** não informam cliques ao app
   (`tauri-plugin-notification`); clicar não abre a conversa. O plugin também
   não devolve identificadores: notificações com a mesma tag não se
