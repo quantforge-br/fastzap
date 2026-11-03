@@ -2,11 +2,13 @@
 
 use std::collections::BTreeSet;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::{Deserialize, Serialize};
-use tauri::webview::{NewWindowResponse, PageLoadEvent, WebviewBuilder};
+use tauri::webview::{NewWindowFeatures, NewWindowResponse, PageLoadEvent, WebviewBuilder};
 use tauri::{
-    AppHandle, LogicalPosition, LogicalSize, Manager, Runtime, Webview, WebviewUrl, Window,
+    AppHandle, LogicalPosition, LogicalSize, Manager, Runtime, Webview, WebviewUrl, WebviewWindow,
+    WebviewWindowBuilder, Window,
 };
 use ts_rs::TS;
 use url::Url;
@@ -170,9 +172,15 @@ impl WebviewManager {
                 open_external(&nav_app, url);
                 false
             })
-            .on_new_window(move |url, _features| {
+            .on_new_window(move |url, features| {
                 if navigation::is_internal(&url) && url.scheme() != "about" {
-                    return NewWindowResponse::Allow;
+                    return match open_internal_popup(&popup_app, features) {
+                        Ok(window) => NewWindowResponse::Create { window },
+                        Err(e) => {
+                            log::warn!("failed to open WhatsApp popup: {e}");
+                            NewWindowResponse::Deny
+                        }
+                    };
                 }
                 open_external(&popup_app, &url);
                 NewWindowResponse::Deny
@@ -408,6 +416,40 @@ fn install_plain_paste_shortcut<R: Runtime>(webview: &Webview<R>, account_id: i6
             gtk::glib::Propagation::Proceed
         });
     });
+}
+
+/// Open a WhatsApp popup (e.g. a media viewer) in its own window that keeps
+/// the account's navigation allowlist, like ZapZap's internal popups. The
+/// opener's request loads into the related view; nothing is exposed to IPC
+/// because popup labels match no capability.
+fn open_internal_popup<R: Runtime>(
+    app: &AppHandle<R>,
+    features: NewWindowFeatures,
+) -> anyhow::Result<WebviewWindow<R>> {
+    static NEXT_POPUP: AtomicU64 = AtomicU64::new(1);
+    let label = format!("popup-{}", NEXT_POPUP.fetch_add(1, Ordering::Relaxed));
+    let nav_app = app.clone();
+    let popup_app = app.clone();
+    Ok(
+        WebviewWindowBuilder::new(app, label, WebviewUrl::External(Url::parse("about:blank")?))
+            .window_features(features)
+            .title("FastZap")
+            .on_document_title_changed(|window, title| {
+                let _ = window.set_title(&title);
+            })
+            .on_navigation(move |url| {
+                if url.as_str() == "about:blank" || navigation::is_internal(url) {
+                    return true;
+                }
+                open_external(&nav_app, url);
+                false
+            })
+            .on_new_window(move |url, _features| {
+                open_external(&popup_app, &url);
+                NewWindowResponse::Deny
+            })
+            .build()?,
+    )
 }
 
 fn open_external<R: Runtime>(app: &AppHandle<R>, url: &Url) {

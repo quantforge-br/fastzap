@@ -78,3 +78,6 @@
 - Changing the proxy, WebRTC shield, strict proxy or Ctrl+arrow fix recreates
   the account webviews, since a reload kept the settings captured when they
   were created.
+- WhatsApp popups to allowed hosts open in a FastZap window that keeps the
+  navigation allowlist and sends other links to the system browser, instead of
+  an unrestricted default webview.
