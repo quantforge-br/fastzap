@@ -169,6 +169,8 @@
   composite action.
 - Release workflows: `release-candidate` tags and builds a release candidate,
   `release-deploy` builds every format and publishes the GitHub release.
+- The quality workflow validates packaging: version consistency, desktop
+  entries, AppStream metadata and shell scripts.
 
 ### Fixed
 

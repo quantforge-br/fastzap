@@ -39,7 +39,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - name: Build frontend
@@ -64,8 +64,25 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm test
+
+  packaging:
+    name: Packaging metadata
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install validators
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y desktop-file-utils appstream shellcheck
+      - run: packaging/common/version.sh --check
+      - run: desktop-file-validate packaging/share/applications/*.desktop
+      - run: appstreamcli validate --no-net packaging/share/metainfo/*.xml
+      - run: shellcheck packaging/common/*.sh packaging/snap/prepare.sh
