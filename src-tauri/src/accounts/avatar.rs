@@ -2,11 +2,18 @@
 //! like ZapZap's embedded PNG icons.
 
 use base64::Engine;
-use image::ImageFormat;
+use futures_util::StreamExt;
 use image::imageops::FilterType;
+use image::{ImageFormat, ImageReader, Limits};
 
 pub const MAX_AVATAR_SIDE: u32 = 256;
 const MAX_SOURCE_BYTES: usize = 5 * 1024 * 1024;
+const MAX_DECODED_SIDE: u32 = 4096;
+const MAX_DECODED_BYTES: u64 = 64 * 1024 * 1024;
+/// WhatsApp serves profile photos from `pps.whatsapp.net`.
+const CDN_SUFFIX: &str = ".whatsapp.net";
+
+static DOWNLOADS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(2);
 
 #[derive(Debug, thiserror::Error)]
 pub enum AvatarError {
@@ -14,13 +21,21 @@ pub enum AvatarError {
     TooLarge,
     #[error("invalid image: {0}")]
     Invalid(#[from] image::ImageError),
+    #[error("invalid image: {0}")]
+    Io(#[from] std::io::Error),
 }
 
 pub fn normalize_to_data_url(bytes: &[u8]) -> Result<String, AvatarError> {
     if bytes.len() > MAX_SOURCE_BYTES {
         return Err(AvatarError::TooLarge);
     }
-    let mut img = image::load_from_memory(bytes)?;
+    let mut limits = Limits::default();
+    limits.max_image_width = Some(MAX_DECODED_SIDE);
+    limits.max_image_height = Some(MAX_DECODED_SIDE);
+    limits.max_alloc = Some(MAX_DECODED_BYTES);
+    let mut reader = ImageReader::new(std::io::Cursor::new(bytes)).with_guessed_format()?;
+    reader.limits(limits);
+    let mut img = reader.decode()?;
     if img.width() > MAX_AVATAR_SIDE || img.height() > MAX_AVATAR_SIDE {
         img = img.resize(MAX_AVATAR_SIDE, MAX_AVATAR_SIDE, FilterType::Lanczos3);
     }
@@ -32,19 +47,52 @@ pub fn normalize_to_data_url(bytes: &[u8]) -> Result<String, AvatarError> {
     ))
 }
 
-/// Download an avatar from WhatsApp's CDN. Only HTTPS URLs are accepted.
+/// Only HTTPS URLs on WhatsApp's CDN on the default port may be fetched.
+pub fn is_cdn_url(url: &url::Url) -> bool {
+    url.scheme() == "https"
+        && url.port().is_none()
+        && url.username().is_empty()
+        && url.password().is_none()
+        && matches!(url.host(), Some(url::Host::Domain(host))
+            if host.to_ascii_lowercase().ends_with(CDN_SUFFIX))
+}
+
+/// Download an avatar from WhatsApp's CDN. Redirects are not followed and
+/// the body is read with a size cap, so a page script cannot make the app
+/// fetch other hosts or exhaust memory.
 pub async fn download(url: &str) -> anyhow::Result<String> {
     let parsed = url::Url::parse(url)?;
-    anyhow::ensure!(parsed.scheme() == "https", "avatar URL must use HTTPS");
+    anyhow::ensure!(is_cdn_url(&parsed), "avatar URL is not on WhatsApp's CDN");
+    let _permit = DOWNLOADS.acquire().await?;
     let response = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(20))
+        .redirect(reqwest::redirect::Policy::none())
         .build()?
         .get(parsed)
         .send()
         .await?
         .error_for_status()?;
-    let bytes = response.bytes().await?;
-    Ok(normalize_to_data_url(&bytes)?)
+    anyhow::ensure!(
+        response.status().is_success(),
+        "unexpected avatar response {}",
+        response.status()
+    );
+    if response
+        .content_length()
+        .is_some_and(|len| len > MAX_SOURCE_BYTES as u64)
+    {
+        return Err(AvatarError::TooLarge.into());
+    }
+    let mut body = Vec::new();
+    let mut stream = response.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
+        if body.len() + chunk.len() > MAX_SOURCE_BYTES {
+            return Err(AvatarError::TooLarge.into());
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Ok(normalize_to_data_url(&body)?)
 }
 
 #[cfg(test)]
@@ -64,6 +112,28 @@ mod tests {
             .unwrap();
         let out = image::load_from_memory(&data).unwrap();
         assert_eq!((out.width(), out.height()), (256, 128));
+    }
+
+    #[test]
+    fn only_whatsapp_cdn_urls_are_fetched() {
+        let ok = |s: &str| is_cdn_url(&url::Url::parse(s).unwrap());
+        assert!(ok("https://pps.whatsapp.net/v/t61/photo.jpg?x=1"));
+        assert!(!ok("http://pps.whatsapp.net/a.jpg"));
+        assert!(!ok("https://pps.whatsapp.net:8443/a.jpg"));
+        assert!(!ok("https://evil.com/?pps.whatsapp.net"));
+        assert!(!ok("https://whatsapp.net.evil.com/a.jpg"));
+        assert!(!ok("https://127.0.0.1/a.jpg"));
+        assert!(!ok("https://user@pps.whatsapp.net/a.jpg"));
+    }
+
+    #[test]
+    fn oversized_dimensions_are_rejected() {
+        let img = image::GrayImage::new(MAX_DECODED_SIDE + 1, 1);
+        let mut buf = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::ImageLuma8(img)
+            .write_to(&mut buf, ImageFormat::Png)
+            .unwrap();
+        assert!(normalize_to_data_url(&buf.into_inner()).is_err());
     }
 
     #[test]

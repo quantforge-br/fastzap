@@ -58,3 +58,6 @@
 - Plain-text paste no longer crashes on a clipboard HTML document ending in an
   unterminated tag and decodes every HTML entity in spreadsheet cells, as
   ZapZap does.
+- Profile photo sync only fetches HTTPS images from WhatsApp's CDN without
+  following redirects, reads at most 5 MiB, bounds the decoded image size and
+  runs at most two downloads at a time.
