@@ -126,6 +126,8 @@
   choice, forcing Quit on close without a tray icon.
 - Evolution Go REST client with separate admin and instance scopes, merged
   connect configuration, sanitized errors and ambiguous-send detection.
+- Evolution Go event parser for messages, replies, media, reactions, edits,
+  revokes, receipts, typing, history sync and connection events.
 
 ### Fixed
 

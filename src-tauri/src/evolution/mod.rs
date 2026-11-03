@@ -2,3 +2,4 @@
 //! instance (REST + WebSocket) instead of a web.whatsapp.com page.
 
 pub mod client;
+pub mod model;
