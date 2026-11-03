@@ -1,0 +1,84 @@
+# Copied to snap/snapcraft.yaml by prepare.sh before `snapcraft pack`.
+name: fastzap
+base: core24
+adopt-info: fastzap
+grade: stable
+confinement: strict
+license: GPL-3.0-or-later
+
+layout:
+  # WebKitGTK looks for its helper processes here.
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/webkit2gtk-4.1:
+    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/webkit2gtk-4.1
+
+apps:
+  fastzap:
+    command: usr/bin/fastzap
+    desktop: usr/share/applications/io.github.quantmind_br.fastzap.desktop
+    common-id: io.github.quantmind_br.fastzap
+    extensions: [gnome]
+    plugs:
+      - network
+      - home
+      - audio-playback
+      - audio-record
+      - camera
+      # Secret Service: proxy password and Evolution Go keys.
+      - password-manager-service
+    slots:
+      - dbus-single-instance
+
+slots:
+  dbus-single-instance:
+    interface: dbus
+    bus: session
+    name: io.github.quantmind_br.fastzap.SingleInstance
+
+parts:
+  fastzap:
+    plugin: nil
+    source: .
+    build-snaps:
+      - node/24/stable
+      - rustup
+    build-packages:
+      - build-essential
+      - pkg-config
+      - libwebkit2gtk-4.1-dev
+      - libayatana-appindicator3-dev
+      - librsvg2-dev
+      - libssl-dev
+      - libdbus-1-dev
+    stage-packages:
+      - libwebkit2gtk-4.1-0
+      - libayatana-appindicator3-1
+    parse-info:
+      - usr/share/metainfo/io.github.quantmind_br.fastzap.metainfo.xml
+    override-build: |
+      set -eu
+      if [ -f packaging/common/build-info.env ]; then
+        set -a
+        . packaging/common/build-info.env
+        set +a
+      else
+        export FASTZAP_BUILD_PACKAGING=Snap
+      fi
+      rustup default stable
+      export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+      # tauri.conf.json's beforeBuildCommand calls pnpm by name.
+      mkdir -p "$CRAFT_PART_BUILD/.pnpm"
+      corepack enable --install-directory "$CRAFT_PART_BUILD/.pnpm" pnpm
+      export PATH="$CRAFT_PART_BUILD/.pnpm:$PATH"
+      pnpm install --frozen-lockfile
+      pnpm tauri build --no-bundle
+      craftctl set version="$(packaging/common/version.sh)"
+      ID=io.github.quantmind_br.fastzap
+      install -Dm755 src-tauri/target/release/fastzap "$CRAFT_PART_INSTALL/usr/bin/fastzap"
+      install -Dm644 "packaging/share/icons/$ID.svg" \
+        "$CRAFT_PART_INSTALL/usr/share/icons/hicolor/scalable/apps/$ID.svg"
+      install -Dm644 "packaging/share/metainfo/$ID.metainfo.xml" \
+        "$CRAFT_PART_INSTALL/usr/share/metainfo/$ID.metainfo.xml"
+      install -Dm644 "packaging/share/applications/$ID.desktop" \
+        "$CRAFT_PART_INSTALL/usr/share/applications/$ID.desktop"
+      sed -i "s|^Icon=.*|Icon=\${SNAP}/usr/share/icons/hicolor/scalable/apps/$ID.svg|" \
+        "$CRAFT_PART_INSTALL/usr/share/applications/$ID.desktop"

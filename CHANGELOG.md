@@ -157,6 +157,9 @@
 - packaging/common/build-info.sh marks official builds (FASTZAP_BUILD_* for
   build_info) and version.sh prints the version and checks that package.json,
   Cargo.toml and tauri.conf.json agree.
+- Snap recipe (core24, gnome extension, WebKitGTK layout, D-Bus slot for the
+  single-instance name, Secret Service plug) in packaging/snap, copied to
+  snap/ by prepare.sh.
 
 ### Fixed
 

@@ -11,3 +11,5 @@ vite.config.ts.timestamp-*
 
 # Packaging builds
 /packaging/common/build-info.env
+*.snap
+/snap/
