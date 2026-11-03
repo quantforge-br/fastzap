@@ -1,5 +1,8 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { onMount, tick } from "svelte";
+
+  import TitleBar from "$lib/components/TitleBar.svelte";
 
   import {
     accounts as accountsApi,
@@ -7,8 +10,11 @@
     events,
     layout as layoutApi,
     on,
+    settings as settingsApi,
     type Account,
+    type AppearanceSettings,
     type LayoutState,
+    type Settings,
     type UiAction,
     type UnreadSnapshot,
   } from "$lib/ipc";
@@ -23,6 +29,31 @@
   let confirm = $state<{ quit: boolean } | null>(null);
   let dontAskAgain = $state(false);
   let content: HTMLElement;
+  let appearance = $state<AppearanceSettings | null>(null);
+  let desktop = $state("");
+  let maximized = $state(false);
+
+  const win = getCurrentWindow();
+  const csr = $derived(appearance?.csr ?? false);
+  // Client-side decorations: resize edges around the content while restored.
+  type ResizeDirection = Parameters<typeof win.startResizeDragging>[0];
+  const edges: ResizeDirection[] = [
+    "North",
+    "South",
+    "West",
+    "East",
+    "NorthWest",
+    "NorthEast",
+    "SouthWest",
+    "SouthEast",
+  ];
+
+  // The title bar and resize frame move the native webviews' area.
+  $effect(() => {
+    void csr;
+    void maximized;
+    tick().then(reportBounds);
+  });
 
   const visible = $derived(accounts.filter((a) => a.enabled));
   const active = $derived(visible.find((a) => a.id === layout.active) ?? null);
@@ -62,7 +93,12 @@
       on<LayoutState>(events.layoutChanged, (state) => (layout = state)),
       on<UnreadSnapshot>(events.unreadChanged, (snapshot) => (unread = snapshot)),
       on<UiAction>(events.uiAction, onUiAction),
+      on<Settings>(events.settingsChanged, (s) => (appearance = s.appearance)),
+      win.onResized(async () => (maximized = await win.isMaximized())),
     ];
+    settingsApi.get().then((s) => (appearance = s.appearance));
+    app.desktop().then((d) => (desktop = d));
+    win.isMaximized().then((m) => (maximized = m));
     Promise.all([accountsApi.list(), layoutApi.get(), app.unread()]).then(([a, l, u]) => {
       accounts = a;
       layout = l;
@@ -82,6 +118,10 @@
   });
 </script>
 
+<div class="window" class:framed={csr && !maximized}>
+{#if csr && appearance}
+  <TitleBar {appearance} {desktop} {maximized} />
+{/if}
 <div class="shell">
   <nav class="sidebar" aria-label="Accounts">
     {#each visible as account (account.id)}
@@ -127,6 +167,16 @@
     {/if}
   </main>
 </div>
+{#if csr && !maximized}
+  {#each edges as edge (edge)}
+    <div
+      class="edge {edge.toLowerCase()}"
+      role="presentation"
+      onmousedown={(e) => e.button === 0 && win.startResizeDragging(edge)}
+    ></div>
+  {/each}
+{/if}
+</div>
 
 {#if confirm}
   <div class="backdrop">
@@ -152,12 +202,18 @@
     --accent: #00a884;
     --fg: #111b21;
     --bg: #ffffff;
+    --danger: #e01b24;
+    --csr-hover: #eae9e7;
+    --csr-mid: #d0d4d8;
   }
   @media (prefers-color-scheme: dark) {
     :global(:root) {
       --sidebar-bg: #202c33;
       --fg: #e9edef;
       --bg: #111b21;
+      --danger: #ff6b6b;
+      --csr-hover: #292a2a;
+      --csr-mid: #444444;
     }
   }
   :global(html, body) {
@@ -168,9 +224,77 @@
     color: var(--fg);
     font-family: system-ui, sans-serif;
   }
+  .window {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+  }
+  .window.framed {
+    padding: 4px;
+    background: var(--sidebar-bg);
+  }
   .shell {
     display: flex;
-    height: 100vh;
+    flex: 1;
+    min-height: 0;
+  }
+  .edge {
+    position: fixed;
+    z-index: 10;
+  }
+  .edge.north,
+  .edge.south {
+    left: 8px;
+    right: 8px;
+    height: 4px;
+    cursor: ns-resize;
+  }
+  .edge.west,
+  .edge.east {
+    top: 8px;
+    bottom: 8px;
+    width: 4px;
+    cursor: ew-resize;
+  }
+  .edge.north {
+    top: 0;
+  }
+  .edge.south {
+    bottom: 0;
+  }
+  .edge.west {
+    left: 0;
+  }
+  .edge.east {
+    right: 0;
+  }
+  .edge.northwest,
+  .edge.northeast,
+  .edge.southwest,
+  .edge.southeast {
+    width: 8px;
+    height: 8px;
+  }
+  .edge.northwest {
+    top: 0;
+    left: 0;
+    cursor: nwse-resize;
+  }
+  .edge.southeast {
+    bottom: 0;
+    right: 0;
+    cursor: nwse-resize;
+  }
+  .edge.northeast {
+    top: 0;
+    right: 0;
+    cursor: nesw-resize;
+  }
+  .edge.southwest {
+    bottom: 0;
+    left: 0;
+    cursor: nesw-resize;
   }
   .sidebar {
     display: flex;

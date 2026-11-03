@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-app-desktop"
+description = "Enables the app_desktop command without any pre-configured scope."
+commands.allow = ["app_desktop"]
+
+[[permission]]
+identifier = "deny-app-desktop"
+description = "Denies the app_desktop command without any pre-configured scope."
+commands.deny = ["app_desktop"]

@@ -58,6 +58,9 @@
   macOS, always with --hideStart.
 - Auto theme follows the XDG Settings portal color-scheme and its changes,
   falling back to the toolkit theme.
+- Client-side title bar with ZapZap's button themes (default, Adwaita, Plasma,
+  iOS, Windows), button side and visibility, drag, double-click maximize and
+  resize edges.
 
 ### Fixed
 

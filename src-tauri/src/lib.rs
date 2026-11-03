@@ -115,6 +115,7 @@ pub fn run() {
             wv::account_activate,
             wv::app_action,
             wv::app_close_confirmed,
+            wv::app_desktop,
             wv::unread_get,
             wv::account_sync_photo,
             wv::calling_codes,

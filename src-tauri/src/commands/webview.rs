@@ -43,6 +43,12 @@ pub fn app_close_confirmed(app: AppHandle, quit: bool, dont_ask_again: bool) {
     crate::app::lifecycle::close_confirmed(&app, quit, dont_ask_again);
 }
 
+/// `XDG_CURRENT_DESKTOP`, which picks the default CSR button theme.
+#[tauri::command]
+pub fn app_desktop() -> String {
+    std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default()
+}
+
 #[tauri::command]
 pub fn unread_get(state: State<'_, AppState>) -> UnreadSnapshot {
     state.unread.snapshot()

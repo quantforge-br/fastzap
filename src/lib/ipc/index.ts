@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type { Account } from "./generated/Account";
+import type { AppearanceSettings } from "./generated/AppearanceSettings";
 import type { AccountPatch } from "./generated/AccountPatch";
 import type { ChatTarget } from "./generated/ChatTarget";
 import type { LayoutState } from "./generated/LayoutState";
@@ -15,6 +16,7 @@ import type { UnreadSnapshot } from "./generated/UnreadSnapshot";
 
 export type {
   Account,
+  AppearanceSettings,
   AccountPatch,
   ChatTarget,
   LayoutState,
@@ -61,6 +63,7 @@ export const app = {
   closeConfirmed: (quit: boolean, dontAskAgain: boolean) =>
     invoke<void>("app_close_confirmed", { quit, dontAskAgain }),
   unread: () => invoke<UnreadSnapshot>("unread_get"),
+  desktop: () => invoke<string>("app_desktop"),
   callingCodes: () => invoke<RegionCallingCode[]>("calling_codes"),
   openChatByNumber: (target: ChatTarget, accountId?: number) =>
     invoke<void>("open_chat_by_number", { target, accountId: accountId ?? null }),

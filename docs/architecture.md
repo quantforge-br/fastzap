@@ -104,6 +104,16 @@ webview (scripts de inicialização e proxy) recriam as contas quando mudam. O s
 substitui `window.Notification` e observa `document.title` para extrair a
 contagem de não lidas, como o ZapZap fazia pelo título da página.
 
+### Decorações do cliente (CSR)
+
+Com `appearance.csr`, a janela perde as decorações nativas
+(`set_decorations`) e a UI desenha `TitleBar.svelte`: arrasto e duplo clique
+via `data-tauri-drag-region`, botões com os temas do ZapZap (o tema vazio ou
+desconhecido segue `XDG_CURRENT_DESKTOP`, lido por `app_desktop`) e, fora da
+maximização, uma moldura de 4 px com bordas `startResizeDragging`. Como a UI
+informa os limites da área de conteúdo, as webviews das contas descem abaixo
+da barra sem cálculo no Rust.
+
 ### Tema
 
 `app::theme` resolve o esquema efetivo. Em `auto`, a chave
