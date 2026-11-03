@@ -9,6 +9,7 @@ pub mod i18n;
 pub mod migration;
 pub mod notifications;
 pub mod paths;
+pub mod permissions;
 pub mod platform;
 pub mod proxy;
 pub mod secrets;
@@ -149,6 +150,7 @@ pub fn run() {
             dl::download_delete_file,
             dl::download_open,
             dl::download_reveal,
+            appcmd::permission_answer,
             bridge::wa_title_changed,
             bridge::wa_shortcut,
             bridge::wa_theme_event,

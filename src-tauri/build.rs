@@ -41,6 +41,7 @@ const UI_COMMANDS: &[&str] = &[
     "download_delete_file",
     "download_open",
     "download_reveal",
+    "permission_answer",
 ];
 
 /// Commands exposed to https://web.whatsapp.com.

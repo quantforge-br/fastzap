@@ -51,6 +51,7 @@
     "allow-download-remove",
     "allow-download-delete-file",
     "allow-download-open",
-    "allow-download-reveal"
+    "allow-download-reveal",
+    "allow-permission-answer"
   ]
 }

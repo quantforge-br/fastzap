@@ -180,6 +180,17 @@ histórico (`downloads.recent`, 100 entradas) e abre sozinho se
 `downloads::sniff` confirmar PDF ou imagem pelo conteúdo e pela extensão.
 Os comandos de abrir, revelar e excluir só aceitam caminhos do histórico.
 
+## Permissões
+
+`permissions` conecta o sinal `permission-request` do WebKitGTK em cada
+webview de conta. Notificações são sempre concedidas; câmera, microfone,
+tela, localização e bloqueio do ponteiro seguem `permissions.auto_grant`;
+o resto pergunta à UI pelo evento `permissions://request`. O pedido
+(GObject) fica numa tabela `thread_local` da thread GTK até
+`permission_answer`, que responde via `run_on_main_thread`. Um "Sim" fica
+em `AppState::permissions` (memória, por conta) e é esquecido quando a
+webview é recriada. Outros tipos de pedido recebem a negação padrão.
+
 ## Traduções
 
 `po/*.po` vem do ZapZap (mesmo domínio e idiomas). `pnpm i18n`

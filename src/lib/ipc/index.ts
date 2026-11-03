@@ -14,6 +14,7 @@ import type { NewAccount } from "./generated/NewAccount";
 import type { DownloadDecision } from "./generated/DownloadDecision";
 import type { DownloadItem } from "./generated/DownloadItem";
 import type { DownloadPrompt } from "./generated/DownloadPrompt";
+import type { PermissionPrompt } from "./generated/PermissionPrompt";
 import type { Rect } from "./generated/Rect";
 import type { RegionCallingCode } from "./generated/RegionCallingCode";
 import type { Settings } from "./generated/Settings";
@@ -33,6 +34,7 @@ export type {
   DownloadDecision,
   DownloadItem,
   DownloadPrompt,
+  PermissionPrompt,
   Rect,
   RegionCallingCode,
   Settings,
@@ -49,6 +51,7 @@ export const events = {
   downloadsChanged: "downloads://changed",
   downloadPrompt: "downloads://prompt",
   downloadSaved: "downloads://saved",
+  permissionRequest: "permissions://request",
 } as const;
 
 export const settings = {

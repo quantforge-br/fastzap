@@ -18,4 +18,5 @@ pub struct AppState {
     pub webviews: WebviewManager,
     pub unread: UnreadRegistry,
     pub downloads: Downloads,
+    pub permissions: crate::permissions::Granted,
 }

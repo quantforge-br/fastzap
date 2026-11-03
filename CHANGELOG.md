@@ -89,6 +89,10 @@
 - Downloads view (Ctrl+J, sidebar button, floating panel) with open, show in
   folder, delete file, remove from history and clear history, plus a busy
   indicator and a ✓ badge when a file is saved.
+- Web permission requests on Linux follow ZapZap: notifications are always
+  granted, features set to auto grant are allowed, anything else asks
+  "Permission request" with No as the default, and a Yes is remembered for
+  that account's page until it is recreated.
 
 ### Fixed
 

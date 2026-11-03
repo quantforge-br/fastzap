@@ -3,6 +3,7 @@
   import { onMount, tick } from "svelte";
 
   import DownloadPromptDialog from "$lib/downloads/DownloadPromptDialog.svelte";
+  import PermissionDialog from "$lib/permissions/PermissionDialog.svelte";
   import DownloadsView from "$lib/downloads/DownloadsView.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import MenuBar from "$lib/components/MenuBar.svelte";
@@ -21,6 +22,7 @@
     on,
     type Account,
     type DownloadPrompt,
+    type PermissionPrompt,
     type LayoutState,
     type UiAction,
     type UnreadSnapshot,
@@ -82,6 +84,7 @@
   }
 
   let prompts = $state<DownloadPrompt[]>([]);
+  let permissionPrompts = $state<PermissionPrompt[]>([]);
   let downloading = $state(false);
   let savedBadge = $state(false);
   let savedTimer: ReturnType<typeof setTimeout> | undefined;
@@ -100,7 +103,7 @@
   let removing = $state<Account | null>(null);
   const editTarget = $derived(editing ? (accounts.find((a) => a.id === editing!.id) ?? null) : null);
 
-  const overlay = $derived(panel !== null || confirm !== null || editTarget !== null || removing !== null || prompts.length > 0);
+  const overlay = $derived(panel !== null || confirm !== null || editTarget !== null || removing !== null || prompts.length > 0 || permissionPrompts.length > 0);
   $effect(() => {
     layoutApi.setOverlay(overlay);
   });
@@ -167,6 +170,7 @@
       on<UiAction>(events.uiAction, onUiAction),
       on<DownloadPrompt>(events.downloadPrompt, (p) => (prompts = [...prompts, p])),
       on(events.downloadsChanged, refreshDownloads),
+      on<PermissionPrompt>(events.permissionRequest, (p) => (permissionPrompts = [...permissionPrompts, p])),
       on(events.downloadSaved, onDownloadSaved),
       win.onResized(async () => (maximized = await win.isMaximized())),
     ];
@@ -297,7 +301,11 @@
   </div>
 {/if}
 
-{#if prompts.length > 0}
+{#if permissionPrompts.length > 0}
+  {#key permissionPrompts[0].id}
+    <PermissionDialog prompt={permissionPrompts[0]} ondone={() => (permissionPrompts = permissionPrompts.slice(1))} />
+  {/key}
+{:else if prompts.length > 0}
   {#key prompts[0].id}
     <DownloadPromptDialog prompt={prompts[0]} ondone={() => (prompts = prompts.slice(1))} />
   {/key}

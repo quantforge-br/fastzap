@@ -259,6 +259,8 @@ impl WebviewManager {
         apply_engine_options(&webview, &settings);
         #[cfg(target_os = "linux")]
         install_plain_paste_shortcut(&webview, account.id);
+        #[cfg(target_os = "linux")]
+        crate::permissions::install(&webview, account.id);
         Ok(webview)
     }
 

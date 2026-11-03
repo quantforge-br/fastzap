@@ -119,3 +119,9 @@ pub fn downloads_default_dir() -> String {
         .to_string_lossy()
         .into_owned()
 }
+
+/// The user's answer to a permission request of a WhatsApp Web page.
+#[tauri::command]
+pub fn permission_answer(app: AppHandle, id: u64, allow: bool) {
+    crate::permissions::answer(&app, id, allow);
+}

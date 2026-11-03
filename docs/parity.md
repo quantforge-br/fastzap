@@ -30,7 +30,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Bandeja, temas de ícone, contador, badge | `features/tray` | `tray` | |
 | Atalhos | `features/shortcuts` | `app::shortcuts` + `bridge.js` | |
 | Iniciar com o sistema | `features/startup` | `autostart` | portal `RequestBackground` no Flatpak; entrada XDG nomeada pelo App ID nos demais Linux |
-| Permissões (câmera, microfone etc.) | `features/permissions` | `permissions` | |
+| Permissões (câmera, microfone etc.) | `features/permissions` | `permissions` | Linux; ver lacunas |
 | Proxy e proxy estrito | `core/environment/proxy_manager.py` | `proxy` | proxy estrito via bloqueio de WebRTC não proxiado |
 | Escudo WebRTC | `webrtc_shield.js` | `webview/scripts/webrtc_shield.js` | |
 | Correção de `Ctrl+←/→` | `ctrl_arrow_visual_navigation_fix.js` | idem | |
@@ -82,3 +82,6 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
   popover (o botão da barra lateral abre o histórico). O tipo MIME informado
   pelo servidor não é conhecido, então a abertura automática confere só
   conteúdo e extensão.
+- **Permissões em Windows/macOS**: o Tauri não expõe o pedido de permissão
+  do WebView2/WKWebView; valem os prompts próprios do sistema e as opções de
+  concessão automática não têm efeito.

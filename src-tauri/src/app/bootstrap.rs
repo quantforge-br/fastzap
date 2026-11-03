@@ -68,6 +68,7 @@ pub fn init_state<R: Runtime>(app: &AppHandle<R>) -> anyhow::Result<()> {
         webviews: Default::default(),
         unread: Default::default(),
         downloads,
+        permissions: Default::default(),
     });
     Ok(())
 }
