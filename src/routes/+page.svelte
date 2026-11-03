@@ -196,34 +196,6 @@
 <svelte:window onkeydown={(e) => confirm && e.key === "Escape" && answerClose(false)} />
 
 <style>
-  :global(:root) {
-    color-scheme: light dark;
-    --sidebar-bg: #f0f2f5;
-    --accent: #00a884;
-    --fg: #111b21;
-    --bg: #ffffff;
-    --danger: #e01b24;
-    --csr-hover: #eae9e7;
-    --csr-mid: #d0d4d8;
-  }
-  @media (prefers-color-scheme: dark) {
-    :global(:root) {
-      --sidebar-bg: #202c33;
-      --fg: #e9edef;
-      --bg: #111b21;
-      --danger: #ff6b6b;
-      --csr-hover: #292a2a;
-      --csr-mid: #444444;
-    }
-  }
-  :global(html, body) {
-    margin: 0;
-    height: 100%;
-    overflow: hidden;
-    background: var(--bg);
-    color: var(--fg);
-    font-family: system-ui, sans-serif;
-  }
   .window {
     display: flex;
     flex-direction: column;
