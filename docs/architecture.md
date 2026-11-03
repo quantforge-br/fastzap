@@ -334,7 +334,9 @@ conversa), que conversa com o backend pelos comandos `evo_*` e pelo evento
   `reporting::sanitize`. Envios que expiram depois de sair viram
   `Ambiguous` e nunca são repetidos automaticamente.
 - `evolution::ws`: um socket por instância (`/ws?token=<admin>&instanceId=`),
-  ping a cada 20 s, backoff de 1 s a 60 s, frames sem limite de tamanho,
+  ping a cada 20 s (65 s sem nenhum frame, nem pong, derrubam o socket;
+  escritas e fechamento têm prazo de 10 s), backoff de 1 s a 60 s, frames
+  sem limite de tamanho,
   decodificação dupla `{queue, payload}` e remoção de `instanceToken`. A URL
   carrega a chave admin e nunca é registrada.
 - `evolution::model`: converte eventos whatsmeow (mensagens, histórico,
@@ -342,15 +344,24 @@ conversa), que conversa com o backend pelos comandos `evo_*` e pelo evento
   `ephemeralMessage`/`viewOnce`/`editedMessage` e removendo miniaturas.
 - `evolution::store`: SQLite por conta em `<data>/evolution/<id>/chats.db`
   (chats, mensagens com chave `(chat, id)`, reações, contatos, meta). Status
-  de entrega só avança; o cursor do journal é gravado na mesma transação das
-  mensagens da página. Mídia baixada fica em `<data>/evolution/<id>/media/`.
+  de entrega só avança (uma falha de envio tardia não rebaixa uma mensagem já
+  confirmada). Cada página do journal é aplicada em ordem numa única
+  transação junto com o cursor. O banco guarda em `meta` a origem
+  (`bind:server` = servidor + instância, `bind:owner` = número pareado);
+  quando ela muda, chats, mensagens, cursor e o cache de mídia são
+  descartados. Mídia baixada fica em `<data>/evolution/<id>/media/`.
 - `evolution` (sessão): `sync` inicia/para sessões conforme as contas
-  habilitadas. Cada sessão confere a instância pela listagem admin e só chama
+  habilitadas, serializado por um lock de ciclo de vida; parar a sessão
+  cancela o trabalho em andamento. Cada sessão confere a instância pela listagem admin e só chama
   `POST /instance/connect` quando o cliente está parado, o WebSocket está
   desligado ou falta uma categoria; o payload preserva webhook, RabbitMQ, NATS
   e eventos existentes. Depois de cada conexão do socket, lê
   `GET /chat/events` a partir do cursor salvo (o journal privado cobre os
-  eventos perdidos com o socket fora). Não lidas entram no `UnreadRegistry`
+  eventos perdidos com o socket fora); só um leitor por vez, 404 desliga o
+  journal, 503/rede/timeout tentam de novo com backoff de 30 s a 30 min, e
+  um backlog maior que 200 páginas continua em seguida. `LoggedIn` com
+  `Connected` falso aparece como offline, e "Tentar de novo" chama
+  `POST /instance/reconnect`. Não lidas entram no `UnreadRegistry`
   (chats com não lidas, como o título do WhatsApp Web) e mensagens novas
   geram notificações pelo pipeline comum com `tag` = JID do chat; o clique
   emite `open_chat`.

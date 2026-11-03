@@ -25,12 +25,16 @@ cobre:
 - **notifications**: política global/por conta, ocultação de nome e texto.
 - **evolution**: cliente REST com `wiremock` (escopo admin vs instância,
   payload completo e mesclado do connect, campos capitalizados, erros não-2xx
-  sanitizados, timeout de envio → resultado ambíguo, journal); WebSocket
+  sanitizados, timeout de envio → resultado ambíguo, journal com e sem
+  cursor, reconnect); WebSocket
   contra um servidor `tokio-tungstenite` local (decodificação dupla, remoção
   de `instanceToken`, filtro de instância, frame de 20 MiB, reconexão);
   parser de eventos (texto, resposta, mídia desembrulhada, reação, edição,
   revogação, recibos, HistorySync); store SQLite (deduplicação, outbox,
-  recibos que só avançam, páginas, âncora do history-sync, nomes).
+  recibos que só avançam, falha tardia que não rebaixa mensagem confirmada,
+  página do journal aplicada em ordem com o cursor, troca de origem que
+  limpa o banco, páginas, âncora do history-sync, nomes). O prazo de 65 s
+  sem frames do WebSocket não tem teste automatizado.
 - **customizations**, **downloads**, **reporting**: regras puras de arquivos,
   histórico e sanitização.
 

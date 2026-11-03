@@ -289,3 +289,5 @@
   of placeholders; architecture and parity docs cover them.
 - Architecture, parity and testing documentation describe the Evolution Go
   account mode, its secrets handling and its known gaps.
+- Docs: architecture and testing notes describe the Evolution Go journal
+  retries, store binding, lifecycle lock and WebSocket deadlines.
