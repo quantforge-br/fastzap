@@ -50,6 +50,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .manage(notifications::NotificationService::default())
+        .manage(app::lifecycle::Services::default())
         .on_menu_event(bridge::on_menu_event)
         .setup(move |app| {
             let handle = app.handle();
@@ -67,6 +68,8 @@ pub fn run() {
             tray::init(handle)?;
             #[cfg(unix)]
             app::lifecycle::install_signal_handler(handle);
+            #[cfg(target_os = "linux")]
+            app::lifecycle::start_dbus(handle);
             let hidden = app::lifecycle::starts_hidden(
                 &options,
                 settings.system.start_background,

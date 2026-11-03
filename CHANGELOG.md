@@ -50,6 +50,9 @@
   fastzap://restart restarts the app and the first whatsapp:/wa.me link opens
   in the active account; links passed at startup open once the page loads.
   SIGTERM and SIGINT quit normally and remove shown notifications.
+- Flatpak builds own the application ID on D-Bus and implement
+  org.freedesktop.Application, so the desktop activates the running instance,
+  opens whatsapp: links and passes the focus token.
 
 ### Fixed
 

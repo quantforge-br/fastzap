@@ -1,6 +1,8 @@
 pub mod actions;
 pub mod bootstrap;
 pub mod cli;
+#[cfg(target_os = "linux")]
+pub mod dbus;
 pub mod effects;
 pub mod events;
 pub mod lifecycle;

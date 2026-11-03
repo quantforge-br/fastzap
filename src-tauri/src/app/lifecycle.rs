@@ -115,9 +115,36 @@ pub fn install_signal_handler<R: Runtime>(app: &AppHandle<R>) {
     });
 }
 
+/// Desktop integration that must live as long as the app.
+#[derive(Default)]
+pub struct Services {
+    #[cfg(target_os = "linux")]
+    dbus: std::sync::Mutex<Option<zbus::Connection>>,
+}
+
+/// Start `org.freedesktop.Application` in Flatpak, where the desktop file is
+/// D-Bus activatable.
+#[cfg(target_os = "linux")]
+pub fn start_dbus(app: &AppHandle) {
+    if !crate::platform::is_flatpak() {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        match super::dbus::start(app.clone()).await {
+            Ok(connection) => {
+                *app.state::<Services>().dbus.lock().unwrap() = Some(connection);
+            }
+            Err(e) => log::warn!("could not own the D-Bus application name: {e}"),
+        }
+    });
+}
+
 /// Cleanup before the process ends.
 pub fn shutdown(app: &AppHandle) {
     tauri::async_runtime::block_on(crate::notifications::close_all(app));
+    #[cfg(target_os = "linux")]
+    drop(app.state::<Services>().dbus.lock().unwrap().take());
 }
 
 #[cfg(test)]

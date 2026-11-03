@@ -147,7 +147,11 @@ mensagens; a UI Svelte em `src/routes/chat/` consome os comandos
    válido e mostra a janela.
 3. `setup` carrega preferências, executa a migração do ZapZap uma única vez,
    aplica `--setSettings`, cria janela, child webviews e tray e instala a
-   ponte de `SIGTERM`/`SIGINT` (`signal-hook` → `AppHandle::exit`).
+   ponte de `SIGTERM`/`SIGINT` (`signal-hook` → `AppHandle::exit`). No
+   Flatpak, `app::dbus` assume o nome `io.github.quantmind_br.fastzap` e
+   exporta `org.freedesktop.Application` (`Activate`, `Open`,
+   `ActivateAction`) em `/io/github/quantmind_br/fastzap`, repassando o token
+   de ativação (`activation-token` ou `desktop-startup-id`) para a janela.
 4. A janela começa oculta com `start_background` ou `--hideStart`, exceto
    enquanto a configuração inicial não foi concluída. Links do primeiro
    lançamento esperam o carregamento da página (`eval_when_ready`).
@@ -157,7 +161,8 @@ mensagens; a UI Svelte em `src/routes/chat/` consome os comandos
    `confirm_on_close` a UI pergunta (com "Don't ask again", também para Sair
    da bandeja e `Ctrl+Q`); depois a janela vai para a bandeja, ou o app sai se
    `quit_on_close` estiver ativo ou se o pedido foi Sair.
-7. Em `RunEvent::Exit` as notificações exibidas são removidas.
+7. Em `RunEvent::Exit` as notificações exibidas são removidas e o nome D-Bus
+   é liberado.
 
 ## Empacotamento
 
