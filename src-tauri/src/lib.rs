@@ -209,6 +209,7 @@ pub fn run() {
             appcmd::update_info,
             appcmd::donation_open,
             appcmd::donation_open_website,
+            report::report_copied,
             bridge::wa_title_changed,
             bridge::wa_shortcut,
             bridge::wa_theme_event,

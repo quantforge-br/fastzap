@@ -47,7 +47,16 @@
     busy = true;
     try {
       const saved = await reporting.save(view.id, view.document);
-      await navigator.clipboard.writeText(saved.markdown).catch(() => {});
+      // A retry after a clipboard failure reuses this record.
+      view = { ...view, id: saved.id };
+      // GitHub only gets the report through the clipboard.
+      try {
+        await navigator.clipboard.writeText(saved.markdown);
+      } catch {
+        warning = t("Could not copy the report to the clipboard. It was saved locally; try again.");
+        return;
+      }
+      await reporting.copied(saved.id);
       if (await reporting.openGithub(saved.id)) {
         onclose();
       } else {

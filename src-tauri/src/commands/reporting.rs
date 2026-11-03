@@ -66,17 +66,21 @@ pub fn report_save(
     document: Value,
 ) -> CommandResult<ReportHandoff> {
     let store = store(&state);
+    // Marked copied by `report_copied` once the UI wrote the clipboard.
     let record = match id.and_then(|id| store.get(&id)) {
-        Some(record) => {
-            store.set_status(&record.id, ReportStatus::Copied)?;
-            record
-        }
-        None => store.save(sanitize::value(&document), ReportStatus::Copied)?,
+        Some(record) => record,
+        None => store.save(sanitize::value(&document), ReportStatus::PendingReview)?,
     };
     Ok(ReportHandoff {
         markdown: document::markdown(&record.document),
         id: record.id,
     })
+}
+
+#[tauri::command]
+pub fn report_copied(state: State<'_, AppState>, id: String) -> CommandResult<()> {
+    store(&state).set_status(&id, ReportStatus::Copied)?;
+    Ok(())
 }
 
 /// Open the new-issue page; returns whether a browser was launched.

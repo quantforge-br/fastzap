@@ -108,6 +108,7 @@ export const reporting = {
   preview: (form: ProblemForm) => invoke<ReportView>("report_preview", { form }),
   save: (id: string | null, document: Record<string, unknown>) =>
     invoke<ReportHandoff>("report_save", { id, document }),
+  copied: (id: string) => invoke<void>("report_copied", { id }),
   openGithub: (id: string) => invoke<boolean>("report_open_github", { id }),
   list: () => invoke<ReportView[]>("report_list"),
   pending: () => invoke<ReportView | null>("report_pending"),

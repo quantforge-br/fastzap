@@ -213,6 +213,9 @@
 - An imported dictionary shows up in the open dictionary manager right away.
 - Saving, importing, duplicating or deleting a CSS file restyles the open
   pages immediately.
+- Reporting a problem stops with a warning when the clipboard cannot be
+  written, instead of opening GitHub with nothing to paste; the report is
+  marked copied only after the copy succeeds.
 
 ### Changed
 

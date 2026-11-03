@@ -82,6 +82,7 @@
     "allow-report-open-folder",
     "allow-update-info",
     "allow-donation-open",
-    "allow-donation-open-website"
+    "allow-donation-open-website",
+    "allow-report-copied"
   ]
 }
