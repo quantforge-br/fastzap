@@ -99,6 +99,7 @@ mod linux {
     use std::sync::atomic::{AtomicU64, Ordering};
 
     use gtk::glib::prelude::*;
+    use gtk::glib::translate::ToGlibPtr;
     use tauri::{AppHandle, Emitter, Manager, Runtime, Webview};
     use webkit2gtk::{
         GeolocationPermissionRequest, NotificationPermissionRequest, PermissionRequest,
@@ -119,8 +120,12 @@ mod linux {
 
     fn feature(request: &PermissionRequest) -> Option<Feature> {
         if let Some(media) = request.downcast_ref::<UserMediaPermissionRequest>() {
-            let display = media.find_property("is-for-display-device").is_some()
-                && media.property::<bool>("is-for-display-device");
+            // webkit2gtk 2.0 has no safe wrapper for this getter.
+            let display = unsafe {
+                webkit2gtk_sys::webkit_user_media_permission_is_for_display_device(
+                    media.to_glib_none().0,
+                )
+            } != 0;
             return Feature::from_media(
                 media.is_for_audio_device(),
                 media.is_for_video_device(),
@@ -140,6 +145,15 @@ mod linux {
         let app = webview.app_handle().clone();
         app.state::<AppState>().permissions.forget(account_id);
         let _ = webview.with_webview(move |platform| {
+            // Prompts of the replaced page must not grant the new one.
+            PENDING.with(|p| {
+                p.borrow_mut().retain(|_, (account, _, request)| {
+                    if *account == account_id {
+                        request.deny();
+                    }
+                    *account != account_id
+                })
+            });
             platform
                 .inner()
                 .connect_permission_request(move |_, request| {

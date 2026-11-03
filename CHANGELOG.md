@@ -199,6 +199,9 @@
   empty panel.
 - The npm Tauri packages are pinned to the Rust crates' minor versions so
   tauri dev no longer refuses to start.
+- Screen sharing requests are no longer treated as camera requests on Linux,
+  and permission prompts of a recreated account page are denied instead of
+  granting the new page.
 
 ### Changed
 

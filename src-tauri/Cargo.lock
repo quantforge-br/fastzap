@@ -1405,6 +1405,7 @@ dependencies = [
  "ts-rs",
  "url",
  "webkit2gtk",
+ "webkit2gtk-sys",
  "wiremock",
  "zbus 5.13.2",
 ]
