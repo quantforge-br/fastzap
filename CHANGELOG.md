@@ -145,6 +145,11 @@
 - Evolution Go account setup dialog in Settings → Accounts: server address,
   admin key, instance listing, reuse or creation of an instance, and
   reconfiguration of existing accounts.
+- Native Evolution Go chat in place of the webview: pairing by QR, phone code
+  or passkey; connection state; chat list with avatars, search, unread counts
+  and new chats by number; conversations with day separators, older pages,
+  phone history requests, media, replies, reactions, edits, deletes, retries,
+  receipts and typing; notification clicks open the chat.
 
 ### Fixed
 

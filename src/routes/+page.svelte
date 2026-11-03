@@ -18,6 +18,7 @@
   import DonationView from "$lib/donation/DonationView.svelte";
   import Onboarding from "$lib/onboarding/Onboarding.svelte";
   import ShortcutsDialog from "$lib/shortcuts/ShortcutsDialog.svelte";
+  import ChatView from "$lib/evolution/ChatView.svelte";
   import { closeReport, openReport, reportDialog } from "$lib/reporting/request.svelte";
   import { DEFAULT_PAGE } from "$lib/settings/pages";
   import { patchSettings, startSettings, store } from "$lib/stores/settings.svelte";
@@ -32,6 +33,7 @@
     reporting,
     type Account,
     type DownloadPrompt,
+    type EvolutionEvent,
     type PermissionPrompt,
     type ReportView,
     type UpdateInfo,
@@ -52,6 +54,8 @@
   let panel = $state<string | null>(null);
   // The account an "open chat by number" request came from.
   let chatAccount = $state<number | null>(null);
+  // A notification click asked an Evolution Go account to open a chat.
+  let evolutionOpen = $state<{ account: number; chat: string } | null>(null);
   // First-run setup, then the support reminder, decided once per launch.
   let startup = $state<"pending" | "onboarding" | "donation" | "done">("pending");
   // Close confirmation (ZapZap's "Close ZapZap" question); `quit` also
@@ -217,6 +221,11 @@
       on<PermissionPrompt>(events.permissionRequest, (p) => (permissionPrompts = [...permissionPrompts, p])),
       on(events.downloadSaved, onDownloadSaved),
       on<UpdateInfo>(events.updateAvailable, (info) => (update = info)),
+      on<EvolutionEvent>(events.evolution, (e) => {
+        if (e.type !== "open_chat") return;
+        evolutionOpen = { account: e.account_id, chat: e.chat };
+        openPanel(null);
+      }),
       win.onResized(async () => (maximized = await win.isMaximized())),
     ];
     startSettings();
@@ -315,10 +324,13 @@
       <DonationView onclose={() => openPanel(null)} />
     {:else if confirm}
       <!-- Shown in place of the hidden webviews. -->
-    {:else if active?.kind === "evolution_go"}
-      <section class="placeholder">
-        <p>{active.name}: Evolution Go accounts are not available yet.</p>
-      </section>
+    {:else if active?.kind === "evolution_go" && !layout.grid}
+      {#key active.id}
+        <ChatView
+          account={active}
+          openRequest={evolutionOpen?.account === active.id ? { chat: evolutionOpen.chat } : null}
+        />
+      {/key}
     {:else if visible.length === 0}
       <section class="placeholder"><p>No enabled accounts.</p></section>
     {/if}
