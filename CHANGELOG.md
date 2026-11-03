@@ -118,3 +118,5 @@
   WebView2 deadlock.
 - Turning start with the system off through --setSettings on launch removes
   the autostart entry.
+- Autostart entries escape % and refuse paths with line breaks, and quick
+  toggles of start with the system can no longer finish out of order.

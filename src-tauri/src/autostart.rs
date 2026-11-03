@@ -3,7 +3,7 @@
 //! installs and `tauri-plugin-autostart` on Windows (Run key) and macOS
 //! (LaunchAgent). Every entry starts FastZap with `--hideStart`.
 
-use tauri::{AppHandle, Runtime};
+use tauri::{AppHandle, Manager, Runtime};
 
 pub const ARGS: &[&str] = &["--hideStart"];
 
@@ -78,13 +78,22 @@ mod xdg {
             Some(appimage) => PathBuf::from(appimage),
             None => std::env::current_exe()?,
         };
+        let exe = exe.to_string_lossy();
+        // A line break would start a new key in the desktop entry.
+        anyhow::ensure!(
+            !exe.contains(['\n', '\r']),
+            "executable path contains a line break"
+        );
         std::fs::create_dir_all(path.parent().unwrap())?;
-        std::fs::write(&path, entry(&exe.to_string_lossy()))?;
+        std::fs::write(&path, entry(&exe))?;
         Ok(())
     }
 
-    /// Quote an `Exec` argument as the Desktop Entry spec requires.
+    /// Quote an `Exec` argument as the Desktop Entry spec requires; a
+    /// literal `%` is doubled so it is not read as a field code.
     fn quote(arg: &str) -> String {
+        let arg = arg.replace('%', "%%");
+        let arg = arg.as_str();
         if !arg.contains(|c: char| c.is_whitespace() || "\"'\\><~|&;$*?#()`".contains(c)) {
             return arg.to_owned();
         }
@@ -129,6 +138,7 @@ mod xdg {
             let text = entry("/opt/Fast Zap/fastzap");
             assert!(text.contains("Exec=\"/opt/Fast Zap/fastzap\" --hideStart\n"));
             assert!(entry("/usr/bin/fastzap").contains("Exec=/usr/bin/fastzap --hideStart\n"));
+            assert!(entry("/opt/100%/fastzap").contains("Exec=/opt/100%%/fastzap --hideStart\n"));
             let text = entry("/tmp/a$b");
             assert!(text.contains(r#"Exec="/tmp/a\\$b" --hideStart"#));
         }
@@ -143,10 +153,18 @@ mod xdg {
     }
 }
 
-/// Apply the preference without blocking the caller.
+/// Serializes reconciliations so an older request cannot finish last.
+static RECONCILE: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+/// Apply the preference without blocking the caller. `enabled` is only the
+/// startup value; the preference is reread once earlier work has finished.
 pub fn sync<R: Runtime>(app: &AppHandle<R>, enabled: bool) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
+        let _guard = RECONCILE.lock().await;
+        let enabled = app
+            .try_state::<crate::app::state::AppState>()
+            .map_or(enabled, |state| state.settings.get().system.start_system);
         if let Err(e) = apply(&app, enabled).await {
             log::warn!("failed to update autostart: {e}");
         }
