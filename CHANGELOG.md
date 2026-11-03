@@ -131,6 +131,8 @@
 - Per-account SQLite chat store for Evolution Go accounts with deduplication,
   outbox states, receipts, reactions, edits, revokes, journal cursor and
   history-sync anchors.
+- Evolution Go WebSocket loop with 20-second pings, bounded reconnect backoff,
+  double-decoded frames, instance filtering and instance-token redaction.
 
 ### Fixed
 
