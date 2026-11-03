@@ -36,7 +36,6 @@ tokio-tungstenite = { version = "0.27", features = ["rustls-tls-webpki-roots"] }
 futures-util = "0.3"
 rusqlite = { version = "0.37", features = ["bundled"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
-rust-ini = "0.21"
 clap = { version = "4", features = ["derive"] }
 url = "2"
 base64 = "0.22"
@@ -47,6 +46,7 @@ dirs = "6"
 chrono = { version = "0.4", features = ["serde"] }
 regex = "1"
 resvg = "0.45"
+ts-rs = { version = "12", features = ["serde-compat", "no-serde-warnings"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 webkit2gtk = { version = "2.0", features = ["v2_40"] }
