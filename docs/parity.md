@@ -5,11 +5,11 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 
 | Funcionalidade | ZapZap | FastZap | Observações |
 |---|---|---|---|
-| Instância única e reencaminhamento de links | `app/single_application.py` | `tauri-plugin-single-instance` + `app::instance` | `fastzap://restart` substitui `zapzap://restart` |
+| Instância única e reencaminhamento de links | `app/single_application.py` | `tauri-plugin-single-instance` + `app::lifecycle` | `fastzap://restart` substitui `zapzap://restart` |
 | D-Bus `org.freedesktop.Application` | `app/desktop_application_dbus.py` | `app::dbus` | só no Flatpak |
 | CLI `--setSettings`, `--wayland`, `--hideStart` | `app/startup_options.py` | `app::cli` | mesmos nomes |
-| `SIGTERM` → saída normal | `app/unix_signal_bridge.py` | `app::signals` | |
-| Geometria, fechar para bandeja, confirmação | `app/window_lifecycle.py` | `app::window` | |
+| `SIGTERM` → saída normal | `app/unix_signal_bridge.py` | `app::lifecycle` | |
+| Geometria, fechar para bandeja, confirmação | `app/window_lifecycle.py` | `app::lifecycle` + `tauri-plugin-window-state` | `SIGINT` também encerra normalmente |
 | Barra de título própria (CSR) | `ui/components/client_side_window*` | `src/lib/components/TitleBar.svelte` | mesmas opções `csr_*` |
 | Contas, limite, ativação, avatar, UA, DND, zoom | `features/accounts` | `accounts` + página Contas | tipo de conta novo: Evolution Go |
 | Sidebar, grade, bloqueio, doação, atualização | `features/browser/shell` | `src/routes/+page.svelte` | |

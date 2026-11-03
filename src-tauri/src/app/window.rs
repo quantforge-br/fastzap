@@ -19,6 +19,13 @@ pub fn create_main<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Window<R>> {
         .decorations(!settings.appearance.csr)
         .visible(false)
         .build()?;
+    let close_app = app.clone();
+    window.on_window_event(move |event| {
+        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+            api.prevent_close();
+            super::lifecycle::request_close(&close_app, false);
+        }
+    });
     #[cfg(target_os = "linux")]
     crate::webview::stage::install(&window)?;
     let scale = window.scale_factor().unwrap_or(1.0);

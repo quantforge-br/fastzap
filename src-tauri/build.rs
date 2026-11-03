@@ -16,6 +16,7 @@ const UI_COMMANDS: &[&str] = &[
     "layout_set_overlay",
     "account_activate",
     "app_action",
+    "app_close_confirmed",
     "unread_get",
     "account_sync_photo",
     "calling_codes",

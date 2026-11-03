@@ -43,7 +43,7 @@ pub fn dispatch_for<R: Runtime>(app: &AppHandle<R>, action: &str, account: Optio
     let state = app.state::<AppState>();
     let target = account.or_else(|| state.webviews.active());
     match action {
-        "quit" => app.exit(0),
+        "quit" => super::lifecycle::request_close(app, true),
         "hide" => window::hide(app),
         "show" => window::show(app),
         "toggle_mute" => {

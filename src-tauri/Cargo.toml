@@ -36,7 +36,6 @@ tokio-tungstenite = { version = "0.27", features = ["rustls-tls-webpki-roots"] }
 futures-util = "0.3"
 rusqlite = { version = "0.37", features = ["bundled"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
-clap = { version = "4", features = ["derive"] }
 url = "2"
 base64 = "0.22"
 sha2 = "0.10"

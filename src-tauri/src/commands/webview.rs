@@ -37,6 +37,12 @@ pub fn app_action(app: AppHandle, action: String) {
     actions::dispatch(&app, &action);
 }
 
+/// Answer of the close confirmation dialog; only called when confirmed.
+#[tauri::command]
+pub fn app_close_confirmed(app: AppHandle, quit: bool, dont_ask_again: bool) {
+    crate::app::lifecycle::close_confirmed(&app, quit, dont_ask_again);
+}
+
 #[tauri::command]
 pub fn unread_get(state: State<'_, AppState>) -> UnreadSnapshot {
     state.unread.snapshot()
@@ -69,17 +75,4 @@ pub fn open_chat_by_number(
         .navigate(&app, id, deeplink::open_chat_url(&target));
     actions::activate(&app, id);
     Ok(())
-}
-
-/// Open a `whatsapp:`/wa.me link in the active WhatsApp Web account.
-pub fn open_deep_link(app: &AppHandle, state: &AppState, url: &str) -> bool {
-    let Some(script) = deeplink::open_deep_link_script(url) else {
-        return false;
-    };
-    let Some(id) = state.webviews.active() else {
-        return false;
-    };
-    state.webviews.eval(app, id, &script);
-    crate::app::window::show(app);
-    true
 }

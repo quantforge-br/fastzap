@@ -136,16 +136,28 @@ mensagens; a UI Svelte em `src/routes/chat/` consome os comandos
 
 ## Inicialização e encerramento
 
-1. `main.rs` interpreta a CLI (`app::cli`) e aplica variáveis que precisam
-   existir antes do GTK (`GDK_BACKEND`, flags do WebKit).
-2. `tauri-plugin-single-instance` encaminha argumentos e deep links para a
-   instância em execução.
+1. `lib::run` interpreta a CLI (`app::cli`, no estilo `parse_known_args`:
+   `--setSettings CHAVE VALOR` com as chaves `grupo/chave` do ZapZap,
+   `--wayland`, `--hideStart`; os demais argumentos são links). Antes do GTK,
+   define `GDK_BACKEND` a partir de `--wayland`, de um `GDK_BACKEND` já
+   exportado ou de `system.display_backend` (lido sem reparar o arquivo).
+2. `tauri-plugin-single-instance` entrega os argumentos de um segundo
+   lançamento a `app::lifecycle::on_second_instance`: aplica `--setSettings`,
+   reinicia com `fastzap://restart`, abre o primeiro link `whatsapp:`/wa.me
+   válido e mostra a janela.
 3. `setup` carrega preferências, executa a migração do ZapZap uma única vez,
-   abre o banco de contas, cria tray, janela e child webviews, inicia sessões
-   Evolution Go habilitadas, D-Bus (Flatpak) e a ponte de `SIGTERM`.
-4. A visibilidade inicial respeita `--hideStart` e `start_background`.
-5. Em `RunEvent::ExitRequested` as notificações são removidas, as sessões
-   Evolution Go fechadas e o marcador `.session-active` apagado.
+   aplica `--setSettings`, cria janela, child webviews e tray e instala a
+   ponte de `SIGTERM`/`SIGINT` (`signal-hook` → `AppHandle::exit`).
+4. A janela começa oculta com `start_background` ou `--hideStart`, exceto
+   enquanto a configuração inicial não foi concluída. Links do primeiro
+   lançamento esperam o carregamento da página (`eval_when_ready`).
+5. `tauri-plugin-window-state` restaura tamanho, posição e maximização da
+   janela `main` (nunca a visibilidade) e salva ao sair.
+6. Fechar a janela pede `app::lifecycle::request_close`: com
+   `confirm_on_close` a UI pergunta (com "Don't ask again", também para Sair
+   da bandeja e `Ctrl+Q`); depois a janela vai para a bandeja, ou o app sai se
+   `quit_on_close` estiver ativo ou se o pedido foi Sair.
+7. Em `RunEvent::Exit` as notificações exibidas são removidas.
 
 ## Empacotamento
 

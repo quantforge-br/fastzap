@@ -137,6 +137,24 @@ fn import_secret(
     Ok(())
 }
 
+/// Apply one ZapZap `group/key` value (`--setSettings`) with the importer's
+/// mapping. Returns whether the settings changed.
+pub fn apply_zapzap_setting(key: &str, value: &str, settings: &mut Settings) -> bool {
+    let (group, name) = key.split_once('/').unwrap_or(("General", key));
+    if group.is_empty() || name.is_empty() || key.contains(['\n', '\r', '[', ']', '=']) {
+        return false;
+    }
+    let quoted = value
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r");
+    let ini = QSettingsIni::parse(&format!("[{group}]\n{name}=\"{quoted}\"\n"));
+    let before = settings.clone();
+    apply_settings(&ini, settings);
+    *settings != before
+}
+
 fn apply_settings(ini: &QSettingsIni, s: &mut Settings) {
     macro_rules! set_bool {
         ($key:expr, $field:expr) => {

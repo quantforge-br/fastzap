@@ -21,6 +21,7 @@
     "allow-layout-set-overlay",
     "allow-account-activate",
     "allow-app-action",
+    "allow-app-close-confirmed",
     "allow-unread-get",
     "allow-account-sync-photo",
     "allow-calling-codes",

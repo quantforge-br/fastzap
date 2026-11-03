@@ -1,7 +1,9 @@
 pub mod actions;
 pub mod bootstrap;
+pub mod cli;
 pub mod effects;
 pub mod events;
+pub mod lifecycle;
 pub mod state;
 pub mod theme;
 pub mod window;

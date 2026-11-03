@@ -39,6 +39,17 @@
   account do-not-disturb, silent mode, circular sender photos, tag
   replacement, closing when read and click-to-open-chat with activation
   tokens.
+- Window lifecycle: closing hides FastZap to the tray unless quit on close is
+  set, an optional confirmation with "Don't ask again" also guards Quit, the
+  window starts hidden with start in background or --hideStart once setup is
+  done, and its size, position and maximized state are restored.
+- Command-line options --setSettings KEY VALUE (ZapZap key names), --wayland
+  and --hideStart, plus the display backend preference applied through
+  GDK_BACKEND.
+- A second launch forwards its arguments: settings are applied,
+  fastzap://restart restarts the app and the first whatsapp:/wa.me link opens
+  in the active account; links passed at startup open once the page loads.
+  SIGTERM and SIGINT quit normally and remove shown notifications.
 
 ### Fixed
 

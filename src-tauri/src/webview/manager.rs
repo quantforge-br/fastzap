@@ -61,6 +61,9 @@ pub struct LayoutState {
 #[derive(Default)]
 pub struct WebviewManager {
     layout: Mutex<Layout>,
+    /// Accounts whose page finished loading, and scripts waiting for it.
+    ready: Mutex<BTreeSet<i64>>,
+    pending: Mutex<Vec<(i64, String)>>,
 }
 
 impl WebviewManager {
@@ -234,6 +237,7 @@ impl WebviewManager {
             builder = builder.proxy_url(proxy);
         }
 
+        self.ready.lock().unwrap().remove(&account.id);
         let webview = window.add_child(
             builder,
             LogicalPosition::new(0.0, 0.0),
@@ -333,6 +337,28 @@ impl WebviewManager {
             }
         }
         self.layout.lock().unwrap().placed = placed;
+    }
+
+    /// Evaluate `script` now if the page has loaded, or after it loads.
+    pub fn eval_when_ready<R: Runtime>(&self, app: &AppHandle<R>, account_id: i64, script: String) {
+        if self.ready.lock().unwrap().contains(&account_id) {
+            self.eval(app, account_id, &script);
+        } else {
+            self.pending.lock().unwrap().push((account_id, script));
+        }
+    }
+
+    fn page_loaded<R: Runtime>(&self, webview: &Webview<R>, account_id: i64) {
+        self.ready.lock().unwrap().insert(account_id);
+        let scripts: Vec<String> = {
+            let mut pending = self.pending.lock().unwrap();
+            let (now, later) = pending.drain(..).partition(|(id, _)| *id == account_id);
+            *pending = later;
+            now.into_iter().map(|(_, script)| script).collect()
+        };
+        for script in scripts {
+            let _ = webview.eval(script);
+        }
     }
 
     pub fn eval<R: Runtime>(&self, app: &AppHandle<R>, account_id: i64, script: &str) {
@@ -492,6 +518,7 @@ pub fn on_page_ready<R: Runtime>(webview: &Webview<R>) {
     let _ = webview.eval(scripts::document_ready(&settings, dark, &labels));
     if let Some(id) = account_id_from_label(webview.label()) {
         crate::customizations::apply_to_webview(app, id, webview);
+        state.webviews.page_loaded(webview, id);
     }
 }
 

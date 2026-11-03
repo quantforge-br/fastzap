@@ -58,6 +58,8 @@ export const layout = {
 
 export const app = {
   action: (action: string) => invoke<void>("app_action", { action }),
+  closeConfirmed: (quit: boolean, dontAskAgain: boolean) =>
+    invoke<void>("app_close_confirmed", { quit, dontAskAgain }),
   unread: () => invoke<UnreadSnapshot>("unread_get"),
   callingCodes: () => invoke<RegionCallingCode[]>("calling_codes"),
   openChatByNumber: (target: ChatTarget, accountId?: number) =>

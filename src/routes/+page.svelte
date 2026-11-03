@@ -18,6 +18,10 @@
   let layout = $state<LayoutState>({ active: null, grid: false, overlay: false });
   let unread = $state<UnreadSnapshot>({ per_account: {}, total: 0 });
   let panel = $state<string | null>(null);
+  // Close confirmation (ZapZap's "Close ZapZap" question); `quit` also
+  // covers Quit from the tray or Ctrl+Q.
+  let confirm = $state<{ quit: boolean } | null>(null);
+  let dontAskAgain = $state(false);
   let content: HTMLElement;
 
   const visible = $derived(accounts.filter((a) => a.enabled));
@@ -36,7 +40,20 @@
   }
 
   function onUiAction(action: UiAction) {
+    if (action.action === "confirm_close" || action.action === "confirm_quit") {
+      confirm = { quit: action.action === "confirm_quit" };
+      dontAskAgain = false;
+      layoutApi.setOverlay(true);
+      return;
+    }
     openPanel(action.action);
+  }
+
+  async function answerClose(confirmed: boolean) {
+    const request = confirm;
+    confirm = null;
+    await layoutApi.setOverlay(panel !== null);
+    if (confirmed && request) await app.closeConfirmed(request.quit, dontAskAgain);
   }
 
   onMount(() => {
@@ -99,6 +116,8 @@
         </header>
         <p>This section is not available yet.</p>
       </section>
+    {:else if confirm}
+      <!-- Shown in place of the hidden webviews. -->
     {:else if active?.kind === "evolution_go"}
       <section class="placeholder">
         <p>{active.name}: Evolution Go accounts are not available yet.</p>
@@ -108,6 +127,23 @@
     {/if}
   </main>
 </div>
+
+{#if confirm}
+  <div class="backdrop">
+    <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="close-title">
+      <h2 id="close-title">Close FastZap</h2>
+      <p>Are you sure you want to close?</p>
+      <label><input type="checkbox" bind:checked={dontAskAgain} /> Don't ask again</label>
+      <div class="actions">
+        <button onclick={() => answerClose(false)}>No</button>
+        <!-- svelte-ignore a11y_autofocus -->
+        <button class="primary" autofocus onclick={() => answerClose(true)}>Yes</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<svelte:window onkeydown={(e) => confirm && e.key === "Escape" && answerClose(false)} />
 
 <style>
   :global(:root) {
@@ -216,5 +252,37 @@
   }
   .panel h1 {
     text-transform: capitalize;
+  }
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgb(0 0 0 / 40%);
+  }
+  .dialog {
+    min-width: 300px;
+    max-width: calc(100vw - 32px);
+    padding: 20px 24px;
+    border-radius: 8px;
+    background: var(--bg);
+    box-shadow: 0 8px 32px rgb(0 0 0 / 30%);
+  }
+  .dialog h2 {
+    margin: 0 0 8px;
+    font-size: 18px;
+  }
+  .dialog .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .dialog .primary {
+    background: var(--accent);
+    color: #fff;
+    border: 0;
+    border-radius: 4px;
+    padding: 6px 14px;
   }
 </style>
