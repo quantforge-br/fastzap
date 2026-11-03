@@ -53,7 +53,11 @@ pub async fn accounts_update(
 }
 
 #[tauri::command]
-pub async fn accounts_delete(app: AppHandle, state: State<'_, AppState>, id: i64) -> CommandResult<()> {
+pub async fn accounts_delete(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: i64,
+) -> CommandResult<()> {
     state.accounts.delete(id)?;
     // Close the webview before deleting its data directory.
     if let Some(webview) = tauri::Manager::get_webview(&app, &crate::webview::manager::label(id)) {

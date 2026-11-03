@@ -57,6 +57,10 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 - **Notificações em Windows/macOS** não informam cliques ao app
   (`tauri-plugin-notification`); clicar não abre a conversa. O portal não
   recebe o pedido de som silencioso.
+- **Proxy estrito** desativa o WebRTC em vez de forçar UDP pelo proxy: o
+  WebKit não tem a política `disable_non_proxied_udp` do Chromium. No Linux o
+  WebRTC do WebKitGTK é desligado nativamente; nas demais plataformas a API é
+  removida de todos os frames por script.
 - **Mudo** só tem efeito no Linux (WebKitGTK); WebView2/WKWebView não expõem
   mudo pelo Tauri.
 - **Áudio/vídeo chamadas** continuam indisponíveis no WhatsApp Web, como no

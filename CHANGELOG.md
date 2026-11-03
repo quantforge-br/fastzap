@@ -70,3 +70,6 @@
 - macOS builds apply the configured proxy and require macOS 14, where each
   account gets its own WebKit data store instead of sharing the default
   session.
+- Strict proxy mode disables WebRTC in every frame (natively on Linux) instead
+  of requesting relay-only ICE, which pages could undo and which still
+  bypassed the proxy.

@@ -1,14 +1,26 @@
-// Strict proxy: WebKit has no "disable non-proxied UDP" policy, so force every
-// RTCPeerConnection to relay-only ICE. Direct host/srflx paths are never used.
+// Strict proxy: WebRTC media and data channels do not go through HTTP or
+// SOCKS proxies, so the API is removed from every frame before page scripts
+// run. On Linux WebKitGTK's WebRTC switch is also turned off natively.
 (function () {
-  const Original = window.RTCPeerConnection || window.webkitRTCPeerConnection;
-  if (!Original || Original.__fastzapStrict) return;
-  const Strict = function (config = {}, ...rest) {
-    return new Original({ ...config, iceTransportPolicy: "relay" }, ...rest);
-  };
-  Strict.prototype = Original.prototype;
-  Strict.__fastzapStrict = true;
-  Object.setPrototypeOf(Strict, Original);
-  window.RTCPeerConnection = Strict;
-  if (window.webkitRTCPeerConnection) window.webkitRTCPeerConnection = Strict;
+  const names = [
+    "RTCPeerConnection",
+    "webkitRTCPeerConnection",
+    "RTCDataChannel",
+    "RTCIceCandidate",
+    "RTCSessionDescription",
+    "RTCRtpSender",
+    "RTCRtpReceiver",
+    "RTCRtpTransceiver",
+  ];
+  for (const name of names) {
+    try {
+      Object.defineProperty(window, name, {
+        value: undefined,
+        writable: false,
+        configurable: false,
+      });
+    } catch (_error) {
+      // Already locked by an earlier injection.
+    }
+  }
 })();

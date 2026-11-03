@@ -182,6 +182,10 @@ impl WebviewManager {
                 }
             });
 
+        if let Some(script) = scripts::all_frames(&settings) {
+            builder = builder.initialization_script_for_all_frames(script);
+        }
+
         let download_app = app.clone();
         let account_id = account.id;
         builder = builder.on_download(move |_webview, event| {
@@ -210,6 +214,15 @@ impl WebviewManager {
         let _ = webview.hide();
         let _ = webview.set_zoom(account.zoom);
         set_muted(&webview, settings.system.audio_muted);
+        #[cfg(target_os = "linux")]
+        if scripts::strict_proxy(&settings) {
+            let _ = webview.with_webview(|platform| {
+                use webkit2gtk::{SettingsExt, WebViewExt};
+                if let Some(web_settings) = platform.inner().settings() {
+                    web_settings.set_enable_webrtc(false);
+                }
+            });
+        }
         #[cfg(target_os = "linux")]
         install_plain_paste_shortcut(&webview, account.id);
         Ok(webview)

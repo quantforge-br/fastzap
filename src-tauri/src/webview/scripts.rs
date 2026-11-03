@@ -35,11 +35,18 @@ pub fn document_start(settings: &Settings) -> String {
         out.push('\n');
         out.push_str(WEBRTC_SHIELD);
     }
-    if settings.privacy.strict_proxy && settings.proxy.enabled {
-        out.push('\n');
-        out.push_str(STRICT_PROXY);
-    }
     out
+}
+
+/// Whether WebRTC must be disabled because it would bypass the proxy.
+pub fn strict_proxy(settings: &Settings) -> bool {
+    settings.privacy.strict_proxy && settings.proxy.enabled
+}
+
+/// Scripts injected into every frame, so a same-origin iframe cannot hand
+/// the page an untouched API.
+pub fn all_frames(settings: &Settings) -> Option<&'static str> {
+    strict_proxy(settings).then_some(STRICT_PROXY)
 }
 
 /// Scripts evaluated after each WhatsApp Web load (ZapZap's DocumentReady scripts).
@@ -147,6 +154,16 @@ pub fn read_profile_photo() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn strict_proxy_needs_an_enabled_proxy() {
+        let mut settings = Settings::default();
+        settings.privacy.strict_proxy = true;
+        assert!(all_frames(&settings).is_none());
+        settings.proxy.enabled = true;
+        assert!(all_frames(&settings).unwrap().contains("RTCPeerConnection"));
+        assert!(!document_start(&settings).contains("RTCRtpSender"));
+    }
 
     fn labels() -> PageLabels {
         PageLabels {
