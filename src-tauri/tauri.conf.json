@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "fastzap",
+  "productName": "FastZap",
   "version": "0.1.0",
   "identifier": "io.github.quantmind_br.fastzap",
   "build": {
@@ -12,9 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "fastzap",
-        "width": 800,
-        "height": 600
+        "label": "main",
+        "title": "FastZap",
+        "width": 1000,
+        "height": 700,
+        "minWidth": 480,
+        "minHeight": 400,
+        "visible": true
       }
     ],
     "security": {

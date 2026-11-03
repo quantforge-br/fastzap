@@ -1,16 +1,13 @@
 [package]
 name = "fastzap"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "Multi-account WhatsApp desktop client with Evolution Go accounts"
+authors = ["quantmind-br"]
+license = "GPL-3.0-or-later"
 edition = "2024"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+rust-version = "1.85"
 
 [lib]
-# The `_lib` suffix may seem redundant but it is necessary
-# to make the lib name unique and wouldn't conflict with the bin name.
-# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 name = "fastzap_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
@@ -18,13 +15,52 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["unstable", "tray-icon", "image-png"] }
 tauri-plugin-opener = "2"
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+tauri-plugin-deep-link = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-window-state = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-clipboard-manager = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+log = "0.4"
+env_logger = "0.11"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "fs"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "multipart", "stream"] }
+tokio-tungstenite = { version = "0.27", features = ["rustls-tls-webpki-roots"] }
+futures-util = "0.3"
+rusqlite = { version = "0.37", features = ["bundled"] }
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+rust-ini = "0.21"
+clap = { version = "4", features = ["derive"] }
+url = "2"
+base64 = "0.22"
+sha2 = "0.10"
+hex = "0.4"
+rand = "0.9"
+dirs = "6"
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1"
+resvg = "0.45"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+webkit2gtk = { version = "2.0", features = ["v2_40"] }
+zbus = { version = "5", default-features = false, features = ["tokio"] }
+ashpd = { version = "0.11", default-features = false, features = ["tokio"] }
+notify-rust = { version = "4", default-features = false, features = ["dbus"] }
 
-# Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
+[target.'cfg(unix)'.dependencies]
+signal-hook = "0.3"
+
+[dev-dependencies]
+wiremock = "0.6"
+tempfile = "3"
+
 [profile.release]
 codegen-units = 1
 lto = true
