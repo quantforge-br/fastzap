@@ -63,9 +63,14 @@ pub fn run() {
     let builder = tauri::Builder::default()
         // Must be the first plugin: a second launch forwards its arguments
         // here, so two processes never write the same settings and accounts.
-        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
-            app::lifecycle::on_second_instance(app, args);
-        }))
+        // The D-Bus name must start with the app ID (Flatpak only lets an app
+        // own names under its ID), not the bundle identifier.
+        .plugin(
+            tauri_plugin_single_instance::Builder::new()
+                .callback(|app, args, _cwd| app::lifecycle::on_second_instance(app, args))
+                .dbus_id(APP_ID)
+                .build(),
+        )
         .plugin(
             tauri_plugin_window_state::Builder::new()
                 .with_state_flags(StateFlags::all() - StateFlags::VISIBLE)

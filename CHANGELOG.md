@@ -273,6 +273,9 @@
   and sending another read request) every time the chat list refreshes, and an
   older page that arrives after switching chats is discarded instead of shown
   in the new chat.
+- The single-instance D-Bus name stays
+  io.github.quantmind_br.fastzap.SingleInstance after the bundle identifier
+  change, so Flatpak still lets FastZap own it.
 
 ### Changed
 
