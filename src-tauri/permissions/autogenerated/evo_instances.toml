@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-instances"
+description = "Enables the evo_instances command without any pre-configured scope."
+commands.allow = ["evo_instances"]
+
+[[permission]]
+identifier = "deny-evo-instances"
+description = "Denies the evo_instances command without any pre-configured scope."
+commands.deny = ["evo_instances"]

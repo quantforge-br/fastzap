@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-send-file"
+description = "Enables the evo_send_file command without any pre-configured scope."
+commands.allow = ["evo_send_file"]
+
+[[permission]]
+identifier = "deny-evo-send-file"
+description = "Denies the evo_send_file command without any pre-configured scope."
+commands.deny = ["evo_send_file"]

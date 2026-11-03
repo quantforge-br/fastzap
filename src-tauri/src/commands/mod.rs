@@ -5,6 +5,7 @@ pub mod app;
 pub mod bridge;
 pub mod customizations;
 pub mod downloads;
+pub mod evolution;
 pub mod reporting;
 pub mod settings;
 pub mod spellcheck;

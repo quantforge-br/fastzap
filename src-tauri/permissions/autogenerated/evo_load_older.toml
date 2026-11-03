@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-load-older"
+description = "Enables the evo_load_older command without any pre-configured scope."
+commands.allow = ["evo_load_older"]
+
+[[permission]]
+identifier = "deny-evo-load-older"
+description = "Denies the evo_load_older command without any pre-configured scope."
+commands.deny = ["evo_load_older"]

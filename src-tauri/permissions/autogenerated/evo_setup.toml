@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-setup"
+description = "Enables the evo_setup command without any pre-configured scope."
+commands.allow = ["evo_setup"]
+
+[[permission]]
+identifier = "deny-evo-setup"
+description = "Denies the evo_setup command without any pre-configured scope."
+commands.deny = ["evo_setup"]

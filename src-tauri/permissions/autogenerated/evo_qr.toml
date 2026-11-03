@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-qr"
+description = "Enables the evo_qr command without any pre-configured scope."
+commands.allow = ["evo_qr"]
+
+[[permission]]
+identifier = "deny-evo-qr"
+description = "Denies the evo_qr command without any pre-configured scope."
+commands.deny = ["evo_qr"]

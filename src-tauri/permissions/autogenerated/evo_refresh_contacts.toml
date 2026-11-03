@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-refresh-contacts"
+description = "Enables the evo_refresh_contacts command without any pre-configured scope."
+commands.allow = ["evo_refresh_contacts"]
+
+[[permission]]
+identifier = "deny-evo-refresh-contacts"
+description = "Denies the evo_refresh_contacts command without any pre-configured scope."
+commands.deny = ["evo_refresh_contacts"]

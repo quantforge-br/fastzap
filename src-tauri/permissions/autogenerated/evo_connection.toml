@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-connection"
+description = "Enables the evo_connection command without any pre-configured scope."
+commands.allow = ["evo_connection"]
+
+[[permission]]
+identifier = "deny-evo-connection"
+description = "Denies the evo_connection command without any pre-configured scope."
+commands.deny = ["evo_connection"]

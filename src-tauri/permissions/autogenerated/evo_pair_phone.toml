@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-pair-phone"
+description = "Enables the evo_pair_phone command without any pre-configured scope."
+commands.allow = ["evo_pair_phone"]
+
+[[permission]]
+identifier = "deny-evo-pair-phone"
+description = "Denies the evo_pair_phone command without any pre-configured scope."
+commands.deny = ["evo_pair_phone"]

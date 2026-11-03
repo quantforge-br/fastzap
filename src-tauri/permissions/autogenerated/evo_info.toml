@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-info"
+description = "Enables the evo_info command without any pre-configured scope."
+commands.allow = ["evo_info"]
+
+[[permission]]
+identifier = "deny-evo-info"
+description = "Denies the evo_info command without any pre-configured scope."
+commands.deny = ["evo_info"]

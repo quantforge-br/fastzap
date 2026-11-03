@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-send-text"
+description = "Enables the evo_send_text command without any pre-configured scope."
+commands.allow = ["evo_send_text"]
+
+[[permission]]
+identifier = "deny-evo-send-text"
+description = "Denies the evo_send_text command without any pre-configured scope."
+commands.deny = ["evo_send_text"]

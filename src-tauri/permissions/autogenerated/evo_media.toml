@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-media"
+description = "Enables the evo_media command without any pre-configured scope."
+commands.allow = ["evo_media"]
+
+[[permission]]
+identifier = "deny-evo-media"
+description = "Denies the evo_media command without any pre-configured scope."
+commands.deny = ["evo_media"]

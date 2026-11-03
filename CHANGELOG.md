@@ -136,6 +136,11 @@
 - Evolution Go session manager: instance connect with preserved configuration,
   WebSocket events, journal catch-up from a saved cursor, unread counts,
   native notifications and notification clicks that open the chat.
+- Evolution Go commands: account setup with keyring secrets (existing or new
+  instance), pairing by QR or phone code, chats and paged messages, text and
+  file sending through a local outbox, retry of failed sends, reactions,
+  edits, deletes, read receipts, typing, cached media, older history requests,
+  avatars and contacts.
 
 ### Fixed
 

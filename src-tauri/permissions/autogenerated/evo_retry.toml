@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-retry"
+description = "Enables the evo_retry command without any pre-configured scope."
+commands.allow = ["evo_retry"]
+
+[[permission]]
+identifier = "deny-evo-retry"
+description = "Denies the evo_retry command without any pre-configured scope."
+commands.deny = ["evo_retry"]

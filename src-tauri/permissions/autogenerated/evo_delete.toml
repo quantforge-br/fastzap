@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-delete"
+description = "Enables the evo_delete command without any pre-configured scope."
+commands.allow = ["evo_delete"]
+
+[[permission]]
+identifier = "deny-evo-delete"
+description = "Denies the evo_delete command without any pre-configured scope."
+commands.deny = ["evo_delete"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evo-typing"
+description = "Enables the evo_typing command without any pre-configured scope."
+commands.allow = ["evo_typing"]
+
+[[permission]]
+identifier = "deny-evo-typing"
+description = "Denies the evo_typing command without any pre-configured scope."
+commands.deny = ["evo_typing"]
