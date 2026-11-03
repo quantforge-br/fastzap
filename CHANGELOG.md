@@ -249,6 +249,9 @@
   passkey ceremonies open in the system browser.
 - Evolution Go: the first journal read no longer sends an empty cursor, which
   the server rejected, so recovery now starts on a fresh install.
+- Evolution Go: journal pages are applied in their original order in one
+  transaction, so a read receipt no longer lands before its message and the
+  cursor only advances when every event was stored.
 
 ### Changed
 

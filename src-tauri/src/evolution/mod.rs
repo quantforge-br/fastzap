@@ -427,24 +427,41 @@ async fn catch_up(app: &AppHandle, session: &Session) {
                 return;
             }
         };
-        let mut changes = Vec::new();
-        for entry in &page.events {
-            let mut payload = entry.payload.clone();
-            if let Some(map) = payload.as_object_mut() {
-                map.remove("instanceToken");
-            }
-            match model::parse(&payload) {
-                Event::Changes(mut list) => changes.append(&mut list),
-                // Pairing and presence events are stale by now.
-                Event::Receipt(_) | Event::History(_) | Event::PushName { .. } => {
-                    handle(app, session, &payload, false)
+        // Pairing and presence events are stale by now.
+        let events: Vec<Event> = page
+            .events
+            .iter()
+            .map(|entry| {
+                let mut payload = entry.payload.clone();
+                if let Some(map) = payload.as_object_mut() {
+                    map.remove("instanceToken");
                 }
-                _ => {}
-            }
-        }
+                model::parse(&payload)
+            })
+            .filter(|event| {
+                matches!(
+                    event,
+                    Event::Changes(_)
+                        | Event::Receipt(_)
+                        | Event::History(_)
+                        | Event::PushName { .. }
+                )
+            })
+            .collect();
         let next = (!page.next_cursor.is_empty()).then_some(page.next_cursor.as_str());
-        match session.store.apply(&changes, true, next) {
-            Ok(applied) => after_apply(app, session, applied),
+        match session.store.apply_journal(&events, next) {
+            Ok(applied) => {
+                // Push names change the list without touching a chat.
+                if applied.chats.is_empty() && !events.is_empty() {
+                    emit(
+                        app,
+                        UiEvent::Chats {
+                            account_id: session.account_id,
+                        },
+                    );
+                }
+                after_apply(app, session, applied);
+            }
             Err(e) => {
                 log::warn!("evolution store write failed: {e}");
                 return;

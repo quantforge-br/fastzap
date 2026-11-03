@@ -10,7 +10,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use ts_rs::TS;
 
-use super::model::{Change, History, Message, MessageKind, QuoteRef, Receipt, Status};
+use super::model::{Change, Event, History, Message, MessageKind, QuoteRef, Receipt, Status};
 
 pub type StoreResult<T> = Result<T, rusqlite::Error>;
 
@@ -241,22 +241,43 @@ impl ChatStore {
         let mut conn = self.conn.lock().unwrap();
         let tx = conn.transaction()?;
         let mut applied = Applied::default();
-        for chat in &history.chats {
-            tx.execute(
-                "INSERT INTO chats (jid, name, ts, unread) VALUES (?1, ?2, ?3, ?4)
-                 ON CONFLICT (jid) DO UPDATE SET
-                    name = CASE WHEN excluded.name <> '' THEN excluded.name ELSE chats.name END,
-                    ts = MAX(chats.ts, excluded.ts),
-                    unread = excluded.unread",
-                params![chat.jid, chat.name, chat.ts, chat.unread],
-            )?;
-            for change in &chat.messages {
-                apply_change(&tx, change, false, &mut applied)?;
+        apply_history(&tx, history, &mut applied)?;
+        tx.commit()?;
+        Ok(applied)
+    }
+
+    /// A journal page, in order, in one transaction with its end `cursor`:
+    /// a receipt never lands before the message it confirms, and the cursor
+    /// only moves when every event was stored.
+    pub fn apply_journal(&self, events: &[Event], cursor: Option<&str>) -> StoreResult<Applied> {
+        let mut conn = self.conn.lock().unwrap();
+        let tx = conn.transaction()?;
+        let mut applied = Applied::default();
+        for event in events {
+            match event {
+                Event::Changes(changes) => {
+                    for change in changes {
+                        apply_change(&tx, change, true, &mut applied)?;
+                    }
+                }
+                Event::Receipt(receipt) => {
+                    if apply_receipt(&tx, receipt)? {
+                        applied.touch(&receipt.chat);
+                    }
+                }
+                Event::History(history) => apply_history(&tx, history, &mut applied)?,
+                Event::PushName { jid, name } if !jid.is_empty() && !name.is_empty() => {
+                    upsert_push_name(&tx, jid, name)?;
+                }
+                _ => {}
             }
-            applied.touch(&chat.jid);
         }
-        for (jid, name) in &history.push_names {
-            upsert_push_name(&tx, jid, name)?;
+        if let Some(cursor) = cursor {
+            tx.execute(
+                "INSERT INTO meta (key, value) VALUES (?1, ?2)
+                 ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+                params![CURSOR, cursor],
+            )?;
         }
         tx.commit()?;
         Ok(applied)
@@ -264,23 +285,7 @@ impl ChatStore {
 
     /// Receipts move our messages forward; a read-self receipt clears unread.
     pub fn apply_receipt(&self, receipt: &Receipt) -> StoreResult<bool> {
-        let conn = self.conn.lock().unwrap();
-        if receipt.read_self {
-            let n = conn.execute(
-                "UPDATE chats SET unread = 0 WHERE jid = ? AND unread <> 0",
-                [&receipt.chat],
-            )?;
-            return Ok(n > 0);
-        }
-        let mut changed = false;
-        for id in &receipt.ids {
-            changed |= conn.execute(
-                "UPDATE messages SET status = ?3
-                 WHERE chat = ?1 AND id = ?2 AND from_me = 1 AND status < ?3",
-                params![receipt.chat, id, status_rank(receipt.status)],
-            )? > 0;
-        }
-        Ok(changed)
+        apply_receipt(&self.conn.lock().unwrap(), receipt)
     }
 
     pub fn set_status(&self, chat: &str, id: &str, status: Status) -> StoreResult<()> {
@@ -495,6 +500,46 @@ impl ChatStore {
         )
         .optional()
     }
+}
+
+fn apply_history(conn: &Connection, history: &History, applied: &mut Applied) -> StoreResult<()> {
+    for chat in &history.chats {
+        conn.execute(
+            "INSERT INTO chats (jid, name, ts, unread) VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT (jid) DO UPDATE SET
+                name = CASE WHEN excluded.name <> '' THEN excluded.name ELSE chats.name END,
+                ts = MAX(chats.ts, excluded.ts),
+                unread = excluded.unread",
+            params![chat.jid, chat.name, chat.ts, chat.unread],
+        )?;
+        for change in &chat.messages {
+            apply_change(conn, change, false, applied)?;
+        }
+        applied.touch(&chat.jid);
+    }
+    for (jid, name) in &history.push_names {
+        upsert_push_name(conn, jid, name)?;
+    }
+    Ok(())
+}
+
+fn apply_receipt(conn: &Connection, receipt: &Receipt) -> StoreResult<bool> {
+    if receipt.read_self {
+        let n = conn.execute(
+            "UPDATE chats SET unread = 0 WHERE jid = ? AND unread <> 0",
+            [&receipt.chat],
+        )?;
+        return Ok(n > 0);
+    }
+    let mut changed = false;
+    for id in &receipt.ids {
+        changed |= conn.execute(
+            "UPDATE messages SET status = ?3
+             WHERE chat = ?1 AND id = ?2 AND from_me = 1 AND status < ?3",
+            params![receipt.chat, id, status_rank(receipt.status)],
+        )? > 0;
+    }
+    Ok(changed)
 }
 
 fn upsert_push_name(conn: &Connection, jid: &str, name: &str) -> StoreResult<()> {
@@ -748,6 +793,33 @@ mod tests {
         assert_eq!(chats[0].preview, "oi");
         assert_eq!(store.mark_read(CHAT).unwrap(), vec!["A".to_owned()]);
         assert_eq!(store.unread_chats().unwrap(), 0);
+    }
+
+    #[test]
+    fn journal_pages_apply_in_order_with_their_cursor() {
+        let store = ChatStore::in_memory().unwrap();
+        let mut ours = message("M", 10, true, "hi");
+        ours.status = Status::Sent;
+        let receipt = |read_self: bool, status: Status| Receipt {
+            chat: CHAT.into(),
+            ids: vec!["M".into()],
+            read_self,
+            status,
+        };
+        let events = [
+            Event::Changes(vec![Change::New(ours)]),
+            Event::Receipt(receipt(false, Status::Read)),
+            Event::Changes(vec![Change::New(message("N", 11, false, "yo"))]),
+            Event::Receipt(receipt(true, Status::Read)),
+        ];
+        let applied = store.apply_journal(&events, Some("9")).unwrap();
+        assert_eq!(applied.chats, vec![CHAT.to_owned()]);
+        assert_eq!(
+            store.message(CHAT, "M").unwrap().unwrap().status,
+            Status::Read
+        );
+        assert_eq!(store.unread_chats().unwrap(), 0);
+        assert_eq!(store.cursor().unwrap(), "9");
     }
 
     #[test]
