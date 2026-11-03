@@ -28,9 +28,12 @@ pub fn table_as_plain_text(html: &str) -> Option<String> {
     while !rest.is_empty() {
         match rest.find('<') {
             Some(0) => {
-                let end = rest.find('>').map(|i| i + 1).unwrap_or(rest.len());
-                let tag = &rest[1..end.saturating_sub(1)];
-                rest = &rest[end..];
+                // An unterminated tag ends the document, as in HTMLParser.
+                let Some(close) = rest.find('>') else {
+                    break;
+                };
+                let tag = &rest[1..close];
+                rest = &rest[close + 1..];
                 let closing = tag.starts_with('/');
                 let name: String = tag
                     .trim_start_matches('/')
@@ -117,12 +120,7 @@ fn normalize_cell(text: &str) -> String {
 }
 
 fn decode_entities(text: &str) -> String {
-    text.replace("&nbsp;", "\u{a0}")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-        .replace("&amp;", "&")
+    html_escape::decode_html_entities(text).into_owned()
 }
 
 #[cfg(test)]
@@ -140,6 +138,20 @@ mod tests {
     fn nested_tables_are_ignored() {
         let html = "<table><tr><td>a<table><tr><td>inner</td></tr></table></td></tr></table>";
         assert_eq!(table_as_plain_text(html).unwrap(), "a");
+    }
+
+    #[test]
+    fn decodes_named_and_numeric_entities() {
+        let html = "<table><tr><td>&#8364;10 &euro; &#x41;&amp;&lt;</td></tr></table>";
+        assert_eq!(table_as_plain_text(html).unwrap(), "€10 € A&<");
+    }
+
+    #[test]
+    fn malformed_tags_do_not_panic() {
+        let html = "<table><tr><td>x</td></tr></table><";
+        assert_eq!(table_as_plain_text(html).unwrap(), "x");
+        let html = "<table><tr><td>x</td></tr><té";
+        assert_eq!(table_as_plain_text(html).unwrap(), "x");
     }
 
     #[test]

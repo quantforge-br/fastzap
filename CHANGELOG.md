@@ -55,3 +55,6 @@
   are imported.
 - A second launch focuses the running instance instead of starting another
   process that would race on settings and accounts.
+- Plain-text paste no longer crashes on a clipboard HTML document ending in an
+  unterminated tag and decodes every HTML entity in spreadsheet cells, as
+  ZapZap does.
