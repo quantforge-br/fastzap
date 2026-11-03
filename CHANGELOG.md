@@ -137,6 +137,8 @@
   unsupported badge.
 - The tray Accounts action opens the account grid, as in ZapZap, instead of an
   empty panel.
+- The npm Tauri packages are pinned to the Rust crates' minor versions so
+  tauri dev no longer refuses to start.
 
 ### Changed
 
