@@ -446,7 +446,10 @@ pub async fn evo_retry(
         message_id: q.id.clone(),
         participant: q.participant.clone(),
     });
-    session.store.set_status(&chat, &id, Status::Pending)?;
+    // A receipt may have confirmed it meanwhile.
+    if !session.store.set_status(&chat, &id, Status::Pending)? {
+        return Err(tr("Only failed text messages can be sent again.").into());
+    }
     let result = session
         .client
         .send_text(&session.token, &chat, &message.body, &id, quote.as_ref())

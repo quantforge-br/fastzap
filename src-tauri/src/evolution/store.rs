@@ -288,12 +288,15 @@ impl ChatStore {
         apply_receipt(&self.conn.lock().unwrap(), receipt)
     }
 
-    pub fn set_status(&self, chat: &str, id: &str, status: Status) -> StoreResult<()> {
-        self.conn.lock().unwrap().execute(
-            "UPDATE messages SET status = ?3 WHERE chat = ?1 AND id = ?2",
-            params![chat, id, status_rank(status)],
+    /// Outbox state of a message the server has not confirmed yet; a
+    /// confirmed one (sent, delivered, read) is left alone. Returns whether
+    /// it changed.
+    pub fn set_status(&self, chat: &str, id: &str, status: Status) -> StoreResult<bool> {
+        let changed = self.conn.lock().unwrap().execute(
+            "UPDATE messages SET status = ?3 WHERE chat = ?1 AND id = ?2 AND status < ?4",
+            params![chat, id, status_rank(status), status_rank(Status::Sent)],
         )?;
-        Ok(())
+        Ok(changed > 0)
     }
 
     /// Replace a pending message's local id with the server's.
@@ -859,6 +862,12 @@ mod tests {
         assert_eq!(
             (list[0].id.as_str(), list[0].status),
             ("SERVER", Status::Read)
+        );
+        // A late HTTP failure must not downgrade a confirmed message.
+        assert!(!store.set_status(CHAT, "SERVER", Status::Unknown).unwrap());
+        assert_eq!(
+            store.message(CHAT, "SERVER").unwrap().unwrap().status,
+            Status::Read
         );
     }
 

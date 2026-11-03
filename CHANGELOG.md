@@ -255,6 +255,8 @@
 - Evolution Go: a transient journal error (HTTP 503, network, timeout) is
   retried with backoff instead of turning recovery off for the session, and a
   backlog longer than one batch keeps being read.
+- Evolution Go: a late send error no longer downgrades a message the server
+  already confirmed as sent, delivered or read.
 
 ### Changed
 
