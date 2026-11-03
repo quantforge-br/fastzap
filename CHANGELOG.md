@@ -216,6 +216,8 @@
 - Reporting a problem stops with a warning when the clipboard cannot be
   written, instead of opening GitHub with nothing to paste; the report is
   marked copied only after the copy succeeds.
+- App shortcuts (Ctrl+M, Ctrl+J, Ctrl+P and the rest) also work while the
+  settings, downloads or another local screen has focus.
 
 ### Changed
 

@@ -44,6 +44,7 @@
   import { showAccountMenu } from "$lib/accounts/contextMenu";
   import { iconSrc } from "$lib/accounts/icon";
   import { unreadLabel } from "$lib/shell/format";
+  import { shortcutFor } from "$lib/shell/shortcuts";
 
   let accounts = $state<Account[]>([]);
   let layout = $state<LayoutState>({ active: null, grid: false, overlay: false });
@@ -187,6 +188,16 @@
     if (action.action === "settings") settingsPage = DEFAULT_PAGE;
     if (action.action === "open_chat_by_number") chatAccount = action.account_id;
     openPanel(action.action);
+  }
+
+  // The menu accelerators are not installed while the local UI has focus.
+  function onKeydown(e: KeyboardEvent) {
+    if (confirm && e.key === "Escape") return answerClose(false);
+    if (e.repeat || startup === "onboarding") return;
+    const action = shortcutFor(e);
+    if (!action) return;
+    e.preventDefault();
+    app.action(action).catch(() => {});
   }
 
   async function answerClose(confirmed: boolean) {
@@ -369,7 +380,7 @@
   />
 {/if}
 
-<svelte:window onkeydown={(e) => confirm && e.key === "Escape" && answerClose(false)} />
+<svelte:window onkeydown={onKeydown} />
 
 
 {#if pendingReport}

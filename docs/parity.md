@@ -28,7 +28,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Downloads e histórico (`Ctrl+J`) | `features/downloads` | `downloads` + `src/lib/downloads/` | decisão após o término do download; ver lacunas |
 | Notificações (portal, D-Bus, Windows, macOS) | `features/notifications` | `notifications` | |
 | Bandeja, temas de ícone, contador, badge | `features/tray` | `tray` | |
-| Atalhos | `features/shortcuts` | `app::shortcuts` + `bridge.js` + `src/lib/shortcuts/` | diálogo "Atalhos de teclado" |
+| Atalhos | `features/shortcuts` | `bridge.js` (páginas) + `src/lib/shell/shortcuts.ts` (UI local) + `src/lib/shortcuts/` | diálogo "Atalhos de teclado"; os dois mapeamentos devem ficar iguais |
 | Iniciar com o sistema | `features/startup` | `autostart` | portal `RequestBackground` no Flatpak; entrada XDG nomeada pelo App ID nos demais Linux |
 | Permissões (câmera, microfone etc.) | `features/permissions` | `permissions` | Linux; ver lacunas |
 | Proxy e proxy estrito | `core/environment/proxy_manager.py` | `proxy` | proxy estrito via bloqueio de WebRTC não proxiado |
