@@ -73,3 +73,5 @@
 - Strict proxy mode disables WebRTC in every frame (natively on Linux) instead
   of requesting relay-only ICE, which pages could undo and which still
   bypassed the proxy.
+- Disabling an account clears its unread count from the sidebar, tray,
+  launcher badge and the other accounts' selector indicators.

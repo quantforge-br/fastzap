@@ -44,6 +44,15 @@ impl UnreadRegistry {
         snapshot(&map)
     }
 
+    /// Drop the counts of accounts that no longer report, returning the new
+    /// snapshot when something was removed.
+    pub fn retain(&self, keep: impl Fn(i64) -> bool) -> Option<UnreadSnapshot> {
+        let mut map = self.0.lock().unwrap();
+        let before = map.len();
+        map.retain(|id, _| keep(*id));
+        (map.len() != before).then(|| snapshot(&map))
+    }
+
     pub fn snapshot(&self) -> UnreadSnapshot {
         snapshot(&self.0.lock().unwrap())
     }
@@ -64,6 +73,17 @@ mod tests {
     fn title_digits_become_the_count() {
         assert_eq!(count_from_title("(12) WhatsApp"), 12);
         assert_eq!(count_from_title("WhatsApp"), 0);
+    }
+
+    #[test]
+    fn retain_reports_removals_only() {
+        let registry = UnreadRegistry::default();
+        registry.set(1, 2);
+        registry.set(2, 3);
+        assert!(registry.retain(|_| true).is_none());
+        let snapshot = registry.retain(|id| id == 2).unwrap();
+        assert_eq!(snapshot.total, 3);
+        assert!(!snapshot.per_account.contains_key(&1));
     }
 
     #[test]

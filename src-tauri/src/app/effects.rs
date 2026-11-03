@@ -82,6 +82,17 @@ pub fn on_accounts_changed<R: Runtime>(app: &AppHandle<R>) {
     if let Err(e) = state.webviews.sync(app) {
         log::warn!("failed to sync account webviews: {e}");
     }
+    // Disabled accounts stop reporting, so their last count must not linger.
+    if let Ok(accounts) = state.accounts.list() {
+        let enabled: Vec<i64> = accounts
+            .iter()
+            .filter(|a| a.enabled)
+            .map(|a| a.id)
+            .collect();
+        if let Some(snapshot) = state.unread.retain(|id| enabled.contains(&id)) {
+            let _ = app.emit(UNREAD_CHANGED, &snapshot);
+        }
+    }
     let _ = app.emit(LAYOUT_CHANGED, state.webviews.state());
     refresh_account_selectors(app);
     crate::tray::update_counter(app);
