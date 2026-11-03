@@ -128,6 +128,9 @@
   connect configuration, sanitized errors and ambiguous-send detection.
 - Evolution Go event parser for messages, replies, media, reactions, edits,
   revokes, receipts, typing, history sync and connection events.
+- Per-account SQLite chat store for Evolution Go accounts with deduplication,
+  outbox states, receipts, reactions, edits, revokes, journal cursor and
+  history-sync anchors.
 
 ### Fixed
 
