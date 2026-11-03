@@ -260,6 +260,9 @@
 - Evolution Go: an instance that is linked but disconnected from WhatsApp is
   shown as offline instead of online, and Retry asks the server to reconnect
   it.
+- Evolution Go: starting and stopping sessions is serialized, and stopping a
+  session cancels its work in flight, so a deleted or reconfigured account no
+  longer keeps an unreachable session or connects the instance afterwards.
 
 ### Changed
 

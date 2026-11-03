@@ -133,6 +133,9 @@ pub struct Session {
 #[derive(Default)]
 pub struct Evolution {
     sessions: Mutex<HashMap<i64, Arc<Session>>>,
+    /// Held while starting or stopping sessions, so concurrent account
+    /// changes never start two sessions for one account.
+    lifecycle: Mutex<()>,
     notification_ids: AtomicU64,
 }
 
@@ -207,6 +210,8 @@ fn reason(err: &EvoError) -> String {
 
 /// Start, restart or stop sessions to match the enabled Evolution accounts.
 pub fn sync(app: &AppHandle) {
+    let evolution = app.state::<Evolution>();
+    let _lifecycle = evolution.lifecycle.lock().unwrap();
     let state = app.state::<AppState>();
     let Ok(accounts) = state.accounts.list() else {
         return;
@@ -215,7 +220,6 @@ pub fn sync(app: &AppHandle) {
         .iter()
         .filter(|a| a.enabled && a.kind == AccountKind::EvolutionGo)
         .collect();
-    let evolution = app.state::<Evolution>();
     let stale: Vec<i64> = {
         let sessions = evolution.sessions.lock().unwrap();
         sessions
@@ -229,7 +233,7 @@ pub fn sync(app: &AppHandle) {
             .collect()
     };
     for id in stale {
-        stop(app, id);
+        stop_session(app, id);
     }
     for account in wanted {
         if evolution.session(account.id).is_none() {
@@ -244,6 +248,12 @@ fn config_key(account: &Account) -> Option<(String, String)> {
 }
 
 pub fn stop(app: &AppHandle, account_id: i64) {
+    let evolution = app.state::<Evolution>();
+    let _lifecycle = evolution.lifecycle.lock().unwrap();
+    stop_session(app, account_id);
+}
+
+fn stop_session(app: &AppHandle, account_id: i64) {
     let removed = app
         .state::<Evolution>()
         .sessions
@@ -327,28 +337,41 @@ fn start(app: &AppHandle, account: &Account) {
     tauri::async_runtime::spawn(run(app.clone(), session, stop_rx));
 }
 
-async fn run(app: AppHandle, session: Arc<Session>, stop: watch::Receiver<bool>) {
+async fn run(app: AppHandle, session: Arc<Session>, mut stop: watch::Receiver<bool>) {
     let url = ws::ws_url(session.client.base(), &session.admin, &session.instance_id);
     let (tx, mut rx) = mpsc::unbounded_channel();
     tauri::async_runtime::spawn(ws::run(url, session.instance_id.clone(), tx, stop.clone()));
-    while let Some(signal) = rx.recv().await {
-        if *stop.borrow() {
+    // Stopping cancels the work in flight too: a deleted or reconfigured
+    // account must not connect the instance or write its store afterwards.
+    loop {
+        let signal = tokio::select! {
+            signal = rx.recv() => signal,
+            _ = stop.wait_for(|s| *s) => None,
+        };
+        let Some(signal) = signal else {
             break;
+        };
+        tokio::select! {
+            () = on_signal(&app, &session, signal) => {}
+            _ = stop.wait_for(|s| *s) => break,
         }
-        match signal {
-            ws::Signal::Up => {
-                ensure_connected(&app, &session).await;
-                catch_up(&app, &session).await;
-            }
-            ws::Signal::Down(why) => {
-                let text = match why {
-                    "refused" => tr("The server refused the admin key."),
-                    _ => tr("The Evolution Go server is unreachable."),
-                };
-                set_connection(&app, &session, Connection::Offline { reason: text });
-            }
-            ws::Signal::Event(payload) => handle(&app, &session, &payload, true),
+    }
+}
+
+async fn on_signal(app: &AppHandle, session: &Session, signal: ws::Signal) {
+    match signal {
+        ws::Signal::Up => {
+            ensure_connected(app, session).await;
+            catch_up(app, session).await;
         }
+        ws::Signal::Down(why) => {
+            let text = match why {
+                "refused" => tr("The server refused the admin key."),
+                _ => tr("The Evolution Go server is unreachable."),
+            };
+            set_connection(app, session, Connection::Offline { reason: text });
+        }
+        ws::Signal::Event(payload) => handle(app, session, &payload, true),
     }
 }
 
