@@ -302,3 +302,5 @@
   io.github.quantmind_br.fastzap. Saved window geometry starts over once.
 - Windows builds are labelled "Windows x86_64" and "Windows arm64" (one build
   makes both the NSIS and MSI installers), and both keep the release check.
+- pnpm is pinned through packageManager (pnpm@12.9.1) and the lockfile records
+  it, so CI, Flatpak and snap builds use the same version.
