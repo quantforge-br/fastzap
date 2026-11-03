@@ -36,12 +36,27 @@ pub struct ImportReport {
     pub warnings: Vec<String>,
 }
 
-/// Locate ZapZap data under `home`, preferring the most recently written config.
+/// Locate ZapZap data, preferring the most recently written config. Native
+/// installs follow `XDG_CONFIG_HOME`/`XDG_DATA_HOME`; the Flatpak paths are fixed.
 pub fn detect(home: &Path) -> Option<ZapZapSource> {
+    let xdg = |var: &str, fallback: &str| {
+        std::env::var_os(var)
+            .map(PathBuf::from)
+            .filter(|p| p.is_absolute())
+            .unwrap_or_else(|| home.join(fallback))
+    };
+    detect_in(
+        home,
+        &xdg("XDG_CONFIG_HOME", ".config"),
+        &xdg("XDG_DATA_HOME", ".local/share"),
+    )
+}
+
+fn detect_in(home: &Path, config_home: &Path, data_home: &Path) -> Option<ZapZapSource> {
     let candidates = [
         ZapZapSource {
-            config_file: home.join(".config/ZapZap/ZapZap.conf"),
-            data_dir: home.join(".local/share/ZapZap"),
+            config_file: config_home.join("ZapZap/ZapZap.conf"),
+            data_dir: data_home.join("ZapZap"),
         },
         ZapZapSource {
             config_file: home.join(".var/app/com.rtosta.zapzap/config/ZapZap/ZapZap.conf"),
@@ -55,40 +70,47 @@ pub fn detect(home: &Path) -> Option<ZapZapSource> {
 }
 
 /// Import `source` into the given stores. `customizations_dir` is FastZap's
-/// customization root; existing files there are never overwritten.
+/// customization root; existing files, accounts and secrets are never
+/// overwritten, so an incomplete import can be retried. Preferences are only
+/// applied when `include_settings` is set (the first attempt).
 pub fn import(
     source: &ZapZapSource,
     settings: &mut Settings,
     accounts: &AccountStore,
     customizations_dir: &Path,
     secrets: &dyn SecretStore,
+    include_settings: bool,
 ) -> ImportReport {
     let mut report = ImportReport {
         source: source.config_file.display().to_string(),
         ..Default::default()
     };
 
-    if let Ok(text) = fs::read_to_string(&source.config_file) {
-        let ini = QSettingsIni::parse(&text);
-        apply_settings(&ini, settings);
-        if let Some(password) = ini.string("proxy/password").filter(|p| !p.is_empty())
-            && let Err(e) = secrets.set(PROXY_PASSWORD, &Secret::new(password))
-        {
-            report
-                .warnings
-                .push(format!("proxy password not stored: {e}"));
+    let ini = match fs::read_to_string(&source.config_file) {
+        Ok(text) => {
+            let ini = QSettingsIni::parse(&text);
+            if include_settings {
+                apply_settings(&ini, settings);
+                report.settings_imported = true;
+            }
+            if let Some(password) = ini.string("proxy/password").filter(|p| !p.is_empty())
+                && let Err(e) = import_secret(secrets, PROXY_PASSWORD, password)
+            {
+                report
+                    .warnings
+                    .push(format!("proxy password not stored: {e}"));
+            }
+            ini
         }
-        report.settings_imported = true;
-        match import_accounts(&source.data_dir.join("db/zapzap.db"), &ini, accounts) {
-            Ok(n) => report.accounts_imported = n,
-            Err(e) => report.warnings.push(format!("accounts not imported: {e}")),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => QSettingsIni::default(),
+        Err(e) => {
+            report.warnings.push(format!("settings not read: {e}"));
+            QSettingsIni::default()
         }
-    } else {
-        let ini = QSettingsIni::default();
-        match import_accounts(&source.data_dir.join("db/zapzap.db"), &ini, accounts) {
-            Ok(n) => report.accounts_imported = n,
-            Err(e) => report.warnings.push(format!("accounts not imported: {e}")),
-        }
+    };
+    match import_accounts(&source.data_dir.join("db/zapzap.db"), &ini, accounts) {
+        Ok(n) => report.accounts_imported = n,
+        Err(e) => report.warnings.push(format!("accounts not imported: {e}")),
     }
 
     match copy_tree(&source.data_dir.join("customizations"), customizations_dir) {
@@ -98,10 +120,21 @@ pub fn import(
             .push(format!("customizations not copied: {e}")),
     }
 
-    settings.migration.zapzap_checked = true;
     settings.migration.zapzap_imported_from = Some(report.source.clone());
     settings.normalize();
     report
+}
+
+/// Store a secret unless FastZap already has one under that key.
+fn import_secret(
+    secrets: &dyn SecretStore,
+    key: &str,
+    value: String,
+) -> Result<(), crate::secrets::SecretError> {
+    if secrets.get(key)?.is_none() {
+        secrets.set(key, &Secret::new(value))?;
+    }
+    Ok(())
 }
 
 fn apply_settings(ini: &QSettingsIni, s: &mut Settings) {
@@ -405,6 +438,12 @@ fn read_toggle(ini: &QSettingsIni, prefix: &str, toggle: &mut AssetToggle) {
     if let Some(v) = ini.list(&format!("{prefix}/disabled_files")) {
         toggle.disabled_files = v;
     }
+    if let Some(v) = ini.map(&format!("{prefix}/preview_map")) {
+        toggle.preview_map = v
+            .into_iter()
+            .filter(|(k, v)| !k.is_empty() && !v.is_empty())
+            .collect();
+    }
 }
 
 fn profile_key(id: i64) -> String {
@@ -419,7 +458,7 @@ fn import_accounts(
     db: &Path,
     ini: &QSettingsIni,
     accounts: &AccountStore,
-) -> Result<u32, rusqlite::Error> {
+) -> Result<u32, Box<dyn std::error::Error>> {
     if !db.is_file() {
         return Ok(0);
     }
@@ -453,7 +492,7 @@ fn import_accounts(
             notifications: ini.bool(&format!("{key}/notification")).unwrap_or(true),
             evolution: None,
         };
-        if accounts.insert_imported(&account).is_ok() {
+        if accounts.insert_imported(&account)? {
             count += 1;
         }
     }
@@ -566,7 +605,7 @@ disable_pinch=true
         let mut settings = Settings::default();
         let custom = dir.path().join("fastzap/customizations");
 
-        let report = import(&source, &mut settings, &accounts, &custom, &secrets);
+        let report = import(&source, &mut settings, &accounts, &custom, &secrets, true);
 
         assert!(report.settings_imported);
         assert_eq!(report.accounts_imported, 2);
@@ -606,7 +645,8 @@ disable_pinch=true
         );
         let acc2 = &settings.customizations.accounts["2"];
         assert!(!acc2.inherit && acc2.js.enabled);
-        assert!(settings.migration.zapzap_checked);
+        assert!(report.warnings.is_empty());
+        assert!(settings.migration.zapzap_imported_from.is_some());
 
         let list = accounts.list().unwrap();
         assert_eq!(list[0].id, 1);
@@ -633,6 +673,7 @@ disable_pinch=true
             &AccountStore::in_memory().unwrap(),
             &custom,
             &MemoryStore::default(),
+            true,
         );
         assert_eq!(
             fs::read_to_string(custom.join("global/css/a.css")).unwrap(),
@@ -643,12 +684,84 @@ disable_pinch=true
     #[test]
     fn detect_prefers_existing_installation() {
         let dir = tempfile::tempdir().unwrap();
-        assert!(detect(dir.path()).is_none());
-        let flatpak = dir
-            .path()
-            .join(".var/app/com.rtosta.zapzap/config/ZapZap/ZapZap.conf");
+        let home = dir.path();
+        let (config_home, data_home) = (home.join(".config"), home.join(".local/share"));
+        assert!(detect_in(home, &config_home, &data_home).is_none());
+        let flatpak = home.join(".var/app/com.rtosta.zapzap/config/ZapZap/ZapZap.conf");
         fs::create_dir_all(flatpak.parent().unwrap()).unwrap();
         fs::write(&flatpak, "[system]\ntheme=dark\n").unwrap();
-        assert_eq!(detect(dir.path()).unwrap().config_file, flatpak);
+        assert_eq!(
+            detect_in(home, &config_home, &data_home)
+                .unwrap()
+                .config_file,
+            flatpak
+        );
+    }
+
+    #[test]
+    fn detect_follows_xdg_directories() {
+        let dir = tempfile::tempdir().unwrap();
+        let config_home = dir.path().join("cfg");
+        let native = config_home.join("ZapZap/ZapZap.conf");
+        fs::create_dir_all(native.parent().unwrap()).unwrap();
+        fs::write(&native, "").unwrap();
+        let found = detect_in(dir.path(), &config_home, &dir.path().join("data")).unwrap();
+        assert_eq!(found.config_file, native);
+        assert_eq!(found.data_dir, dir.path().join("data/ZapZap"));
+    }
+
+    #[test]
+    fn existing_proxy_secret_is_kept() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = make_source(dir.path());
+        let secrets = MemoryStore::default();
+        secrets.set(PROXY_PASSWORD, &Secret::new("mine")).unwrap();
+        import(
+            &source,
+            &mut Settings::default(),
+            &AccountStore::in_memory().unwrap(),
+            &dir.path().join("custom"),
+            &secrets,
+            true,
+        );
+        assert_eq!(
+            secrets.get(PROXY_PASSWORD).unwrap().unwrap().expose(),
+            "mine"
+        );
+    }
+
+    #[test]
+    fn retry_fills_missing_accounts_without_touching_settings() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = make_source(dir.path());
+        let accounts = AccountStore::in_memory().unwrap();
+        let mut existing = Account {
+            id: 1,
+            name: "Edited".into(),
+            icon: None,
+            enabled: true,
+            zoom: 1.0,
+            kind: AccountKind::WhatsappWeb,
+            position: 0,
+            user_agent: "Default".into(),
+            notifications: true,
+            evolution: None,
+        };
+        accounts.insert_imported(&existing).unwrap();
+        let mut settings = Settings::default();
+        let report = import(
+            &source,
+            &mut settings,
+            &accounts,
+            &dir.path().join("custom"),
+            &MemoryStore::default(),
+            false,
+        );
+        assert!(!report.settings_imported);
+        assert_eq!(report.accounts_imported, 1);
+        assert_eq!(settings.appearance.theme, ThemeMode::Auto);
+        existing.name = accounts.get(1).unwrap().name;
+        assert_eq!(existing.name, "Edited");
+        assert_eq!(accounts.count().unwrap(), 2);
     }
 }

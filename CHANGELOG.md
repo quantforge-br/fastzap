@@ -40,3 +40,7 @@
   defaults.
 - ZapZap import decodes QSettings values like Qt: `@@` strings, quoted and
   escaped values, quoted `@Variant` lists and QVariant maps.
+- An incomplete ZapZap import is retried on the next starts (up to three
+  times) without touching preferences, existing secrets are kept, native
+  installs are found through the XDG directories and CSS preview mappings
+  are imported.

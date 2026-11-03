@@ -11,6 +11,9 @@ use crate::paths::AppPaths;
 use crate::secrets::{KeyringStore, SecretStore};
 use crate::settings::store::SettingsStore;
 
+/// An import with warnings is retried on the next starts, up to this many times.
+const MAX_IMPORT_ATTEMPTS: u32 = 3;
+
 pub fn init_state<R: Runtime>(app: &AppHandle<R>) -> anyhow::Result<()> {
     let paths = AppPaths::resolve(app)?;
     let settings = SettingsStore::load(paths.settings_file())?;
@@ -19,27 +22,38 @@ pub fn init_state<R: Runtime>(app: &AppHandle<R>) -> anyhow::Result<()> {
 
     let mut current = settings.get();
     if !current.migration.zapzap_checked {
-        let fresh = !settings.exists_on_disk() && accounts.count()? == 0;
-        if fresh && let Some(source) = dirs::home_dir().and_then(|h| migration::detect(&h)) {
-            let report = migration::import(
-                &source,
-                &mut current,
-                &accounts,
-                &paths.customizations_dir(),
-                secrets.as_ref(),
-            );
-            log::info!(
-                "imported ZapZap data from {}: {} account(s), {} file(s), {} warning(s)",
-                report.source,
-                report.accounts_imported,
-                report.customization_files_copied,
-                report.warnings.len()
-            );
-            for warning in &report.warnings {
-                log::warn!("ZapZap import: {warning}");
+        let retry = current.migration.zapzap_imported_from.is_some();
+        let eligible = retry || (!settings.exists_on_disk() && accounts.count()? == 0);
+        let source = eligible
+            .then(|| dirs::home_dir().and_then(|h| migration::detect(&h)))
+            .flatten();
+        let complete = match source {
+            Some(source) => {
+                let report = migration::import(
+                    &source,
+                    &mut current,
+                    &accounts,
+                    &paths.customizations_dir(),
+                    secrets.as_ref(),
+                    !retry,
+                );
+                log::info!(
+                    "imported ZapZap data from {}: {} account(s), {} file(s), {} warning(s)",
+                    report.source,
+                    report.accounts_imported,
+                    report.customization_files_copied,
+                    report.warnings.len()
+                );
+                for warning in &report.warnings {
+                    log::warn!("ZapZap import: {warning}");
+                }
+                current.migration.zapzap_attempts += 1;
+                report.warnings.is_empty()
+                    || current.migration.zapzap_attempts >= MAX_IMPORT_ATTEMPTS
             }
-        }
-        current.migration.zapzap_checked = true;
+            None => true,
+        };
+        current.migration.zapzap_checked = complete;
         settings.replace(current)?;
     }
     accounts.ensure_default()?;

@@ -2,6 +2,10 @@
 
 export type MigrationState = { 
 /**
- * The one-shot ZapZap import already ran (successfully or not).
+ * The ZapZap import is finished (completed, absent or out of retries).
  */
-zapzap_checked: boolean, zapzap_imported_from: string | null, };
+zapzap_checked: boolean, 
+/**
+ * Set once an import started; later attempts only fill in missing data.
+ */
+zapzap_imported_from: string | null, zapzap_attempts: number, };

@@ -513,9 +513,11 @@ pub struct OnboardingSettings {
 #[serde(default)]
 #[ts(export)]
 pub struct MigrationState {
-    /// The one-shot ZapZap import already ran (successfully or not).
+    /// The ZapZap import is finished (completed, absent or out of retries).
     pub zapzap_checked: bool,
+    /// Set once an import started; later attempts only fill in missing data.
     pub zapzap_imported_from: Option<String>,
+    pub zapzap_attempts: u32,
 }
 
 #[cfg(test)]
