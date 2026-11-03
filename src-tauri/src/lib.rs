@@ -17,6 +17,7 @@ pub mod secrets;
 pub mod settings;
 pub mod spellcheck;
 pub mod tray;
+pub mod update;
 pub mod webview;
 
 use commands::{
@@ -73,6 +74,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .manage(notifications::NotificationService::default())
+        .manage(update::UpdateState::default())
         .manage(app::lifecycle::Services::default())
         .on_menu_event(bridge::on_menu_event);
     #[cfg(not(target_os = "linux"))]
@@ -133,6 +135,7 @@ pub fn run() {
             }
             app::lifecycle::mark_ready(handle);
             reporting::session::mark("running");
+            update::start(handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -202,6 +205,7 @@ pub fn run() {
             report::report_delete,
             report::report_clear,
             report::report_open_folder,
+            appcmd::update_info,
             bridge::wa_title_changed,
             bridge::wa_shortcut,
             bridge::wa_theme_event,

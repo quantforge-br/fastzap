@@ -38,7 +38,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Lista de chats redimensionável | `resizable_chat_list.js` | idem | |
 | Tema auto/claro/escuro | `core/theme`, `theme_controller.js` | `theme` + script portado | `auto` segue o portal `color-scheme` |
 | Idioma da interface | gettext `po/` | `i18n` (catálogos JSON gerados dos `.po`) | |
-| Verificação de atualizações | `core/update_checker.py` | `update` | mesma política por empacotamento |
+| Verificação de atualizações | `core/update_checker.py` | `update` | mesma política por empacotamento; diálogo em vez de popover; download pela página de releases |
 | Relatórios de problemas | `core/reporting`, `features/reporting` | `reporting` + `src/lib/reporting/` | sem `faulthandler`/zip de crash: logs são os avisos da sessão atual; ver lacunas |
 | Doação e lembrete | `features/donation` | página Doação | |
 | Onboarding | `features/initial_setup` | `src/routes/onboarding` | |

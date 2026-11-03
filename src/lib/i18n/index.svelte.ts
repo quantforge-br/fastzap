@@ -72,6 +72,11 @@ export function tn(
 }
 
 /// Display name of a catalog code in the current interface language.
+/** BCP 47 tag of the interface language, for `Intl` formatters. */
+export function uiLocale(): string {
+  return (active.code ?? "en").replace("_", "-");
+}
+
 export function languageName(code: string): string {
   try {
     const names = new Intl.DisplayNames([(active.code ?? "en").replace("_", "-")], {

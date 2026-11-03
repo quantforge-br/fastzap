@@ -24,6 +24,7 @@ import type { ReportView } from "./generated/ReportView";
 import type { Settings } from "./generated/Settings";
 import type { SpellState } from "./generated/SpellState";
 import type { UiAction } from "./generated/UiAction";
+import type { UpdateInfo } from "./generated/UpdateInfo";
 import type { UnreadSnapshot } from "./generated/UnreadSnapshot";
 
 export type {
@@ -50,6 +51,7 @@ export type {
   SpellState,
   UiAction,
   UnreadSnapshot,
+  UpdateInfo,
 };
 
 export const events = {
@@ -63,6 +65,7 @@ export const events = {
   downloadSaved: "downloads://saved",
   permissionRequest: "permissions://request",
   spellcheckChanged: "spellcheck://changed",
+  updateAvailable: "update://available",
 } as const;
 
 export const settings = {
@@ -121,6 +124,7 @@ export const layout = {
 };
 
 export const app = {
+  updateInfo: () => invoke<UpdateInfo | null>("update_info"),
   action: (action: string) => invoke<void>("app_action", { action }),
   closeConfirmed: (quit: boolean, dontAskAgain: boolean) =>
     invoke<void>("app_close_confirmed", { quit, dontAskAgain }),

@@ -12,6 +12,7 @@
   import SettingsView from "$lib/settings/SettingsView.svelte";
   import { spellPicker } from "$lib/spellcheck/request.svelte";
   import ReportDialog from "$lib/reporting/ReportDialog.svelte";
+  import UpdateDialog from "$lib/update/UpdateDialog.svelte";
   import { closeReport, openReport, reportDialog } from "$lib/reporting/request.svelte";
   import { DEFAULT_PAGE } from "$lib/settings/pages";
   import { patchSettings, startSettings, store } from "$lib/stores/settings.svelte";
@@ -28,6 +29,7 @@
     type DownloadPrompt,
     type PermissionPrompt,
     type ReportView,
+    type UpdateInfo,
     type LayoutState,
     type UiAction,
     type UnreadSnapshot,
@@ -92,6 +94,8 @@
   let permissionPrompts = $state<PermissionPrompt[]>([]);
   // A crash report from the last run, offered once at startup.
   let pendingReport = $state<ReportView | null>(null);
+  let update = $state<UpdateInfo | null>(null);
+  let showUpdate = $state(false);
   let downloading = $state(false);
   let savedBadge = $state(false);
   let savedTimer: ReturnType<typeof setTimeout> | undefined;
@@ -110,7 +114,7 @@
   let removing = $state<Account | null>(null);
   const editTarget = $derived(editing ? (accounts.find((a) => a.id === editing!.id) ?? null) : null);
 
-  const overlay = $derived(panel !== null || confirm !== null || editTarget !== null || removing !== null || prompts.length > 0 || permissionPrompts.length > 0 || reportDialog.open || pendingReport !== null);
+  const overlay = $derived(panel !== null || confirm !== null || editTarget !== null || removing !== null || prompts.length > 0 || permissionPrompts.length > 0 || reportDialog.open || pendingReport !== null || showUpdate);
   $effect(() => {
     layoutApi.setOverlay(overlay);
   });
@@ -185,10 +189,12 @@
       on(events.downloadsChanged, refreshDownloads),
       on<PermissionPrompt>(events.permissionRequest, (p) => (permissionPrompts = [...permissionPrompts, p])),
       on(events.downloadSaved, onDownloadSaved),
+      on<UpdateInfo>(events.updateAvailable, (info) => (update = info)),
       win.onResized(async () => (maximized = await win.isMaximized())),
     ];
     startSettings();
     reporting.pending().then((report) => (pendingReport = report));
+    app.updateInfo().then((info) => (update = info));
     app.desktop().then((d) => (desktop = d));
     win.isMaximized().then((m) => (maximized = m));
     Promise.all([accountsApi.list(), layoutApi.get(), app.unread()]).then(([a, l, u]) => {
@@ -239,6 +245,14 @@
       </button>
     {/each}
     <div class="spacer"></div>
+    {#if update}
+      <button
+        class="tool update"
+        title={t("FastZap {version} is available").replace("{version}", update.latest)}
+        aria-label={t("FastZap {version} is available").replace("{version}", update.latest)}
+        onclick={() => (showUpdate = true)}>⬆</button
+      >
+    {/if}
     <button
       class="tool"
       class:busy={downloading}
@@ -388,6 +402,10 @@
   </div>
 {/if}
 
+{#if showUpdate && update}
+  <UpdateDialog info={update} onclose={() => (showUpdate = false)} />
+{/if}
+
 {#if reportDialog.open}
   <ReportDialog review={reportDialog.review} onclose={closeReport} />
 {/if}
@@ -489,6 +507,9 @@
     color: inherit;
     cursor: pointer;
     font-size: 18px;
+  }
+  .tool.update {
+    color: var(--accent, #25d366);
   }
   .tool.busy {
     border-color: var(--accent);

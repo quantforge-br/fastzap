@@ -113,6 +113,9 @@
   detection through a session marker, panic capture and the startup review
   prompt when failure notifications are on.
 - Reset settings in the Report a problem page's maintenance section.
+- Release check for official DEB, macOS and Windows builds: one GitHub request
+  per process, a sidebar button with the update dialog and a row on the About
+  page.
 
 ### Fixed
 

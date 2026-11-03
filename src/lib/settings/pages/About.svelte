@@ -4,19 +4,21 @@
   import Row from "$lib/components/settings/Row.svelte";
   import Section from "$lib/components/settings/Section.svelte";
   import { t } from "$lib/i18n/index.svelte";
-  import { app, type AppInfo } from "$lib/ipc";
+  import { app, type AppInfo, type UpdateInfo } from "$lib/ipc";
   import { openReport } from "$lib/reporting/request.svelte";
 
   import Page from "../Page.svelte";
 
   const REPOSITORY = "https://github.com/quantmind-br/fastzap";
   let info = $state<AppInfo | null>(null);
+  let update = $state<UpdateInfo | null>(null);
   let showDetails = $state(false);
   let copied = $state(false);
   let notice = $state("");
 
   onMount(() => {
     app.info().then((i) => (info = i));
+    app.updateInfo().then((u) => (update = u));
   });
 
   function details(i: AppInfo): [string, string][] {
@@ -52,6 +54,16 @@
   </div>
 
   <Section title={t("Project and support")}>
+    {#if update}
+      <Row
+        title={t("FastZap {version} is available").replace("{version}", update.latest)}
+        description={t("Visit the official website")}
+      >
+        {#snippet control()}
+          <a class="btn primary" href={update?.download_url} target="_blank" rel="noreferrer">↗</a>
+        {/snippet}
+      </Row>
+    {/if}
     <Row title={t("Project page")} description={t("Official website, downloads, and documentation.")}>
       {#snippet control()}
         <a class="btn" href={REPOSITORY} target="_blank" rel="noreferrer">↗</a>

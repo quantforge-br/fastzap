@@ -125,3 +125,10 @@ pub fn downloads_default_dir() -> String {
 pub fn permission_answer(app: AppHandle, id: u64, allow: bool) {
     crate::permissions::answer(&app, id, allow);
 }
+
+#[tauri::command]
+pub fn update_info(
+    state: tauri::State<'_, crate::update::UpdateState>,
+) -> Option<crate::update::UpdateInfo> {
+    state.get()
+}

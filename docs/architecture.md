@@ -255,6 +255,19 @@ revisão do usuário.
   revisão; a UI copia o Markdown e o backend abre o GitHub),
   `ReportsDialog` e o aviso de inicialização (só após o onboarding).
 
+## Verificação de atualizações
+
+`update` consulta `releases/latest` de `quantmind-br/fastzap` uma vez por
+processo (timeout de 5 s, falhas silenciosas) e só quando `build_info` indica
+build oficial do GitHub Actions do repositório oficial empacotado como DEB,
+macOS ou Windows exe; Flatpak, AppImage, RPM, Snap e builds locais nunca
+consultam. Rascunhos e pré-lançamentos são ignorados, versões são comparadas
+numericamente e o link de notas só é aceito sob
+`github.com/quantmind-br/fastzap/releases/`. O resultado fica em
+`UpdateState` (`update_info`) e no evento `update://available`; a UI mostra
+o botão ⬆ na barra lateral, que abre um diálogo (um popover ficaria sob os
+webviews das contas), e uma linha na página Sobre.
+
 ## Traduções
 
 `po/*.po` vem do ZapZap (mesmo domínio e idiomas). `pnpm i18n`

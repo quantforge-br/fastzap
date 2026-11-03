@@ -69,6 +69,7 @@ const UI_COMMANDS: &[&str] = &[
     "report_delete",
     "report_clear",
     "report_open_folder",
+    "update_info",
 ];
 
 /// Commands exposed to https://web.whatsapp.com.

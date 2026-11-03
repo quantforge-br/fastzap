@@ -79,6 +79,7 @@
     "allow-report-keep",
     "allow-report-delete",
     "allow-report-clear",
-    "allow-report-open-folder"
+    "allow-report-open-folder",
+    "allow-update-info"
   ]
 }
