@@ -210,6 +210,8 @@ impl WebviewManager {
         let _ = webview.hide();
         let _ = webview.set_zoom(account.zoom);
         set_muted(&webview, settings.system.audio_muted);
+        #[cfg(target_os = "linux")]
+        install_plain_paste_shortcut(&webview, account.id);
         Ok(webview)
     }
 
@@ -344,6 +346,33 @@ fn set_muted<R: Runtime>(webview: &Webview<R>, muted: bool) {
         // WebView2 and WKWebView expose no muting through Tauri yet.
         let _ = (webview, muted);
     }
+}
+
+/// Handle `Ctrl+Shift+V` natively so page scripts cannot trigger a
+/// clipboard read through the bridge.
+#[cfg(target_os = "linux")]
+fn install_plain_paste_shortcut<R: Runtime>(webview: &Webview<R>, account_id: i64) {
+    let app = webview.app_handle().clone();
+    let _ = webview.with_webview(move |platform| {
+        use gtk::gdk::{ModifierType, keys::constants as keys};
+        use gtk::prelude::WidgetExt;
+        platform.inner().connect_key_press_event(move |_, event| {
+            let modifiers = event.state()
+                & (ModifierType::CONTROL_MASK | ModifierType::SHIFT_MASK | ModifierType::MOD1_MASK);
+            let key = event.keyval();
+            if modifiers == ModifierType::CONTROL_MASK | ModifierType::SHIFT_MASK
+                && (key == keys::V || key == keys::v)
+            {
+                let app = app.clone();
+                // Reading the clipboard may block; keep it off the GTK thread.
+                std::thread::spawn(move || {
+                    crate::app::actions::paste_plain_text(&app, account_id);
+                });
+                return gtk::glib::Propagation::Stop;
+            }
+            gtk::glib::Propagation::Proceed
+        });
+    });
 }
 
 fn open_external<R: Runtime>(app: &AppHandle<R>, url: &Url) {

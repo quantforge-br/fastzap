@@ -34,8 +34,14 @@ const UI_OWNED: &[&str] = &[
 ];
 
 pub fn dispatch<R: Runtime>(app: &AppHandle<R>, action: &str) {
+    dispatch_for(app, action, None);
+}
+
+/// Run `action`; per-account actions target `account`, or the active account
+/// when the action did not come from an account page.
+pub fn dispatch_for<R: Runtime>(app: &AppHandle<R>, action: &str, account: Option<i64>) {
     let state = app.state::<AppState>();
-    let active = state.webviews.active();
+    let target = account.or_else(|| state.webviews.active());
     match action {
         "quit" => app.exit(0),
         "hide" => window::hide(app),
@@ -55,12 +61,12 @@ pub fn dispatch<R: Runtime>(app: &AppHandle<R>, action: &str) {
             let _ = app.emit(LAYOUT_CHANGED, state.webviews.state());
         }
         "reload" => {
-            if let Some(id) = active {
+            if let Some(id) = target {
                 state.webviews.reload(app, id);
             }
         }
         "zoom_in" | "zoom_out" | "zoom_reset" => {
-            if let Some(id) = active {
+            if let Some(id) = target {
                 change_zoom(app, id, action);
             }
         }
@@ -72,15 +78,24 @@ pub fn dispatch<R: Runtime>(app: &AppHandle<R>, action: &str) {
             };
             let _ = super::effects::change_settings(app, |s| s.appearance.theme = theme);
         }
-        "new_chat" => eval_active(app, "window.__FASTZAP__ && window.__FASTZAP__.newChat();"),
-        "close_conversation" => eval_active(
+        "new_chat" => eval_on(
             app,
+            target,
+            "window.__FASTZAP__ && window.__FASTZAP__.newChat();",
+        ),
+        "close_conversation" => eval_on(
+            app,
+            target,
             "window.__FASTZAP__ && window.__FASTZAP__.closeConversation();",
         ),
-        "lock" => eval_active(app, "window.__FASTZAP__ && window.__FASTZAP__.lockApp();"),
+        "lock" => eval_on(
+            app,
+            target,
+            "window.__FASTZAP__ && window.__FASTZAP__.lockApp();",
+        ),
         "paste_plain_text" => {
-            if let Some(text) = clipboard::read_plain_text() {
-                eval_active(app, &scripts::paste_plain_text(&text));
+            if let Some(id) = target {
+                paste_plain_text(app, id);
             }
         }
         _ if action.starts_with("account_") => {
@@ -97,7 +112,7 @@ pub fn dispatch<R: Runtime>(app: &AppHandle<R>, action: &str) {
                 UI_ACTION,
                 UiAction {
                     action: action.to_owned(),
-                    account_id: active,
+                    account_id: target,
                 },
             );
         }
@@ -105,10 +120,18 @@ pub fn dispatch<R: Runtime>(app: &AppHandle<R>, action: &str) {
     }
 }
 
-fn eval_active<R: Runtime>(app: &AppHandle<R>, script: &str) {
-    let state = app.state::<AppState>();
-    if let Some(id) = state.webviews.active() {
-        state.webviews.eval(app, id, script);
+fn eval_on<R: Runtime>(app: &AppHandle<R>, account: Option<i64>, script: &str) {
+    if let Some(id) = account {
+        app.state::<AppState>().webviews.eval(app, id, script);
+    }
+}
+
+/// Paste the clipboard as plain text into one account page.
+pub fn paste_plain_text<R: Runtime>(app: &AppHandle<R>, account_id: i64) {
+    if let Some(text) = clipboard::read_plain_text() {
+        app.state::<AppState>()
+            .webviews
+            .eval(app, account_id, &scripts::paste_plain_text(&text));
     }
 }
 

@@ -26,10 +26,48 @@ pub fn wa_title_changed(app: AppHandle, webview: Webview, title: String) -> Comm
     Ok(())
 }
 
+/// Shortcuts a page may trigger. Clipboard access is excluded: on Linux the
+/// paste shortcut is handled natively before the page sees the key, and
+/// elsewhere it is only honored while the window has focus.
+const REMOTE_ACTIONS: &[&str] = &[
+    "reload",
+    "fullscreen",
+    "theme_auto",
+    "theme_light",
+    "theme_dark",
+    "quit",
+    "hide",
+    "settings",
+    "zoom_reset",
+    "zoom_in",
+    "zoom_out",
+    "toggle_grid",
+    "downloads",
+    "add_account",
+    "open_chat_by_number",
+    "new_chat",
+    "show_shortcuts",
+];
+
+fn remote_action_allowed(action: &str) -> bool {
+    REMOTE_ACTIONS.contains(&action)
+        || action
+            .strip_prefix("account_")
+            .is_some_and(|n| matches!(n.parse::<u8>(), Ok(1..=9)))
+}
+
 #[tauri::command]
 pub fn wa_shortcut(app: AppHandle, webview: Webview, action: String) -> CommandResult<()> {
-    caller(&webview)?;
-    actions::dispatch(&app, &action);
+    let id = caller(&webview)?;
+    if action == "paste_plain_text" {
+        let focused = !cfg!(target_os = "linux") && webview.window().is_focused().unwrap_or(false);
+        if !focused {
+            return Err("paste is not allowed from the page".into());
+        }
+    } else if !remote_action_allowed(&action) {
+        return Err("action is not allowed from the page".into());
+    }
+    actions::dispatch_for(&app, &action, Some(id));
     Ok(())
 }
 
@@ -58,6 +96,22 @@ pub fn wa_theme_event(
         _ => {}
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::remote_action_allowed;
+
+    #[test]
+    fn only_listed_actions_are_remote() {
+        assert!(remote_action_allowed("reload"));
+        assert!(remote_action_allowed("account_9"));
+        assert!(!remote_action_allowed("account_0"));
+        assert!(!remote_action_allowed("account_10"));
+        assert!(!remote_action_allowed("paste_plain_text"));
+        assert!(!remote_action_allowed("toggle_mute"));
+        assert!(!remote_action_allowed("donate"));
+    }
 }
 
 #[derive(Debug, Clone, Serialize, TS)]

@@ -61,3 +61,7 @@
 - Profile photo sync only fetches HTTPS images from WhatsApp's CDN without
   following redirects, reads at most 5 MiB, bounds the decoded image size and
   runs at most two downloads at a time.
+- WhatsApp Web pages can only trigger listed app shortcuts; plain-text paste
+  is handled natively on Linux and needs a focused window elsewhere, so page
+  scripts cannot read the clipboard. Shortcuts act on the account that sent
+  them, also in grid view.
