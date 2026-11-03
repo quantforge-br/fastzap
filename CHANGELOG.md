@@ -297,3 +297,5 @@
   identifiers cannot contain an underscore; the app ID, D-Bus name, keyring
   service and config, data and cache folders stay
   io.github.quantmind_br.fastzap. Saved window geometry starts over once.
+- Windows builds are labelled "Windows x86_64" and "Windows arm64" (one build
+  makes both the NSIS and MSI installers), and both keep the release check.

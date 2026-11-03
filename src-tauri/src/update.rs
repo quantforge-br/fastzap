@@ -13,8 +13,9 @@ pub const UPDATE_AVAILABLE: &str = "update://available";
 const CHECKED_PACKAGING: &[&str] = &[
     "DEB",
     "macOS",
-    "Windows x86_64 (exe)",
-    "Windows arm64 (exe)",
+    // One build makes both the NSIS and the MSI installer.
+    "Windows x86_64",
+    "Windows arm64",
 ];
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -181,6 +182,12 @@ mod tests {
     fn only_official_self_updating_builds_check() {
         let repo = build_info::OFFICIAL_REPOSITORY.to_uppercase();
         assert!(policy_allows("Official", "GitHub Actions", &repo, "DEB"));
+        assert!(policy_allows(
+            "Official",
+            "GitHub Actions",
+            &repo,
+            "Windows arm64"
+        ));
         assert!(!policy_allows(
             "Official",
             "GitHub Actions",
