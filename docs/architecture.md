@@ -66,7 +66,9 @@ habilitada, `webview::manager` cria um child webview com `Window::add_child`
   User-Agent escolhido por conta;
 - `initialization_script` com a ponte (`webview/scripts/bridge.js`) e os
   scripts opcionais portados do ZapZap;
-- `on_navigation`/`on_new_window` aplicando a allowlist de hosts;
+- `on_navigation`/`on_new_window` aplicando a allowlist de hosts; popups
+  para hosts permitidos abrem numa janela `popup-<n>` relacionada, com a mesma
+  allowlist e sem acesso a comandos;
 - `on_download` encaminhando para `downloads`;
 - `proxy_url` quando o proxy global está ativo.
 
@@ -91,7 +93,14 @@ libera os comandos locais apenas para o webview `ui`;
 `https://web.whatsapp.com/*` invoquem apenas os comandos `wa_*` de
 `commands::bridge` (título, atalhos, eventos do tema, seletor de contas e foto
 de perfil; notificações entram com a fase de integração com o desktop). A
-conta chamadora é sempre derivada do rótulo do webview, nunca de argumentos. O script de ponte
+conta chamadora é sempre derivada do rótulo do webview, nunca de argumentos.
+`wa_shortcut` aceita só os atalhos listados em `REMOTE_ACTIONS` e os aplica à
+conta chamadora; colar como texto simples lê o clipboard, então no Linux é
+tratado no `key-press-event` nativo do WebKitGTK e nas demais plataformas
+exige a janela em foco. `wa_profile_photo` só baixa de `*.whatsapp.net`, sem
+seguir redirects e com teto de bytes. O seletor integrado abre um menu nativo
+com as outras contas habilitadas. Configurações capturadas na criação do
+webview (scripts de inicialização e proxy) recriam as contas quando mudam. O script de ponte
 substitui `window.Notification` e observa `document.title` para extrair a
 contagem de não lidas, como o ZapZap fazia pelo título da página.
 

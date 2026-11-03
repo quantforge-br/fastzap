@@ -33,6 +33,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .manage(notifications::NotificationService::default())
+        .on_menu_event(bridge::on_menu_event)
         .setup(|app| {
             let handle = app.handle();
             app::bootstrap::init_state(handle)?;

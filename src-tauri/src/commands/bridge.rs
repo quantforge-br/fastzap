@@ -1,14 +1,14 @@
 //! Commands callable from https://web.whatsapp.com (see capabilities/whatsapp-remote.json).
 //! The calling account is always derived from the webview label, never from arguments.
 
-use serde::Serialize;
-use tauri::{AppHandle, Emitter, Manager, Webview};
-use ts_rs::TS;
+use tauri::menu::{Menu, MenuEvent, MenuItem};
+use tauri::{AppHandle, Emitter, LogicalPosition, Manager, Webview};
 
 use super::CommandResult;
 use crate::accounts::AccountPatch;
-use crate::app::events::{ACCOUNT_SELECTOR, ACCOUNTS_CHANGED};
+use crate::app::events::ACCOUNTS_CHANGED;
 use crate::app::{actions, effects, state::AppState, theme};
+use crate::i18n::tr;
 use crate::webview::manager::account_id_from_label;
 use crate::webview::{scripts, unread};
 
@@ -114,15 +114,10 @@ mod tests {
     }
 }
 
-#[derive(Debug, Clone, Serialize, TS)]
-#[ts(export)]
-pub struct AccountSelectorRequest {
-    #[ts(type = "number")]
-    pub account_id: i64,
-    /// Button rectangle in window coordinates (logical pixels).
-    pub rect: [f64; 4],
-}
+pub const SELECT_ACCOUNT_MENU_PREFIX: &str = "select-account:";
 
+/// Integrated account selector: a native popup listing the other enabled
+/// accounts below the page's button, like ZapZap's selector popover.
 #[tauri::command]
 pub fn wa_open_account_selector(
     app: AppHandle,
@@ -130,26 +125,65 @@ pub fn wa_open_account_selector(
     rect: [f64; 4],
 ) -> CommandResult<()> {
     let id = caller(&webview)?;
-    let scale = webview.window().scale_factor().unwrap_or(1.0);
-    let origin = webview
-        .position()
-        .map(|p| p.to_logical::<f64>(scale))
-        .unwrap_or_default();
-    let zoom = app
-        .state::<AppState>()
-        .accounts
-        .get(id)
-        .map(|a| a.zoom)
-        .unwrap_or(1.0);
-    let [x, y, w, h] = rect;
-    app.emit(
-        ACCOUNT_SELECTOR,
-        AccountSelectorRequest {
-            account_id: id,
-            rect: [origin.x + x * zoom, origin.y + y * zoom, w * zoom, h * zoom],
-        },
+    let state = app.state::<AppState>();
+    if !state
+        .settings
+        .get()
+        .appearance
+        .integrated_account_selector_enabled
+    {
+        return Ok(());
+    }
+    let Some(origin) = state.webviews.placed_rect(id) else {
+        return Ok(());
+    };
+    let zoom = state.accounts.get(id).map(|a| a.zoom).unwrap_or(1.0);
+    let unread = state.unread.snapshot();
+    let menu = Menu::new(&app)?;
+    let mut others = 0;
+    for account in state.accounts.list()? {
+        if account.id == id || !account.enabled {
+            continue;
+        }
+        let label = match unread.per_account.get(&account.id) {
+            Some(count) if *count > 0 => format!("{} ({count})", account.name),
+            _ => account.name.clone(),
+        };
+        menu.append(&MenuItem::with_id(
+            &app,
+            format!("{SELECT_ACCOUNT_MENU_PREFIX}{}", account.id),
+            label,
+            true,
+            None::<&str>,
+        )?)?;
+        others += 1;
+    }
+    if others == 0 {
+        menu.append(&MenuItem::new(
+            &app,
+            tr("No active accounts to display."),
+            false,
+            None::<&str>,
+        )?)?;
+    }
+    let [x, y, _w, h] = rect;
+    webview.window().popup_menu_at(
+        &menu,
+        LogicalPosition::new(origin.x + x * zoom, origin.y + (y + h) * zoom),
     )?;
     Ok(())
+}
+
+/// Activate the account picked in the integrated selector.
+pub fn on_menu_event<R: tauri::Runtime>(app: &AppHandle<R>, event: MenuEvent) {
+    if let Some(id) = event
+        .id()
+        .as_ref()
+        .strip_prefix(SELECT_ACCOUNT_MENU_PREFIX)
+        .and_then(|id| id.parse().ok())
+    {
+        actions::activate(app, id);
+    }
 }
 
 #[tauri::command]

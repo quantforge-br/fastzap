@@ -4,7 +4,6 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type { Account } from "./generated/Account";
 import type { AccountPatch } from "./generated/AccountPatch";
-import type { AccountSelectorRequest } from "./generated/AccountSelectorRequest";
 import type { ChatTarget } from "./generated/ChatTarget";
 import type { LayoutState } from "./generated/LayoutState";
 import type { NewAccount } from "./generated/NewAccount";
@@ -17,7 +16,6 @@ import type { UnreadSnapshot } from "./generated/UnreadSnapshot";
 export type {
   Account,
   AccountPatch,
-  AccountSelectorRequest,
   ChatTarget,
   LayoutState,
   NewAccount,
@@ -34,7 +32,6 @@ export const events = {
   layoutChanged: "layout://changed",
   unreadChanged: "unread://changed",
   uiAction: "ui://action",
-  accountSelector: "ui://account-selector",
 } as const;
 
 export const settings = {

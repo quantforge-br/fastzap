@@ -81,3 +81,6 @@
 - WhatsApp popups to allowed hosts open in a FastZap window that keeps the
   navigation allowlist and sends other links to the system browser, instead of
   an unrestricted default webview.
+- The integrated account selector opens a native menu with the other enabled
+  accounts and their unread counts; clicking one switches to it. The button
+  did nothing before.

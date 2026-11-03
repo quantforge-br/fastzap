@@ -1,6 +1,6 @@
 //! Child webviews hosting WhatsApp Web, one per enabled account.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -44,6 +44,8 @@ struct Layout {
     active: Option<i64>,
     grid: bool,
     overlay: bool,
+    /// Where each visible account webview was last placed.
+    placed: BTreeMap<i64, Rect>,
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -72,6 +74,11 @@ impl WebviewManager {
 
     pub fn active(&self) -> Option<i64> {
         self.layout.lock().unwrap().active
+    }
+
+    /// Bounds of a visible account webview in window coordinates.
+    pub fn placed_rect(&self, account_id: i64) -> Option<Rect> {
+        self.layout.lock().unwrap().placed.get(&account_id).copied()
     }
 
     pub fn set_bounds<R: Runtime>(&self, app: &AppHandle<R>, bounds: Rect) {
@@ -274,14 +281,12 @@ impl WebviewManager {
             .unwrap_or_default();
         webviews.sort_by_key(|(id, _)| order.iter().position(|o| o == id).unwrap_or(usize::MAX));
 
+        let mut placed = BTreeMap::new();
         if overlay || bounds.width < 1.0 || bounds.height < 1.0 {
             for (_, w) in &webviews {
                 let _ = w.hide();
             }
-            return;
-        }
-
-        if grid && !webviews.is_empty() {
+        } else if grid && !webviews.is_empty() {
             let cols = app
                 .state::<AppState>()
                 .settings
@@ -292,28 +297,28 @@ impl WebviewManager {
             let rows = webviews.len().div_ceil(cols);
             let cell_w = bounds.width / cols as f64;
             let cell_h = bounds.height / rows as f64;
-            for (index, (_, w)) in webviews.iter().enumerate() {
+            for (index, (id, w)) in webviews.iter().enumerate() {
                 let (col, row) = (index % cols, index / cols);
-                place(
-                    w,
-                    Rect {
-                        x: bounds.x + col as f64 * cell_w,
-                        y: bounds.y + row as f64 * cell_h,
-                        width: cell_w,
-                        height: cell_h,
-                    },
-                );
+                let rect = Rect {
+                    x: bounds.x + col as f64 * cell_w,
+                    y: bounds.y + row as f64 * cell_h,
+                    width: cell_w,
+                    height: cell_h,
+                };
+                place(w, rect);
+                placed.insert(*id, rect);
             }
-            return;
-        }
-
-        for (id, w) in &webviews {
-            if Some(*id) == active {
-                place(w, bounds);
-            } else {
-                let _ = w.hide();
+        } else {
+            for (id, w) in &webviews {
+                if Some(*id) == active {
+                    place(w, bounds);
+                    placed.insert(*id, bounds);
+                } else {
+                    let _ = w.hide();
+                }
             }
         }
+        self.layout.lock().unwrap().placed = placed;
     }
 
     pub fn eval<R: Runtime>(&self, app: &AppHandle<R>, account_id: i64, script: &str) {
