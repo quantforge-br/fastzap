@@ -211,6 +211,39 @@ impl ChatStore {
         Ok(())
     }
 
+    /// Tie the store to `value` under `key` (server and instance, or the
+    /// linked phone). When it was tied to something else, every chat,
+    /// message and cursor is dropped, keeping only the meta keys in `keep`.
+    /// Returns whether it was cleared.
+    pub fn bind(&self, key: &str, value: &str, keep: &[&str]) -> StoreResult<bool> {
+        let mut conn = self.conn.lock().unwrap();
+        let tx = conn.transaction()?;
+        let current: Option<String> = tx
+            .query_row("SELECT value FROM meta WHERE key = ?", [key], |r| r.get(0))
+            .optional()?;
+        let cleared = current.is_some_and(|c| c != value);
+        if cleared {
+            tx.execute_batch(
+                "DELETE FROM reactions; DELETE FROM messages; DELETE FROM chats; DELETE FROM contacts;",
+            )?;
+            let mut stmt = tx.prepare("SELECT key FROM meta")?;
+            let keys: Vec<String> = stmt
+                .query_map([], |r| r.get(0))?
+                .collect::<rusqlite::Result<_>>()?;
+            drop(stmt);
+            for k in keys.iter().filter(|k| !keep.contains(&k.as_str())) {
+                tx.execute("DELETE FROM meta WHERE key = ?", [k])?;
+            }
+        }
+        tx.execute(
+            "INSERT INTO meta (key, value) VALUES (?1, ?2)
+             ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+            params![key, value],
+        )?;
+        tx.commit()?;
+        Ok(cleared)
+    }
+
     /// Apply live changes; `cursor` (a journal page's end) is saved in the
     /// same transaction so a crash never skips events.
     pub fn apply(
@@ -823,6 +856,28 @@ mod tests {
         );
         assert_eq!(store.unread_chats().unwrap(), 0);
         assert_eq!(store.cursor().unwrap(), "9");
+    }
+
+    #[test]
+    fn rebinding_clears_another_identity() {
+        let store = ChatStore::in_memory().unwrap();
+        assert!(!store.bind("bind:server", "a|1", &[]).unwrap());
+        assert!(!store.bind("bind:owner", "5511", &["bind:server"]).unwrap());
+        store
+            .apply(
+                &[Change::New(message("A", 10, false, "oi"))],
+                true,
+                Some("7"),
+            )
+            .unwrap();
+        assert!(!store.bind("bind:owner", "5511", &["bind:server"]).unwrap());
+        assert_eq!(store.cursor().unwrap(), "7");
+        assert!(store.bind("bind:owner", "5522", &["bind:server"]).unwrap());
+        assert!(store.chats().unwrap().is_empty());
+        assert_eq!(store.cursor().unwrap(), "");
+        assert_eq!(store.meta("bind:server").unwrap().as_deref(), Some("a|1"));
+        assert!(store.bind("bind:server", "b|2", &[]).unwrap());
+        assert_eq!(store.meta("bind:owner").unwrap(), None);
     }
 
     #[test]

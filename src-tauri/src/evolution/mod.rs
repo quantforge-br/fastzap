@@ -42,6 +42,9 @@ const NOTIFY_MAX_BATCH: usize = 5;
 const RECONNECT_DELAY: Duration = Duration::from_secs(10);
 const AVATAR_TTL: Duration = Duration::from_secs(6 * 3600);
 const JOURNAL_MAX_PAGES: usize = 200;
+/// Store meta keys tying local data to its source.
+const BIND_SERVER: &str = "bind:server";
+const BIND_OWNER: &str = "bind:owner";
 const JOURNAL_PAUSE: Duration = Duration::from_secs(1);
 const JOURNAL_RETRY: Duration = Duration::from_secs(30);
 const JOURNAL_RETRY_MAX: Duration = Duration::from_secs(30 * 60);
@@ -301,6 +304,16 @@ fn start(app: &AppHandle, account: &Account) {
             return stopped("local storage unavailable");
         }
     };
+    let media_dir = dir.join("media");
+    // Chats of another server or instance must not show up under this one.
+    match store.bind(BIND_SERVER, &format!("{base}|{instance_id}"), &[]) {
+        Ok(true) => clear_media(&media_dir),
+        Ok(false) => {}
+        Err(e) => {
+            log::warn!("evolution store for account {id} failed to open: {e}");
+            return stopped("local storage unavailable");
+        }
+    }
     let (stop_tx, stop_rx) = watch::channel(false);
     let session = Arc::new(Session {
         account_id: id,
@@ -309,7 +322,7 @@ fn start(app: &AppHandle, account: &Account) {
         admin: AdminKey(admin),
         token: InstanceToken(token),
         store,
-        media_dir: dir.join("media"),
+        media_dir,
         own_jid: Mutex::new(String::new()),
         connection: Mutex::new(Connection::Connecting),
         open_chat: Mutex::new(None),
@@ -393,6 +406,7 @@ pub async fn ensure_connected(
         }
     };
     *session.own_jid.lock().unwrap() = row.jid.clone();
+    bind_owner(app, session, &row.jid);
     if row.needs_connect() {
         let payload = client::connect_payload(Some(&row));
         if let Err(e) = session.client.connect(&session.token, &payload).await {
@@ -405,6 +419,38 @@ pub async fn ensure_connected(
 
 /// Linked and connected is online; linked but disconnected waits for the
 /// server's own reconnect (or an explicit retry).
+/// A different phone linked to the instance has its own chats and journal.
+fn bind_owner(app: &AppHandle, session: &Session, jid: &str) {
+    let user = jid.split('@').next().unwrap_or("");
+    let owner = user.split(':').next().unwrap_or("");
+    if owner.is_empty() {
+        return;
+    }
+    match session.store.bind(BIND_OWNER, owner, &[BIND_SERVER]) {
+        Ok(true) => {
+            clear_media(&session.media_dir);
+            session.contacts_loaded.store(false, Ordering::SeqCst);
+            emit(
+                app,
+                UiEvent::Chats {
+                    account_id: session.account_id,
+                },
+            );
+            refresh_unread(app, session);
+        }
+        Ok(false) => {}
+        Err(e) => log::warn!("evolution store write failed: {e}"),
+    }
+}
+
+fn clear_media(dir: &std::path::Path) {
+    if let Err(e) = std::fs::remove_dir_all(dir)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        log::warn!("evolution media cache cleanup failed: {e}");
+    }
+}
+
 async fn refresh_status(app: &AppHandle, session: &Session) -> Option<client::ConnectionStatus> {
     let status = session.client.status(&session.token).await;
     match &status {

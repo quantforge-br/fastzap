@@ -263,6 +263,9 @@
 - Evolution Go: starting and stopping sessions is serialized, and stopping a
   session cancels its work in flight, so a deleted or reconfigured account no
   longer keeps an unreachable session or connects the instance afterwards.
+- Evolution Go: local chats, media and the journal cursor are tied to the
+  server, instance and linked phone; pointing an account elsewhere or linking
+  another phone starts from a clean store instead of mixing conversations.
 
 ### Changed
 
