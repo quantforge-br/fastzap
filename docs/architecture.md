@@ -58,7 +58,10 @@ habilitada, `webview::manager` cria um child webview com `Window::add_child`
 (feature `unstable` do Tauri):
 
 - `data_directory` exclusivo em `<app_data>/profiles/<account-id>` (Linux e
-  Windows) ou `data_store_identifier` derivado do ID (macOS 14+);
+  Windows) ou `data_store_identifier` derivado do ID no macOS. O bundle
+  exige macOS 14 (`bundle.macOS.minimumSystemVersion`), porque versões
+  anteriores ignoram o identificador e o proxy (`macos-proxy`) e
+  compartilhariam a sessão entre contas;
 - `user_agent` de Chrome (o WhatsApp Web recusa o WebKit puro) ou o
   User-Agent escolhido por conta;
 - `initialization_script` com a ponte (`webview/scripts/bridge.js`) e os

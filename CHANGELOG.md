@@ -67,3 +67,6 @@
   them, also in grid view.
 - Account and settings commands that create webviews run asynchronously,
   avoiding the WebView2 deadlock of synchronous commands on Windows.
+- macOS builds apply the configured proxy and require macOS 14, where each
+  account gets its own WebKit data store instead of sharing the default
+  session.
