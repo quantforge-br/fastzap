@@ -42,6 +42,18 @@ const UI_COMMANDS: &[&str] = &[
     "download_open",
     "download_reveal",
     "permission_answer",
+    "custom_list",
+    "custom_read",
+    "custom_write",
+    "custom_import_file",
+    "custom_import_url",
+    "custom_duplicate",
+    "custom_delete",
+    "custom_set_file_enabled",
+    "custom_open_folder",
+    "custom_pick_preview",
+    "custom_preview",
+    "custom_reload",
 ];
 
 /// Commands exposed to https://web.whatsapp.com.

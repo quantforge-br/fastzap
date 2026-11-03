@@ -23,7 +23,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Chat por número (`Ctrl+M`) | `open_chat.py` | `webview::deeplink` + diálogo | |
 | Colar como texto e tabelas de planilha | `clipboard_table.py`, `web_view.py` | `webview::clipboard` | |
 | Menu de contexto | `web_view.py` | menu padrão do motor; `webview::context_menu` com a fase de corretor | itens de idioma/corretor ainda ausentes |
-| CSS/JS personalizados | `features/customizations` | `customizations` | mesma árvore de arquivos |
+| CSS/JS personalizados | `features/customizations` | `customizations` + página Customizações avançadas | mesma árvore de arquivos; CSS é reaplicado nas páginas abertas ao salvar |
 | Corretor ortográfico | `features/dictionaries` (`.bdic`) | `spellcheck` | **formato Hunspell** (`.dic/.aff`); `.bdic` não é importado |
 | Downloads e histórico (`Ctrl+J`) | `features/downloads` | `downloads` + `src/lib/downloads/` | decisão após o término do download; ver lacunas |
 | Notificações (portal, D-Bus, Windows, macOS) | `features/notifications` | `notifications` | |

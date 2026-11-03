@@ -191,6 +191,21 @@ o resto pergunta à UI pelo evento `permissions://request`. O pedido
 em `AppState::permissions` (memória, por conta) e é esquecido quando a
 webview é recriada. Outros tipos de pedido recebem a negação padrão.
 
+## Customizações
+
+`customizations` mantém a árvore do ZapZap em `data/customizations/`
+(`global/` e `accounts/<chave>/`, com a conta 1 em `storage-whats`), cada
+uma com `css/`, `js/` e `previews/css/`. Ao terminar cada carga da página,
+`apply_to_webview` troca as tags `<style data-zapzap-custom-css>` e roda
+cada JS com `sourceURL`. Os arquivos globais valem quando a categoria está
+ativa; uma conta que não herda acrescenta os seus depois deles.
+`normalize_userstyle` mantém só blocos `@-moz-document` de whatsapp.com
+(estrito ao criar, editar e importar). `customizations::files` faz as
+operações com lista branca de nomes e verificação de caminho; a importação
+por URL aceita só HTTPS, 15 s e 2 MB, com prévia do userstyles.world. A
+página `Customizations.svelte` grava arquivos na hora e as chaves de
+ativação e herança só em Salvar.
+
 ## Traduções
 
 `po/*.po` vem do ZapZap (mesmo domínio e idiomas). `pnpm i18n`

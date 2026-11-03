@@ -52,6 +52,18 @@
     "allow-download-delete-file",
     "allow-download-open",
     "allow-download-reveal",
-    "allow-permission-answer"
+    "allow-permission-answer",
+    "allow-custom-list",
+    "allow-custom-read",
+    "allow-custom-write",
+    "allow-custom-import-file",
+    "allow-custom-import-url",
+    "allow-custom-duplicate",
+    "allow-custom-delete",
+    "allow-custom-set-file-enabled",
+    "allow-custom-open-folder",
+    "allow-custom-pick-preview",
+    "allow-custom-preview",
+    "allow-custom-reload"
   ]
 }

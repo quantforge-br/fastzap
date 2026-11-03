@@ -18,7 +18,8 @@ pub mod tray;
 pub mod webview;
 
 use commands::{
-    accounts as acc, app as appcmd, bridge, downloads as dl, settings as set, webview as wv,
+    accounts as acc, app as appcmd, bridge, customizations as custom, downloads as dl,
+    settings as set, webview as wv,
 };
 use tauri::Manager;
 use tauri_plugin_window_state::StateFlags;
@@ -151,6 +152,18 @@ pub fn run() {
             dl::download_open,
             dl::download_reveal,
             appcmd::permission_answer,
+            custom::custom_list,
+            custom::custom_read,
+            custom::custom_write,
+            custom::custom_import_file,
+            custom::custom_import_url,
+            custom::custom_duplicate,
+            custom::custom_delete,
+            custom::custom_set_file_enabled,
+            custom::custom_open_folder,
+            custom::custom_pick_preview,
+            custom::custom_preview,
+            custom::custom_reload,
             bridge::wa_title_changed,
             bridge::wa_shortcut,
             bridge::wa_theme_event,

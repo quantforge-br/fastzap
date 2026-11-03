@@ -4,6 +4,9 @@ pub mod avatar;
 pub mod icon;
 pub mod user_agent;
 
+/// The first account (ZapZap's `storage-whats`), which cannot be removed.
+pub const DEFAULT_ACCOUNT_ID: i64 = 1;
+
 use std::path::Path;
 use std::sync::Mutex;
 

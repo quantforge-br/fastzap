@@ -8,6 +8,7 @@ import Permissions from "./pages/Permissions.svelte";
 import SystemStartup from "./pages/SystemStartup.svelte";
 import LanguageDownloads from "./pages/LanguageDownloads.svelte";
 import NetworkPrivacy from "./pages/NetworkPrivacy.svelte";
+import Customizations from "./pages/Customizations.svelte";
 import Performance from "./pages/Performance.svelte";
 import About from "./pages/About.svelte";
 
@@ -25,6 +26,7 @@ export const PAGES: SettingsPage[] = [
   { id: "system_startup", label: "System and startup", component: SystemStartup },
   { id: "language_downloads", label: "Language and Download", component: LanguageDownloads },
   { id: "network_privacy", label: "Privacy and Network", component: NetworkPrivacy },
+  { id: "advanced_customizations", label: "Advanced Customizations", component: Customizations },
   { id: "performance_experimental", label: "Performance experimental", component: Performance },
   { id: "about", label: "About", component: About },
 ];

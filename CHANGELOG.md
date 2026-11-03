@@ -93,6 +93,11 @@
   granted, features set to auto grant are allowed, anything else asks
   "Permission request" with No as the default, and a Yes is remembered for
   that account's page until it is recreated.
+- Advanced customizations with ZapZap's folders and rules: global CSS/JS plus
+  per-account files when the account does not inherit, @-moz-document
+  userstyles filtered to WhatsApp Web, injection after every page load, and a
+  settings page to create, edit, import (file or HTTPS URL up to 2 MB),
+  duplicate, delete, enable and preview files; CSS changes refresh open pages.
 
 ### Fixed
 

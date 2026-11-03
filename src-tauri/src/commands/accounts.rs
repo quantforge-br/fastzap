@@ -6,9 +6,6 @@ use crate::app::effects;
 use crate::app::events::ACCOUNTS_CHANGED;
 use crate::app::state::AppState;
 
-/// The first account (ZapZap's `storage-whats`), which cannot be removed.
-pub const DEFAULT_ACCOUNT: i64 = 1;
-
 fn changed(app: &AppHandle, state: &AppState) -> CommandResult<Vec<Account>> {
     let list = state.accounts.list()?;
     app.emit(ACCOUNTS_CHANGED, &list)?;
@@ -62,7 +59,7 @@ pub async fn accounts_delete(
     id: i64,
 ) -> CommandResult<()> {
     // Account 1 is ZapZap's `storage-whats`, the default account.
-    if id == DEFAULT_ACCOUNT {
+    if id == crate::accounts::DEFAULT_ACCOUNT_ID {
         return Err("the default account cannot be removed".into());
     }
     state.accounts.delete(id)?;
