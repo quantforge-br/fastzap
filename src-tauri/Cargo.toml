@@ -19,7 +19,6 @@ tauri = { version = "2", features = ["unstable", "tray-icon", "image-png", "maco
 tauri-plugin-opener = "2"
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 tauri-plugin-deep-link = "2"
-tauri-plugin-autostart = "2"
 tauri-plugin-window-state = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-notification = "2"
@@ -56,6 +55,9 @@ gtk = "0.18"
 zbus = { version = "5", default-features = false, features = ["tokio"] }
 ashpd = { version = "0.11", default-features = false, features = ["tokio"] }
 notify-rust = { version = "4", default-features = false, features = ["dbus"] }
+
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+tauri-plugin-autostart = "2"
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"

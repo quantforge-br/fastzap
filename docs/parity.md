@@ -27,7 +27,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Notificações (portal, D-Bus, Windows, macOS) | `features/notifications` | `notifications` | |
 | Bandeja, temas de ícone, contador, badge | `features/tray` | `tray` | |
 | Atalhos | `features/shortcuts` | `app::shortcuts` + `bridge.js` | |
-| Iniciar com o sistema | `features/startup` | `autostart` | portal `RequestBackground` no Flatpak |
+| Iniciar com o sistema | `features/startup` | `autostart` | portal `RequestBackground` no Flatpak; entrada XDG nomeada pelo App ID nos demais Linux |
 | Permissões (câmera, microfone etc.) | `features/permissions` | `permissions` | |
 | Proxy e proxy estrito | `core/environment/proxy_manager.py` | `proxy` | proxy estrito via bloqueio de WebRTC não proxiado |
 | Escudo WebRTC | `webrtc_shield.js` | `webview/scripts/webrtc_shield.js` | |

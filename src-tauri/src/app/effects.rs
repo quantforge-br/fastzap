@@ -73,6 +73,9 @@ pub fn on_settings_changed<R: Runtime>(app: &AppHandle<R>, old: &Settings, new: 
     if old.system.audio_muted != new.system.audio_muted {
         webviews.set_muted_all(app, new.system.audio_muted);
     }
+    if old.system.start_system != new.system.start_system {
+        crate::autostart::sync(app, new.system.start_system);
+    }
     let (oa, na) = (&old.appearance, &new.appearance);
     if oa.tray_icon != na.tray_icon
         || oa.tray_theme != na.tray_theme

@@ -1,5 +1,6 @@
 pub mod accounts;
 pub mod app;
+pub mod autostart;
 pub mod commands;
 pub mod customizations;
 pub mod downloads;
@@ -34,7 +35,7 @@ pub fn run() {
         unsafe { std::env::set_var("GDK_BACKEND", backend) };
     }
 
-    let app = tauri::Builder::default()
+    let builder = tauri::Builder::default()
         // Must be the first plugin: a second launch forwards its arguments
         // here, so two processes never write the same settings and accounts.
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
@@ -51,7 +52,13 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .manage(notifications::NotificationService::default())
         .manage(app::lifecycle::Services::default())
-        .on_menu_event(bridge::on_menu_event)
+        .on_menu_event(bridge::on_menu_event);
+    #[cfg(not(target_os = "linux"))]
+    let builder = builder.plugin(tauri_plugin_autostart::init(
+        tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+        Some(autostart::ARGS.to_vec()),
+    ));
+    let app = builder
         .setup(move |app| {
             let handle = app.handle();
             app::bootstrap::init_state(handle)?;
@@ -70,6 +77,11 @@ pub fn run() {
             app::lifecycle::install_signal_handler(handle);
             #[cfg(target_os = "linux")]
             app::lifecycle::start_dbus(handle);
+            // Keep the entry pointing at this executable (e.g. after an
+            // update moved it); turning it off is left to the preference.
+            if settings.system.start_system {
+                autostart::sync(handle, true);
+            }
             let hidden = app::lifecycle::starts_hidden(
                 &options,
                 settings.system.start_background,

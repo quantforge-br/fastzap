@@ -53,6 +53,9 @@
 - Flatpak builds own the application ID on D-Bus and implement
   org.freedesktop.Application, so the desktop activates the running instance,
   opens whatsapp: links and passes the focus token.
+- Start with the system: the Background portal in Flatpak, an XDG autostart
+  entry on other Linux installs and tauri-plugin-autostart on Windows and
+  macOS, always with --hideStart.
 
 ### Fixed
 

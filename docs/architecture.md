@@ -161,7 +161,13 @@ mensagens; a UI Svelte em `src/routes/chat/` consome os comandos
    `confirm_on_close` a UI pergunta (com "Don't ask again", também para Sair
    da bandeja e `Ctrl+Q`); depois a janela vai para a bandeja, ou o app sai se
    `quit_on_close` estiver ativo ou se o pedido foi Sair.
-7. Em `RunEvent::Exit` as notificações exibidas são removidas e o nome D-Bus
+7. `system.start_system` é aplicado ao iniciar e a cada mudança
+   (`autostart`): no Flatpak, portal `Background` (`RequestBackground` com
+   `fastzap --hideStart`); em outros Linux, a entrada
+   `$XDG_CONFIG_HOME/autostart/io.github.quantmind_br.fastzap.desktop`
+   apontando para o AppImage ou o executável atual; no Windows e no macOS,
+   `tauri-plugin-autostart` (chave Run e LaunchAgent).
+8. Em `RunEvent::Exit` as notificações exibidas são removidas e o nome D-Bus
    é liberado.
 
 ## Empacotamento
