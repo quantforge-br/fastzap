@@ -44,3 +44,5 @@
   times) without touching preferences, existing secrets are kept, native
   installs are found through the XDG directories and CSS preview mappings
   are imported.
+- A second launch focuses the running instance instead of starting another
+  process that would race on settings and accounts.

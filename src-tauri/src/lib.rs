@@ -19,6 +19,12 @@ pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     tauri::Builder::default()
+        // Must be the first plugin: a second launch only focuses this instance,
+        // so two processes never write the same settings and accounts.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            app::window::show(app);
+        }))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let handle = app.handle();
