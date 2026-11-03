@@ -6,6 +6,7 @@ pub mod dbus;
 pub mod effects;
 pub mod events;
 pub mod lifecycle;
+pub mod panel;
 pub mod state;
 pub mod theme;
 pub mod window;

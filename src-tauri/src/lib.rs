@@ -85,12 +85,15 @@ pub fn run() {
             if settings.system.start_system {
                 autostart::sync(handle, true);
             }
+            app::panel::init(handle)?;
             let hidden = app::lifecycle::starts_hidden(
                 &options,
                 settings.system.start_background,
                 settings.onboarding.completed,
             );
-            if !hidden {
+            if hidden {
+                app::panel::sync(handle);
+            } else {
                 app::window::show(handle);
             }
             for link in &options.links {
@@ -130,9 +133,10 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("error while building FastZap");
-    app.run(|handle, event| {
-        if let tauri::RunEvent::Exit = event {
-            app::lifecycle::shutdown(handle);
-        }
+    app.run(|handle, event| match event {
+        // Windows still exist here, unlike at `Exit`.
+        tauri::RunEvent::ExitRequested { .. } => app::panel::shutdown(handle),
+        tauri::RunEvent::Exit => app::lifecycle::shutdown(handle),
+        _ => {}
     });
 }

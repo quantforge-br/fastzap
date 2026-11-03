@@ -51,6 +51,7 @@ pub fn dispatch_for<R: Runtime>(app: &AppHandle<R>, action: &str, account: Optio
             let _ = super::effects::change_settings(app, |s| s.system.audio_muted = muted);
         }
         "toggle_window" => window::toggle_visibility(app),
+        "show_panel" => super::panel::show(app),
         "fullscreen" => {
             if let Some(w) = window::main_window(app) {
                 let _ = w.set_fullscreen(!w.is_fullscreen().unwrap_or(false));
@@ -191,8 +192,12 @@ fn change_zoom<R: Runtime>(app: &AppHandle<R>, account_id: i64, action: &str) {
 pub fn apply_theme<R: Runtime>(app: &AppHandle<R>) {
     let state = app.state::<AppState>();
     let settings = state.settings.get();
+    let theme = super::theme::window_theme(&settings);
     if let Some(w) = window::main_window(app) {
-        let _ = w.set_theme(super::theme::window_theme(&settings));
+        let _ = w.set_theme(theme);
+    }
+    if let Some(w) = app.get_webview_window(super::panel::PANEL_WINDOW) {
+        let _ = w.set_theme(theme);
     }
     apply_page_theme(app);
 }

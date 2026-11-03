@@ -13,7 +13,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Barra de título própria (CSR) | `ui/components/client_side_window*` | `src/lib/components/TitleBar.svelte` | mesmas opções `csr_*`, aplicadas sem reiniciar; moldura opaca de 4 px em vez da margem translúcida com cantos arredondados |
 | Contas, limite, ativação, avatar, UA, DND, zoom | `features/accounts` | `accounts` + página Contas | tipo de conta novo: Evolution Go |
 | Sidebar, grade, bloqueio, doação, atualização | `features/browser/shell` | `src/routes/+page.svelte` | |
-| Painel flutuante de monitoramento | `features/browser/shell/floating*` | janela `monitor` | |
+| Painel flutuante de monitoramento | `ui/components/floating_monitoring_panel.py` | `app::panel` + rota `/panel` (janela `panel`) | posição e travamento só fora do Wayland, como no ZapZap |
 | Seletor de contas integrado | `theme_controller.js` (QuickAccounts) | `webview/scripts/quick_accounts.js` | |
 | Contador de não lidas pelo título | `web_view.py::_on_title_changed` | `webview/scripts/bridge.js` | |
 | Allowlist de navegação e popups | `PopupRoutingPage` | `webview::navigation` | |

@@ -76,6 +76,7 @@ pub fn on_settings_changed<R: Runtime>(app: &AppHandle<R>, old: &Settings, new: 
     if old.system.start_system != new.system.start_system {
         crate::autostart::sync(app, new.system.start_system);
     }
+    super::panel::on_settings_changed(app, old, new);
     let (oa, na) = (&old.appearance, &new.appearance);
     if oa.tray_icon != na.tray_icon
         || oa.tray_theme != na.tray_theme

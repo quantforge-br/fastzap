@@ -3,7 +3,8 @@
   "identifier": "default",
   "description": "Local FastZap UI",
   "webviews": [
-    "ui"
+    "ui",
+    "panel"
   ],
   "permissions": [
     "core:default",

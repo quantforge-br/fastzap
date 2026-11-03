@@ -27,6 +27,8 @@ pub fn create_main<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Window<R>> {
                 api.prevent_close();
                 super::lifecycle::request_close(&close_app, false);
             }
+            // Minimizing makes the window unavailable for `when_hidden`.
+            tauri::WindowEvent::Resized(_) => super::panel::sync(&close_app),
             // The toolkit theme changed while `auto` follows it.
             tauri::WindowEvent::ThemeChanged(_) => super::actions::apply_page_theme(&close_app),
             _ => {}
@@ -61,6 +63,7 @@ pub fn show<R: Runtime>(app: &AppHandle<R>) {
         let _ = window.show();
         let _ = window.set_focus();
     }
+    super::panel::host_changed(app, true);
 }
 
 /// Show and focus the window using an XDG activation / startup token so
@@ -85,12 +88,13 @@ pub fn hide<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = main_window(app) {
         let _ = window.hide();
     }
+    super::panel::host_changed(app, false);
 }
 
 pub fn toggle_visibility<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = main_window(app) {
         if window.is_visible().unwrap_or(false) && window.is_focused().unwrap_or(false) {
-            let _ = window.hide();
+            hide(app);
         } else {
             show(app);
         }

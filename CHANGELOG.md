@@ -61,6 +61,9 @@
 - Client-side title bar with ZapZap's button themes (default, Adwaita, Plasma,
   iOS, Windows), button side and visibility, drag, double-click maximize and
   resize edges.
+- Quick access panel window with accounts, unread counts, new account, mute,
+  downloads and settings, following the always, when hidden and on demand
+  modes, staying on top and remembering or locking its position.
 
 ### Fixed
 

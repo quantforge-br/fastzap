@@ -104,6 +104,21 @@ webview (scripts de inicialização e proxy) recriam as contas quando mudam. O s
 substitui `window.Notification` e observa `document.title` para extrair a
 contagem de não lidas, como o ZapZap fazia pelo título da página.
 
+### Painel de acesso rápido
+
+`app::panel` cria na inicialização a janela oculta `panel` (rota `/panel`,
+largura fixa de 320 px, fora da barra de tarefas) e decide a visibilidade
+como o ZapZap: `always`, `when_hidden` (janela principal oculta ou
+minimizada) ou `on_demand` (só por `show_panel`, na bandeja). Fechar dispensa
+o painel até o modo ou o estado da janela principal mudar. `window::show` e
+`window::hide` informam a visibilidade da janela principal, porque o tao
+enfileira as requisições e `is_visible` só reflete a mudança depois. Fora do
+Wayland, a posição padrão fica no canto superior direito da área de trabalho
+(−15/+16), é lembrada após 500 ms sem movimento e, com `lock_position`, é
+restaurada a cada `Moved`. A página usa os mesmos eventos de contas, não
+lidas, layout e preferências da janela principal, e a capability `default`
+cobre as webviews `ui` e `panel`.
+
 ### Decorações do cliente (CSR)
 
 Com `appearance.csr`, a janela perde as decorações nativas
