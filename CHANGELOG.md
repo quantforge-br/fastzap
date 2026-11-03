@@ -38,3 +38,5 @@
   never replace existing ones.
 - An unreadable `settings.json` stops startup instead of being replaced by
   defaults.
+- ZapZap import decodes QSettings values like Qt: `@@` strings, quoted and
+  escaped values, quoted `@Variant` lists and QVariant maps.
