@@ -4,7 +4,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 use ts_rs::TS;
 
-use super::events::{LAYOUT_CHANGED, SETTINGS_CHANGED, UI_ACTION};
+use super::events::{LAYOUT_CHANGED, UI_ACTION};
 use super::state::AppState;
 use super::window;
 use crate::accounts::{AccountKind, AccountPatch};
@@ -23,6 +23,7 @@ pub struct UiAction {
 
 /// Actions handled by the UI itself; the window is shown first.
 const UI_OWNED: &[&str] = &[
+    "accounts",
     "settings",
     "downloads",
     "add_account",
@@ -39,6 +40,10 @@ pub fn dispatch<R: Runtime>(app: &AppHandle<R>, action: &str) {
         "quit" => app.exit(0),
         "hide" => window::hide(app),
         "show" => window::show(app),
+        "toggle_mute" => {
+            let muted = !state.settings.get().system.audio_muted;
+            let _ = super::effects::change_settings(app, |s| s.system.audio_muted = muted);
+        }
         "toggle_window" => window::toggle_visibility(app),
         "fullscreen" => {
             if let Some(w) = window::main_window(app) {
@@ -65,10 +70,7 @@ pub fn dispatch<R: Runtime>(app: &AppHandle<R>, action: &str) {
                 "theme_dark" => ThemeMode::Dark,
                 _ => ThemeMode::Auto,
             };
-            if let Ok(settings) = state.settings.update(|s| s.appearance.theme = theme) {
-                let _ = app.emit(SETTINGS_CHANGED, &settings);
-                apply_theme(app);
-            }
+            let _ = super::effects::change_settings(app, |s| s.appearance.theme = theme);
         }
         "new_chat" => eval_active(app, "window.__FASTZAP__ && window.__FASTZAP__.newChat();"),
         "close_conversation" => eval_active(

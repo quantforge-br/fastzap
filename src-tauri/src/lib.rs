@@ -9,6 +9,7 @@ pub mod paths;
 pub mod proxy;
 pub mod secrets;
 pub mod settings;
+pub mod tray;
 pub mod webview;
 
 use commands::{accounts as acc, bridge, settings as set, webview as wv};
@@ -34,6 +35,7 @@ pub fn run() {
             i18n::set_language(&settings.system.interface_language);
             app::window::create_main(handle)?;
             state.webviews.sync(handle)?;
+            tray::init(handle)?;
             app::window::show(handle);
             Ok(())
         })

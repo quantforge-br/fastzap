@@ -30,6 +30,9 @@
 - Linux overlay stage so child webviews can be positioned under Wayland.
 - Minimal Svelte shell: account sidebar with avatars, unread badges and
   do-not-disturb marker, grid and settings buttons.
+- System tray with ZapZap's three icon themes and red unread counter, the
+  Show/Accounts/monitoring panel/Mute/Settings/Support/Quit menu, launcher
+  badge, and audio muting of WhatsApp Web pages (Linux).
 
 ### Fixed
 

@@ -2,12 +2,25 @@
 
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
-use super::events::{LAYOUT_CHANGED, UNREAD_CHANGED};
+use super::events::{LAYOUT_CHANGED, SETTINGS_CHANGED, UNREAD_CHANGED};
 use super::state::AppState;
 use crate::settings::Settings;
 use crate::webview::manager::page_labels;
 use crate::webview::scripts;
 use crate::webview::unread::UnreadSnapshot;
+
+/// Persist a settings change, notify the UI and apply its side effects.
+pub fn change_settings<R: Runtime>(
+    app: &AppHandle<R>,
+    f: impl FnOnce(&mut Settings),
+) -> Result<Settings, crate::settings::store::StoreError> {
+    let state = app.state::<AppState>();
+    let old = state.settings.get();
+    let new = state.settings.update(f)?;
+    let _ = app.emit(SETTINGS_CHANGED, &new);
+    on_settings_changed(app, &old, &new);
+    Ok(new)
+}
 
 pub fn on_settings_changed<R: Runtime>(app: &AppHandle<R>, old: &Settings, new: &Settings) {
     let state = app.state::<AppState>();
@@ -49,6 +62,19 @@ pub fn on_settings_changed<R: Runtime>(app: &AppHandle<R>, old: &Settings, new: 
     if old.customizations != new.customizations {
         crate::customizations::reapply_all(app);
     }
+    if old.system.audio_muted != new.system.audio_muted {
+        webviews.set_muted_all(app, new.system.audio_muted);
+    }
+    let (oa, na) = (&old.appearance, &new.appearance);
+    if oa.tray_icon != na.tray_icon
+        || oa.tray_theme != na.tray_theme
+        || oa.notification_counter != na.notification_counter
+        || oa.floating_panel.enabled != na.floating_panel.enabled
+        || old.system.audio_muted != new.system.audio_muted
+        || old.system.interface_language != new.system.interface_language
+    {
+        crate::tray::refresh(app);
+    }
 }
 
 pub fn on_accounts_changed<R: Runtime>(app: &AppHandle<R>) {
@@ -58,11 +84,13 @@ pub fn on_accounts_changed<R: Runtime>(app: &AppHandle<R>) {
     }
     let _ = app.emit(LAYOUT_CHANGED, state.webviews.state());
     refresh_account_selectors(app);
+    crate::tray::update_counter(app);
 }
 
 pub fn on_unread_changed<R: Runtime>(app: &AppHandle<R>, snapshot: &UnreadSnapshot) {
     let _ = app.emit(UNREAD_CHANGED, snapshot);
     refresh_account_selectors(app);
+    crate::tray::update_counter(app);
 }
 
 /// Update the integrated selector button of every page: it shows an activity

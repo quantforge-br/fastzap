@@ -92,6 +92,15 @@ conta chamadora é sempre derivada do rótulo do webview, nunca de argumentos. O
 substitui `window.Notification` e observa `document.title` para extrair a
 contagem de não lidas, como o ZapZap fazia pelo título da página.
 
+## Bandeja e badge
+
+`tray` renderiza com `resvg` os SVGs do ZapZap (`default`, `symbolic_light`,
+`symbolic_dark`) a 128 px, com o contador vermelho (máximo `999`). O total soma
+só contas habilitadas e vira zero com `notification_counter` desligado; o mesmo
+valor alimenta `Window::set_badge_count`. O menu é reconstruído quando idioma,
+mudo ou painel flutuante mudam. Em bandejas StatusNotifierItem (Linux) cliques
+no ícone não chegam ao app; só o menu.
+
 ## Contas Evolution Go
 
 Contas do tipo Evolution Go não criam webview remoto. `evolution::session`

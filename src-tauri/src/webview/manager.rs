@@ -209,6 +209,7 @@ impl WebviewManager {
         super::stage::attach_child(&webview);
         let _ = webview.hide();
         let _ = webview.set_zoom(account.zoom);
+        set_muted(&webview, settings.system.audio_muted);
         Ok(webview)
     }
 
@@ -306,6 +307,14 @@ impl WebviewManager {
         }
     }
 
+    pub fn set_muted_all<R: Runtime>(&self, app: &AppHandle<R>, muted: bool) {
+        for (l, webview) in app.webviews() {
+            if account_id_from_label(&l).is_some() {
+                set_muted(&webview, muted);
+            }
+        }
+    }
+
     pub fn navigate<R: Runtime>(&self, app: &AppHandle<R>, account_id: i64, url: Url) {
         if let Some(webview) = app.get_webview(&label(account_id)) {
             let _ = webview.navigate(url);
@@ -319,6 +328,22 @@ fn place<R: Runtime>(webview: &Webview<R>, rect: Rect) {
     let _ = webview.set_position(LogicalPosition::new(rect.x, rect.y));
     let _ = webview.set_size(LogicalSize::new(rect.width.max(1.0), rect.height.max(1.0)));
     let _ = webview.show();
+}
+
+/// Mute page audio (ZapZap's `system/audio_muted`).
+fn set_muted<R: Runtime>(webview: &Webview<R>, muted: bool) {
+    #[cfg(target_os = "linux")]
+    {
+        let _ = webview.with_webview(move |platform| {
+            use webkit2gtk::WebViewExt;
+            platform.inner().set_is_muted(muted);
+        });
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        // WebView2 and WKWebView expose no muting through Tauri yet.
+        let _ = (webview, muted);
+    }
 }
 
 fn open_external<R: Runtime>(app: &AppHandle<R>, url: &Url) {
