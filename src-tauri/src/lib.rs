@@ -6,6 +6,7 @@ pub mod commands;
 pub mod customizations;
 pub mod donation;
 pub mod downloads;
+pub mod evolution;
 pub mod i18n;
 pub mod migration;
 pub mod notifications;

@@ -124,6 +124,8 @@
 - First-run setup with six steps (basics, notifications, background, files,
   permissions, finish); Skip only marks it completed and Finish saves every
   choice, forcing Quit on close without a tray icon.
+- Evolution Go REST client with separate admin and instance scopes, merged
+  connect configuration, sanitized errors and ambiguous-send detection.
 
 ### Fixed
 
