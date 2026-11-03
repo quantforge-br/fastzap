@@ -207,6 +207,9 @@
 - A failed download no longer fails another account's transfer, and concurrent
   automatic downloads with the same name get distinct suffixes instead of
   replacing each other.
+- Concurrent settings writes (downloads, dictionary provisioning, the UI) are
+  serialized, so none of them loses another's change or shares the temporary
+  file.
 
 ### Changed
 

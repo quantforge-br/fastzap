@@ -15,8 +15,7 @@ pub fn change_settings<R: Runtime>(
     f: impl FnOnce(&mut Settings),
 ) -> Result<Settings, crate::settings::store::StoreError> {
     let state = app.state::<AppState>();
-    let old = state.settings.get();
-    let new = state.settings.update(f)?;
+    let crate::settings::store::Changed { old, new } = state.settings.update(f)?;
     let _ = app.emit(SETTINGS_CHANGED, &new);
     on_settings_changed(app, &old, &new);
     Ok(new)

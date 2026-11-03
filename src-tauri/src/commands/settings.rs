@@ -19,11 +19,10 @@ pub async fn settings_patch(
     state: State<'_, AppState>,
     patch: Value,
 ) -> CommandResult<Settings> {
-    let old = state.settings.get();
-    let settings = state.settings.patch(&patch)?;
-    app.emit(SETTINGS_CHANGED, &settings)?;
-    effects::on_settings_changed(&app, &old, &settings);
-    Ok(settings)
+    let changed = state.settings.patch(&patch)?;
+    app.emit(SETTINGS_CHANGED, &changed.new)?;
+    effects::on_settings_changed(&app, &changed.old, &changed.new);
+    Ok(changed.new)
 }
 
 /// Resolved interface locale (`ll_CC`); `"system"` follows the OS.

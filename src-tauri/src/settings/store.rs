@@ -2,7 +2,7 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::RwLock;
+use std::sync::{Mutex, RwLock};
 
 use serde_json::Value;
 
@@ -19,6 +19,15 @@ pub enum StoreError {
 pub struct SettingsStore {
     path: PathBuf,
     current: RwLock<Settings>,
+    /// Serializes read-modify-write-persist so concurrent writers neither
+    /// lose each other's changes nor share the temporary file.
+    writer: Mutex<()>,
+}
+
+/// The settings before and after one write.
+pub struct Changed {
+    pub old: Settings,
+    pub new: Settings,
 }
 
 impl SettingsStore {
@@ -42,6 +51,7 @@ impl SettingsStore {
         Ok(Self {
             path,
             current: RwLock::new(settings),
+            writer: Mutex::new(()),
         })
     }
 
@@ -57,27 +67,39 @@ impl SettingsStore {
         self.current.read().expect("settings lock").clone()
     }
 
+    fn transact(
+        &self,
+        f: impl FnOnce(Settings) -> Result<Settings, StoreError>,
+    ) -> Result<Changed, StoreError> {
+        let _writer = self.writer.lock().expect("settings writer lock");
+        let old = self.get();
+        let mut new = f(old.clone())?;
+        new.normalize();
+        write_atomic(&self.path, &new)?;
+        *self.current.write().expect("settings lock") = new.clone();
+        Ok(Changed { old, new })
+    }
+
     /// Replace all settings and persist them.
-    pub fn replace(&self, mut settings: Settings) -> Result<Settings, StoreError> {
-        settings.normalize();
-        write_atomic(&self.path, &settings)?;
-        *self.current.write().expect("settings lock") = settings.clone();
-        Ok(settings)
+    pub fn replace(&self, settings: Settings) -> Result<Changed, StoreError> {
+        self.transact(|_| Ok(settings))
     }
 
     /// Apply a JSON merge patch (RFC 7396) and persist the result.
-    pub fn patch(&self, patch: &Value) -> Result<Settings, StoreError> {
-        let mut doc = serde_json::to_value(self.get())?;
-        merge_patch(&mut doc, patch);
-        let settings: Settings = serde_json::from_value(doc)?;
-        self.replace(settings)
+    pub fn patch(&self, patch: &Value) -> Result<Changed, StoreError> {
+        self.transact(|current| {
+            let mut doc = serde_json::to_value(current)?;
+            merge_patch(&mut doc, patch);
+            Ok(serde_json::from_value(doc)?)
+        })
     }
 
     /// Mutate settings in place and persist them.
-    pub fn update(&self, f: impl FnOnce(&mut Settings)) -> Result<Settings, StoreError> {
-        let mut settings = self.get();
-        f(&mut settings);
-        self.replace(settings)
+    pub fn update(&self, f: impl FnOnce(&mut Settings)) -> Result<Changed, StoreError> {
+        self.transact(|mut settings| {
+            f(&mut settings);
+            Ok(settings)
+        })
     }
 }
 
@@ -121,6 +143,27 @@ mod tests {
     use super::*;
     use crate::settings::ThemeMode;
     use serde_json::json;
+
+    #[test]
+    fn concurrent_updates_keep_every_change() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        let store = std::sync::Arc::new(SettingsStore::load(&path).unwrap());
+        let threads: Vec<_> = (0..8)
+            .map(|i| {
+                let store = store.clone();
+                std::thread::spawn(move || {
+                    store
+                        .update(|s| s.downloads.recent.push(format!("/f{i}")))
+                        .unwrap();
+                })
+            })
+            .collect();
+        threads.into_iter().for_each(|t| t.join().unwrap());
+        let reloaded = SettingsStore::load(&path).unwrap().get();
+        assert_eq!(store.get(), reloaded);
+        assert_eq!(reloaded.downloads.recent.len(), 8);
+    }
 
     #[test]
     fn missing_file_yields_defaults() {

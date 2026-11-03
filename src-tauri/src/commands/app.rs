@@ -49,10 +49,9 @@ pub async fn settings_reset(app: AppHandle) -> CommandResult<()> {
         migration,
         ..Default::default()
     };
-    let old = state.settings.get();
-    let settings = state.settings.replace(defaults)?;
-    tauri::Emitter::emit(&app, crate::app::events::SETTINGS_CHANGED, &settings)?;
-    crate::app::effects::on_settings_changed(&app, &old, &settings);
+    let changed = state.settings.replace(defaults)?;
+    tauri::Emitter::emit(&app, crate::app::events::SETTINGS_CHANGED, &changed.new)?;
+    crate::app::effects::on_settings_changed(&app, &changed.old, &changed.new);
     Ok(())
 }
 
