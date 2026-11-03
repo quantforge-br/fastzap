@@ -75,3 +75,6 @@
   bypassed the proxy.
 - Disabling an account clears its unread count from the sidebar, tray,
   launcher badge and the other accounts' selector indicators.
+- Changing the proxy, WebRTC shield, strict proxy or Ctrl+arrow fix recreates
+  the account webviews, since a reload kept the settings captured when they
+  were created.

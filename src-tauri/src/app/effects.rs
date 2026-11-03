@@ -29,6 +29,14 @@ pub fn on_settings_changed<R: Runtime>(app: &AppHandle<R>, old: &Settings, new: 
     if old.system.interface_language != new.system.interface_language {
         crate::i18n::set_language(&new.system.interface_language);
     }
+    if crate::webview::manager::creation_config(old)
+        != crate::webview::manager::creation_config(new)
+    {
+        // WhatsApp sessions live in the profile directory and survive this.
+        if let Err(e) = webviews.recreate_all(app) {
+            log::warn!("failed to recreate account webviews: {e}");
+        }
+    }
     if old.appearance.theme != new.appearance.theme {
         super::actions::apply_theme(app);
     }

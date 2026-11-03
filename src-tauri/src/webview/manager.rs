@@ -15,6 +15,7 @@ use super::{navigation, scripts};
 use crate::accounts::{Account, AccountKind, user_agent};
 use crate::app::state::AppState;
 use crate::app::{theme, window::MAIN_WINDOW};
+use crate::settings::Settings;
 
 const LABEL_PREFIX: &str = "wa-";
 
@@ -228,6 +229,17 @@ impl WebviewManager {
         Ok(webview)
     }
 
+    /// Recreate every account webview, e.g. after a setting captured at
+    /// creation changed.
+    pub fn recreate_all<R: Runtime>(&self, app: &AppHandle<R>) -> anyhow::Result<()> {
+        for (webview_label, webview) in app.webviews() {
+            if account_id_from_label(&webview_label).is_some() {
+                webview.close()?;
+            }
+        }
+        self.sync(app)
+    }
+
     /// Recreate one account webview, e.g. after its User-Agent changed.
     pub fn recreate<R: Runtime>(&self, app: &AppHandle<R>, account_id: i64) -> anyhow::Result<()> {
         if let Some(webview) = app.get_webview(&label(account_id)) {
@@ -337,6 +349,16 @@ impl WebviewManager {
     }
 }
 
+/// Settings baked into a webview when it is created: init scripts and proxy.
+/// A reload keeps them, so a change requires new webviews.
+pub fn creation_config(settings: &Settings) -> (String, Option<&'static str>, Option<Url>) {
+    (
+        scripts::document_start(settings),
+        scripts::all_frames(settings),
+        crate::proxy::webview_proxy_url(&settings.proxy),
+    )
+}
+
 fn place<R: Runtime>(webview: &Webview<R>, rect: Rect) {
     #[cfg(target_os = "linux")]
     super::stage::place(webview, rect);
@@ -438,6 +460,16 @@ fn data_store_identifier(account_id: i64) -> [u8; 16] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn privacy_and_proxy_changes_need_new_webviews() {
+        let old = Settings::default();
+        let mut new = old.clone();
+        new.appearance.grid_cols += 1;
+        assert_eq!(creation_config(&old), creation_config(&new));
+        new.privacy.webrtc_shield = !old.privacy.webrtc_shield;
+        assert_ne!(creation_config(&old), creation_config(&new));
+    }
 
     #[test]
     fn labels_round_trip() {
