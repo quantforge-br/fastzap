@@ -121,6 +121,9 @@
 - Keyboard shortcuts dialog listing the WhatsApp Web and FastZap shortcuts.
 - Donation page and startup support reminder; the methods are ZapZap's
   (FastZap is a port) and the backend opens only their fixed URLs.
+- First-run setup with six steps (basics, notifications, background, files,
+  permissions, finish); Skip only marks it completed and Finish saves every
+  choice, forcing Quit on close without a tray icon.
 
 ### Fixed
 
