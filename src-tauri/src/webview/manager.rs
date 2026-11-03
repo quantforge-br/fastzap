@@ -111,13 +111,14 @@ impl WebviewManager {
     }
 
     pub fn toggle_grid<R: Runtime>(&self, app: &AppHandle<R>) -> bool {
-        let grid = {
-            let mut l = self.layout.lock().unwrap();
-            l.grid = !l.grid;
-            l.grid
-        };
-        self.apply_layout(app);
+        let grid = !self.layout.lock().unwrap().grid;
+        self.set_grid(app, grid);
         grid
+    }
+
+    pub fn set_grid<R: Runtime>(&self, app: &AppHandle<R>, grid: bool) {
+        self.layout.lock().unwrap().grid = grid;
+        self.apply_layout(app);
     }
 
     pub fn set_overlay<R: Runtime>(&self, app: &AppHandle<R>, overlay: bool) {

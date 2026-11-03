@@ -23,7 +23,6 @@ pub struct UiAction {
 
 /// Actions handled by the UI itself; the window is shown first.
 const UI_OWNED: &[&str] = &[
-    "accounts",
     "settings",
     "downloads",
     "add_account",
@@ -56,6 +55,19 @@ pub fn dispatch_for<R: Runtime>(app: &AppHandle<R>, action: &str, account: Optio
             if let Some(w) = window::main_window(app) {
                 let _ = w.set_fullscreen(!w.is_fullscreen().unwrap_or(false));
             }
+        }
+        // ZapZap's tray "Accounts" opens the account overview (grid view).
+        "accounts" => {
+            state.webviews.set_grid(app, true);
+            let _ = app.emit(LAYOUT_CHANGED, state.webviews.state());
+            window::show(app);
+            let _ = app.emit(
+                UI_ACTION,
+                UiAction {
+                    action: action.to_owned(),
+                    account_id: target,
+                },
+            );
         }
         "toggle_grid" => {
             state.webviews.toggle_grid(app);

@@ -77,7 +77,8 @@
       layoutApi.setOverlay(true);
       return;
     }
-    openPanel(action.action);
+    // "accounts" shows the grid, so any panel covering it is closed.
+    openPanel(action.action === "accounts" ? null : action.action);
   }
 
   async function answerClose(confirmed: boolean) {

@@ -135,6 +135,8 @@
   helpers.
 - Windows shows the unread count as a taskbar overlay icon instead of an
   unsupported badge.
+- The tray Accounts action opens the account grid, as in ZapZap, instead of an
+  empty panel.
 
 ### Changed
 
