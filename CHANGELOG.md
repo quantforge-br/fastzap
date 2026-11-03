@@ -286,6 +286,9 @@
 - The single-instance D-Bus name stays
   io.github.quantmind_br.fastzap.SingleInstance after the bundle identifier
   change, so Flatpak still lets FastZap own it.
+- Flatpak builds on the NVIDIA driver turn off WebKitGTK's DMA-BUF renderer at
+  startup, which otherwise made Wayland drop the connection (Error 71) and the
+  app exit; an explicit `WEBKIT_DISABLE_DMABUF_RENDERER` still wins.
 
 ### Changed
 

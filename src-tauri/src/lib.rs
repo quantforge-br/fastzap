@@ -47,6 +47,17 @@ pub fn run() {
         // SAFETY: no other thread exists yet; GTK reads this when it starts.
         unsafe { std::env::set_var("GDK_BACKEND", backend) };
     }
+    #[cfg(target_os = "linux")]
+    if platform::disable_dmabuf_renderer(
+        platform::is_flatpak(),
+        platform::has_nvidia_driver(),
+        std::env::var("WEBKIT_DISABLE_DMABUF_RENDERER")
+            .ok()
+            .as_deref(),
+    ) {
+        // SAFETY: still single-threaded; WebKitGTK reads this when it starts.
+        unsafe { std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") };
+    }
     // Enchant reads its Hunspell dictionaries from here; `AppPaths` resolves
     // the same directory once Tauri runs.
     #[cfg(target_os = "linux")]
