@@ -291,3 +291,5 @@
   account mode, its secrets handling and its known gaps.
 - Docs: architecture and testing notes describe the Evolution Go journal
   retries, store binding, lifecycle lock and WebSocket deadlines.
+- App icons (Linux PNGs, Windows .ico, macOS .icns, Store logos) are generated
+  from the FastZap SVG in packaging/share/icons instead of the Tauri template.
