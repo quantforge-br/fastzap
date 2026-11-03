@@ -133,6 +133,8 @@
   to the previous anchor.
 - Windows and macOS builds no longer fail clippy on Linux-only notification
   helpers.
+- Windows shows the unread count as a taskbar overlay icon instead of an
+  unsupported badge.
 
 ### Changed
 

@@ -53,13 +53,36 @@ fn fonts() -> Arc<usvg::fontdb::Database> {
 
 /// Straight (non-premultiplied) RGBA pixels of a `SIZE`×`SIZE` icon.
 pub fn render(theme: TrayTheme, count: u32) -> anyhow::Result<Vec<u8>> {
+    rasterize(&svg(theme, count), SIZE)
+}
+
+pub const BADGE_SIZE: u32 = 32;
+
+/// Taskbar overlay for Windows, which has no launcher badge: a red disc with
+/// the unread count (`99+` above two digits).
+pub fn badge_svg(count: u32) -> String {
+    let (text, font_size) = match count {
+        0..=9 => (count.to_string(), 20),
+        10..=99 => (count.to_string(), 16),
+        _ => ("99+".to_owned(), 12),
+    };
+    format!(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#e01b24"/><text x="16" y="16" dy="0.35em" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="{font_size}" fill="#ffffff">{text}</text></svg>"##
+    )
+}
+
+pub fn render_badge(count: u32) -> anyhow::Result<Vec<u8>> {
+    rasterize(&badge_svg(count), BADGE_SIZE)
+}
+
+fn rasterize(svg: &str, size: u32) -> anyhow::Result<Vec<u8>> {
     let options = usvg::Options {
         fontdb: fonts(),
         ..Default::default()
     };
-    let tree = usvg::Tree::from_str(&svg(theme, count), &options)?;
-    let mut pixmap = tiny_skia::Pixmap::new(SIZE, SIZE).ok_or_else(|| anyhow::anyhow!("pixmap"))?;
-    let scale = SIZE as f32 / tree.size().width();
+    let tree = usvg::Tree::from_str(svg, &options)?;
+    let mut pixmap = tiny_skia::Pixmap::new(size, size).ok_or_else(|| anyhow::anyhow!("pixmap"))?;
+    let scale = size as f32 / tree.size().width();
     resvg::render(
         &tree,
         tiny_skia::Transform::from_scale(scale, scale),
@@ -86,6 +109,13 @@ mod tests {
         assert!(svg(TrayTheme::Default, 42).contains(r#"width="180.3""#));
         let big = svg(TrayTheme::SymbolicDark, 5000);
         assert!(big.contains(">999<") && big.contains("#241f31"));
+    }
+
+    #[test]
+    fn renders_the_taskbar_badge() {
+        assert!(badge_svg(150).contains(">99+<"));
+        let rgba = render_badge(7).unwrap();
+        assert_eq!(rgba.len(), (BADGE_SIZE * BADGE_SIZE * 4) as usize);
     }
 
     #[test]

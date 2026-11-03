@@ -143,7 +143,9 @@ preferência, vale o tema da janela informado pelo toolkit
 `tray` renderiza com `resvg` os SVGs do ZapZap (`default`, `symbolic_light`,
 `symbolic_dark`) a 128 px, com o contador vermelho (máximo `999`). O total soma
 só contas habilitadas e vira zero com `notification_counter` desligado; o mesmo
-valor alimenta `Window::set_badge_count`. O menu é reconstruído quando idioma,
+valor alimenta `Window::set_badge_count` (Linux/macOS); no Windows, onde o
+badge não existe, vira um ícone de sobreposição na barra de tarefas (disco
+vermelho de 32 px, `99+` acima de 99). O menu é reconstruído quando idioma,
 mudo ou painel flutuante mudam. Em bandejas StatusNotifierItem (Linux) cliques
 no ícone não chegam ao app; só o menu.
 

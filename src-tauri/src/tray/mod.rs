@@ -87,6 +87,14 @@ fn on_icon<R: Runtime>(app: &AppHandle<R>, event: TrayIconEvent) {
     }
 }
 
+#[cfg(windows)]
+fn badge_image(count: u32) -> Option<Image<'static>> {
+    icon::render_badge(count)
+        .map(|rgba| Image::new_owned(rgba, icon::BADGE_SIZE, icon::BADGE_SIZE))
+        .map_err(|e| log::warn!("taskbar badge rendering failed: {e}"))
+        .ok()
+}
+
 fn icon_image(theme: crate::settings::TrayTheme, count: u32) -> Option<Image<'static>> {
     match icon::render(theme, count) {
         Ok(rgba) => Some(Image::new_owned(rgba, icon::SIZE, icon::SIZE)),
@@ -122,6 +130,10 @@ pub fn update_counter<R: Runtime>(app: &AppHandle<R>) {
         let _ = tray.set_icon(icon_image(theme, count));
     }
     if let Some(w) = window::main_window(app) {
+        // Windows has no launcher badge; it shows a taskbar overlay instead.
+        #[cfg(windows)]
+        let _ = w.set_overlay_icon((count > 0).then(|| badge_image(count)).flatten());
+        #[cfg(not(windows))]
         let _ = w.set_badge_count((count > 0).then_some(count as i64));
     }
 }
