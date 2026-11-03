@@ -77,6 +77,8 @@ pub struct NewAccount {
 #[ts(export)]
 pub struct AccountPatch {
     pub name: Option<String>,
+    /// Absent keeps the icon, `null` clears it.
+    #[serde(deserialize_with = "double_option")]
     #[ts(type = "string | null | undefined")]
     pub icon: Option<Option<String>>,
     pub enabled: Option<bool>,
@@ -84,6 +86,15 @@ pub struct AccountPatch {
     pub user_agent: Option<String>,
     pub notifications: Option<bool>,
     pub evolution: Option<EvolutionConfig>,
+}
+
+/// Distinguish a present `null` (`Some(None)`) from an absent field (`None`).
+fn double_option<'de, D, T>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Option::<T>::deserialize(deserializer).map(Some)
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -96,6 +107,12 @@ pub enum AccountError {
     MissingEvolutionConfig,
     #[error("database error: {0}")]
     Db(#[from] rusqlite::Error),
+}
+
+fn get_in(conn: &Connection, id: i64) -> Result<Account, AccountError> {
+    conn.query_row("SELECT * FROM accounts WHERE id = ?1", [id], row_to_account)
+        .optional()?
+        .ok_or(AccountError::NotFound(id))
 }
 
 pub const MIN_ZOOM: f64 = 0.25;
@@ -150,10 +167,7 @@ impl AccountStore {
     }
 
     pub fn get(&self, id: i64) -> Result<Account, AccountError> {
-        let conn = self.conn.lock().unwrap();
-        conn.query_row("SELECT * FROM accounts WHERE id = ?1", [id], row_to_account)
-            .optional()?
-            .ok_or(AccountError::NotFound(id))
+        get_in(&self.conn.lock().unwrap(), id)
     }
 
     pub fn count(&self) -> Result<u32, AccountError> {
@@ -165,11 +179,14 @@ impl AccountStore {
         if new.kind == AccountKind::EvolutionGo && new.evolution.is_none() {
             return Err(AccountError::MissingEvolutionConfig);
         }
-        if self.count()? >= limit {
+        let mut conn = self.conn.lock().unwrap();
+        let tx = conn.transaction()?;
+        let count: u32 = tx.query_row("SELECT COUNT(*) FROM accounts", [], |r| r.get(0))?;
+        if count >= limit {
             return Err(AccountError::LimitReached(limit));
         }
         let id = {
-            let conn = self.conn.lock().unwrap();
+            let conn = &tx;
             let position: i64 = conn.query_row(
                 "SELECT COALESCE(MAX(position), -1) + 1 FROM accounts",
                 [],
@@ -191,14 +208,17 @@ impl AccountStore {
             )?;
             conn.last_insert_rowid()
         };
-        self.get(id)
+        let account = get_in(&tx, id)?;
+        tx.commit()?;
+        Ok(account)
     }
 
     /// Insert an account preserving an explicit id (used by the ZapZap import).
-    pub fn insert_imported(&self, account: &Account) -> Result<(), AccountError> {
+    /// Returns `false` when an account with that id already exists.
+    pub fn insert_imported(&self, account: &Account) -> Result<bool, AccountError> {
         let conn = self.conn.lock().unwrap();
-        conn.execute(
-            "INSERT OR REPLACE INTO accounts (id, name, icon, enabled, zoom, kind, position, user_agent, notifications)
+        let inserted = conn.execute(
+            "INSERT OR IGNORE INTO accounts (id, name, icon, enabled, zoom, kind, position, user_agent, notifications)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
                 account.id,
@@ -212,11 +232,12 @@ impl AccountStore {
                 account.notifications,
             ],
         )?;
-        Ok(())
+        Ok(inserted == 1)
     }
 
     pub fn update(&self, id: i64, patch: AccountPatch) -> Result<Account, AccountError> {
-        let mut account = self.get(id)?;
+        let conn = self.conn.lock().unwrap();
+        let mut account = get_in(&conn, id)?;
         if let Some(name) = patch.name {
             account.name = name.trim().to_owned();
         }
@@ -239,7 +260,7 @@ impl AccountStore {
             account.evolution = Some(evo);
         }
         let evo = account.evolution.as_ref();
-        self.conn.lock().unwrap().execute(
+        conn.execute(
             "UPDATE accounts SET name = ?2, icon = ?3, enabled = ?4, zoom = ?5, user_agent = ?6,
              notifications = ?7, evo_base_url = ?8, evo_instance_id = ?9, evo_instance_name = ?10
              WHERE id = ?1",
@@ -275,7 +296,17 @@ impl AccountStore {
     pub fn reorder(&self, ids: &[i64]) -> Result<(), AccountError> {
         let mut conn = self.conn.lock().unwrap();
         let tx = conn.transaction()?;
-        for (position, id) in ids.iter().enumerate() {
+        let current: Vec<i64> = tx
+            .prepare("SELECT id FROM accounts ORDER BY position, id")?
+            .query_map([], |r| r.get(0))?
+            .collect::<Result<_, _>>()?;
+        let mut order: Vec<i64> = Vec::with_capacity(current.len());
+        for id in ids.iter().chain(&current) {
+            if current.contains(id) && !order.contains(id) {
+                order.push(*id);
+            }
+        }
+        for (position, id) in order.iter().enumerate() {
             tx.execute(
                 "UPDATE accounts SET position = ?2 WHERE id = ?1",
                 params![id, position as i64],
@@ -394,6 +425,36 @@ mod tests {
         assert_eq!(updated.zoom, MAX_ZOOM);
         assert!(updated.icon.is_none());
         assert!(!updated.notifications);
+    }
+
+    #[test]
+    fn partial_reorder_appends_omitted_accounts() {
+        let store = AccountStore::in_memory().unwrap();
+        for name in ["A", "B", "C"] {
+            store.create(web(name), 5).unwrap();
+        }
+        let c = store.list().unwrap()[2].id;
+        store.reorder(&[c, 999]).unwrap();
+        let names: Vec<_> = store.list().unwrap().into_iter().map(|a| a.name).collect();
+        assert_eq!(names, ["C", "A", "B"]);
+    }
+
+    #[test]
+    fn patch_distinguishes_null_from_absent_icon() {
+        let clear: AccountPatch = serde_json::from_str(r#"{"icon": null}"#).unwrap();
+        assert_eq!(clear.icon, Some(None));
+        let keep: AccountPatch = serde_json::from_str(r#"{"name": "x"}"#).unwrap();
+        assert_eq!(keep.icon, None);
+    }
+
+    #[test]
+    fn imported_accounts_never_replace_existing_ones() {
+        let store = AccountStore::in_memory().unwrap();
+        let a = store.create(web("Mine"), 5).unwrap();
+        let mut imported = a.clone();
+        imported.name = "Theirs".into();
+        assert!(!store.insert_imported(&imported).unwrap());
+        assert_eq!(store.get(a.id).unwrap().name, "Mine");
     }
 
     #[test]

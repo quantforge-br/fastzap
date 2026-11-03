@@ -30,3 +30,9 @@
 - Linux overlay stage so child webviews can be positioned under Wayland.
 - Minimal Svelte shell: account sidebar with avatars, unread badges and
   do-not-disturb marker, grid and settings buttons.
+
+### Fixed
+
+- Account updates and creation are atomic, a JSON `null` icon clears the
+  avatar, partial reorders append the omitted accounts and imported accounts
+  never replace existing ones.
