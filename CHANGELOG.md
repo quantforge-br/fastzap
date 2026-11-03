@@ -118,6 +118,7 @@
   page.
 - Send message to number dialog (Ctrl+M) with country code picker, live
   validation matching the backend rules and an optional message.
+- Keyboard shortcuts dialog listing the WhatsApp Web and FastZap shortcuts.
 
 ### Fixed
 
