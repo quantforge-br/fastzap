@@ -98,6 +98,7 @@ impl NotificationService {
         guard.clone()
     }
 
+    #[cfg(target_os = "linux")]
     async fn drop_backend(&self) {
         *self.backend.lock().await = None;
     }
@@ -110,6 +111,7 @@ impl NotificationService {
     }
 }
 
+#[cfg_attr(not(target_os = "linux"), allow(unused_variables))]
 async fn close_native(backend: &Backend, native: &str) {
     match backend {
         #[cfg(target_os = "linux")]
@@ -191,6 +193,8 @@ pub async fn notify(app: &AppHandle, account_id: i64, web: WebNotification) {
 }
 
 /// Post the notification; returns the backend and the native id to track.
+/// The system backend (Windows/macOS) has no id, so it returns `None`.
+#[cfg_attr(not(target_os = "linux"), allow(unreachable_code))]
 async fn submit(
     app: &AppHandle,
     account_id: i64,
@@ -286,6 +290,7 @@ pub async fn close_web(app: &AppHandle, account_id: i64, web_id: u64) {
 }
 
 /// Focus the window and account, then let the page open the chat.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 fn activated(app: &AppHandle, activation: Activation) {
     let service = app.state::<NotificationService>();
     // Notification daemons may broadcast actions of other applications.

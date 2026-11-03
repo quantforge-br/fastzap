@@ -131,6 +131,8 @@
 - macOS opens whatsapp: links delivered as Apple events.
 - A locked quick access panel keeps its new placement instead of snapping back
   to the previous anchor.
+- Windows and macOS builds no longer fail clippy on Linux-only notification
+  helpers.
 
 ### Changed
 
