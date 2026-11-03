@@ -150,6 +150,10 @@
   and new chats by number; conversations with day separators, older pages,
   phone history requests, media, replies, reactions, edits, deletes, retries,
   receipts and typing; notification clicks open the chat.
+- Linux packaging metadata: deb/rpm desktop entry template (whatsapp: and
+  fastzap: links), an app-ID .desktop file and AppStream metainfo in
+  packaging/share, and bundle metadata (publisher, license, descriptions,
+  NSIS/WiX languages, ad-hoc macOS signing) in tauri.conf.json.
 
 ### Fixed
 

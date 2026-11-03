@@ -20,13 +20,61 @@
     "targets": "all",
     "icon": [
       "icons/32x32.png",
+      "icons/64x64.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
     ],
     "macOS": {
-      "minimumSystemVersion": "14.0"
+      "minimumSystemVersion": "14.0",
+      "signingIdentity": "-"
+    },
+    "publisher": "quantmind-br",
+    "copyright": "Copyright © 2026 quantmind-br. GPL-3.0-or-later.",
+    "license": "GPL-3.0-or-later",
+    "licenseFile": "../LICENSE",
+    "homepage": "https://github.com/quantmind-br/fastzap",
+    "category": "SocialNetworking",
+    "shortDescription": "Multi-account WhatsApp desktop client",
+    "longDescription": "FastZap hosts WhatsApp Web in isolated accounts with tray, notifications and shortcuts, and can also use WhatsApp through your own Evolution Go server with a native chat window.",
+    "linux": {
+      "deb": {
+        "desktopTemplate": "../packaging/linux/fastzap.desktop.hbs",
+        "section": "net"
+      },
+      "rpm": {
+        "desktopTemplate": "../packaging/linux/fastzap.desktop.hbs"
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "English",
+          "PortugueseBR"
+        ],
+        "displayLanguageSelector": true
+      },
+      "wix": {
+        "language": [
+          "en-US",
+          "pt-BR"
+        ]
+      }
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "whatsapp",
+          "fastzap"
+        ]
+      }
     }
   }
 }

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.quantmind_br.fastzap</id>
+  <launchable type="desktop-id">io.github.quantmind_br.fastzap.desktop</launchable>
+
+  <name>FastZap</name>
+  <summary>Multi-account WhatsApp desktop client</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <developer id="io.github.quantmind_br">
+    <name>quantmind-br</name>
+  </developer>
+
+  <url type="homepage">https://github.com/quantmind-br/fastzap</url>
+  <url type="bugtracker">https://github.com/quantmind-br/fastzap/issues</url>
+  <url type="vcs-browser">https://github.com/quantmind-br/fastzap</url>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#EAF4C8</color>
+    <color type="primary" scheme_preference="dark">#193D2B</color>
+  </branding>
+
+  <categories>
+    <category>Chat</category>
+    <category>InstantMessaging</category>
+    <category>Network</category>
+  </categories>
+
+  <description>
+    <p>
+      FastZap keeps WhatsApp Web in its own desktop window, with up to five
+      isolated accounts, system tray, native notifications, keyboard
+      shortcuts, spell checking and per-account customizations.
+    </p>
+    <p>
+      Accounts can also use WhatsApp through your own Evolution Go server,
+      with a native chat window instead of WhatsApp Web.
+    </p>
+    <p>
+      On first start, settings and accounts from ZapZap are imported.
+    </p>
+  </description>
+
+  <provides>
+    <binary>fastzap</binary>
+  </provides>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-chat">intense</content_attribute>
+    <content_attribute id="social-audio">intense</content_attribute>
+    <content_attribute id="social-contacts">intense</content_attribute>
+  </content_rating>
+
+  <releases>
+    <release version="0.1.0" date="2026-11-03" type="development">
+      <description>
+        <p>First development version: a Rust and Tauri rewrite of ZapZap with Evolution Go accounts.</p>
+      </description>
+    </release>
+  </releases>
+</component>
