@@ -302,6 +302,9 @@
   app exit; an explicit `WEBKIT_DISABLE_DMABUF_RENDERER` still wins.
 - The snap recipe reads `build-info.env` line by line instead of sourcing it,
   so values with spaces (`GitHub Actions`) no longer run as commands.
+- `.gitignore` anchors the snap package pattern to the repo root so Vitest
+  snapshot files stay tracked, and ignores the `parts/`, `stage/` and `prime/`
+  directories left by local snap builds.
 
 ### Changed
 
