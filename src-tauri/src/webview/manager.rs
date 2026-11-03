@@ -16,7 +16,8 @@ use url::Url;
 use super::{navigation, scripts};
 use crate::accounts::{Account, AccountKind, user_agent};
 use crate::app::state::AppState;
-use crate::app::{theme, window::MAIN_WINDOW};
+use crate::app::theme;
+use crate::app::window::{MAIN_WINDOW, UI_WEBVIEW};
 use crate::settings::Settings;
 
 const LABEL_PREFIX: &str = "wa-";
@@ -111,8 +112,21 @@ impl WebviewManager {
     }
 
     pub fn set_overlay<R: Runtime>(&self, app: &AppHandle<R>, overlay: bool) {
-        self.layout.lock().unwrap().overlay = overlay;
+        let active = {
+            let mut l = self.layout.lock().unwrap();
+            l.overlay = overlay;
+            l.active
+        };
         self.apply_layout(app);
+        // Keyboard focus would otherwise stay in the hidden account webview.
+        let target = if overlay {
+            app.get_webview(UI_WEBVIEW)
+        } else {
+            active.and_then(|id| app.get_webview(&label(id)))
+        };
+        if let Some(webview) = target {
+            let _ = webview.set_focus();
+        }
     }
 
     /// Create webviews for enabled WhatsApp Web accounts and close the others.

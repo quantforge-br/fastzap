@@ -84,3 +84,6 @@
 - The integrated account selector opens a native menu with the other enabled
   accounts and their unread counts; clicking one switches to it. The button
   did nothing before.
+- Keyboard focus moves to FastZap's own screens while they cover the accounts
+  and returns to the active account afterwards; keys used to go to the hidden
+  WhatsApp page.
