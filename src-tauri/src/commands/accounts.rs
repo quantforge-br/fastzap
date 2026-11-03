@@ -18,8 +18,11 @@ pub fn accounts_list(state: State<'_, AppState>) -> CommandResult<Vec<Account>> 
     Ok(state.accounts.list()?)
 }
 
+// Commands that may create or recreate webviews are async: creating a
+// WebView2 instance inside a synchronous command deadlocks on Windows.
+
 #[tauri::command]
-pub fn accounts_create(
+pub async fn accounts_create(
     app: AppHandle,
     state: State<'_, AppState>,
     account: NewAccount,
@@ -31,7 +34,7 @@ pub fn accounts_create(
 }
 
 #[tauri::command]
-pub fn accounts_update(
+pub async fn accounts_update(
     app: AppHandle,
     state: State<'_, AppState>,
     id: i64,
@@ -50,7 +53,7 @@ pub fn accounts_update(
 }
 
 #[tauri::command]
-pub fn accounts_delete(app: AppHandle, state: State<'_, AppState>, id: i64) -> CommandResult<()> {
+pub async fn accounts_delete(app: AppHandle, state: State<'_, AppState>, id: i64) -> CommandResult<()> {
     state.accounts.delete(id)?;
     // Close the webview before deleting its data directory.
     if let Some(webview) = tauri::Manager::get_webview(&app, &crate::webview::manager::label(id)) {
@@ -71,7 +74,7 @@ pub fn accounts_delete(app: AppHandle, state: State<'_, AppState>, id: i64) -> C
 }
 
 #[tauri::command]
-pub fn accounts_reorder(
+pub async fn accounts_reorder(
     app: AppHandle,
     state: State<'_, AppState>,
     ids: Vec<i64>,

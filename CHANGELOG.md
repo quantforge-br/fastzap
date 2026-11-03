@@ -65,3 +65,5 @@
   is handled natively on Linux and needs a focused window elsewhere, so page
   scripts cannot read the clipboard. Shortcuts act on the account that sent
   them, also in grid view.
+- Account and settings commands that create webviews run asynchronously,
+  avoiding the WebView2 deadlock of synchronous commands on Windows.

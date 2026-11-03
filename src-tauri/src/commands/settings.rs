@@ -12,8 +12,9 @@ pub fn settings_get(state: State<'_, AppState>) -> Settings {
     state.settings.get()
 }
 
+/// Async because settings changes may recreate webviews (see `accounts`).
 #[tauri::command]
-pub fn settings_patch(
+pub async fn settings_patch(
     app: AppHandle,
     state: State<'_, AppState>,
     patch: Value,
