@@ -190,10 +190,34 @@ pub async fn evo_reconnect(app: AppHandle, account_id: i64) -> CommandResult<()>
     Ok(())
 }
 
+/// The server restarts a logged-in client to make a new QR, so this only
+/// runs while WhatsApp is not linked.
+async fn unlinked(session: &Session) -> CommandResult<()> {
+    if session.client.status(&session.token).await?.logged_in {
+        return Err(tr("WhatsApp is already linked to this instance.").into());
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn evo_qr(app: AppHandle, account_id: i64) -> CommandResult<QrCode> {
     let session = session(&app, account_id)?;
+    unlinked(&session).await?;
     Ok(session.client.qr(&session.token).await?)
+}
+
+/// Open the passkey ceremony page (web.whatsapp.com with the server's
+/// helper extension) in the system browser.
+#[tauri::command]
+pub async fn evo_open_passkey(app: AppHandle, account_id: i64) -> CommandResult<()> {
+    let session = session(&app, account_id)?;
+    unlinked(&session).await?;
+    let url = session.client.qr(&session.token).await?.passkey_open_url;
+    if !url.starts_with("https://web.whatsapp.com/#wapk=") {
+        return Err(tr("No passkey request is pending.").into());
+    }
+    tauri_plugin_opener::open_url(url, None::<&str>)?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -207,6 +231,7 @@ pub async fn evo_pair_phone(
         return Err(tr("Enter the phone number with country code.").into());
     }
     let session = session(&app, account_id)?;
+    unlinked(&session).await?;
     Ok(session.client.pair_phone(&session.token, &digits).await?)
 }
 

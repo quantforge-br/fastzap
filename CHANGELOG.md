@@ -235,6 +235,9 @@
   marked copied only after the copy succeeds.
 - App shortcuts (Ctrl+M, Ctrl+J, Ctrl+P and the rest) also work while the
   settings, downloads or another local screen has focus.
+- Evolution Go QR and phone pairing requests are refused while WhatsApp is
+  linked, since the server restarts a logged-in client to issue a new QR;
+  passkey ceremonies open in the system browser.
 
 ### Changed
 

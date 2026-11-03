@@ -65,7 +65,7 @@ pub enum Connection {
 
 #[derive(Debug, Clone, Serialize, TS)]
 #[serde(tag = "type", rename_all = "snake_case")]
-#[ts(export)]
+#[ts(export, rename = "EvolutionEvent")]
 pub enum UiEvent {
     Connection {
         #[ts(type = "number")]

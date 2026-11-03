@@ -107,6 +107,7 @@
     "allow-evo-load-older",
     "allow-evo-avatar",
     "allow-evo-refresh-contacts",
-    "allow-evo-info"
+    "allow-evo-info",
+    "allow-evo-open-passkey"
   ]
 }

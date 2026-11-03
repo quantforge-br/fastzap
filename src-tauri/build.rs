@@ -97,6 +97,7 @@ const UI_COMMANDS: &[&str] = &[
     "evo_avatar",
     "evo_refresh_contacts",
     "evo_info",
+    "evo_open_passkey",
 ];
 
 /// Commands exposed to https://web.whatsapp.com.

@@ -237,6 +237,7 @@ pub fn run() {
             evocmd::evo_avatar,
             evocmd::evo_refresh_contacts,
             evocmd::evo_info,
+            evocmd::evo_open_passkey,
             bridge::wa_title_changed,
             bridge::wa_shortcut,
             bridge::wa_theme_event,
