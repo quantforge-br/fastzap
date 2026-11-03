@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-donation-open-website"
+description = "Enables the donation_open_website command without any pre-configured scope."
+commands.allow = ["donation_open_website"]
+
+[[permission]]
+identifier = "deny-donation-open-website"
+description = "Denies the donation_open_website command without any pre-configured scope."
+commands.deny = ["donation_open_website"]

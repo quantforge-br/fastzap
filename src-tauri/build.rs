@@ -70,6 +70,8 @@ const UI_COMMANDS: &[&str] = &[
     "report_clear",
     "report_open_folder",
     "update_info",
+    "donation_open",
+    "donation_open_website",
 ];
 
 /// Commands exposed to https://web.whatsapp.com.

@@ -143,6 +143,8 @@ export const app = {
   revealPath: (path: string) => invoke<void>("reveal_path", { path }),
   downloadsDefaultDir: () => invoke<string>("downloads_default_dir"),
   callingCodes: () => invoke<RegionCallingCode[]>("calling_codes"),
+  donationOpen: (method: string) => invoke<void>("donation_open", { method }),
+  donationOpenWebsite: () => invoke<void>("donation_open_website"),
   openChatByNumber: (target: ChatTarget, accountId?: number) =>
     invoke<void>("open_chat_by_number", { target, accountId: accountId ?? null }),
 };

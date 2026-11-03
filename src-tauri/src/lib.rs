@@ -4,6 +4,7 @@ pub mod autostart;
 pub mod build_info;
 pub mod commands;
 pub mod customizations;
+pub mod donation;
 pub mod downloads;
 pub mod i18n;
 pub mod migration;
@@ -206,6 +207,8 @@ pub fn run() {
             report::report_clear,
             report::report_open_folder,
             appcmd::update_info,
+            appcmd::donation_open,
+            appcmd::donation_open_website,
             bridge::wa_title_changed,
             bridge::wa_shortcut,
             bridge::wa_theme_event,

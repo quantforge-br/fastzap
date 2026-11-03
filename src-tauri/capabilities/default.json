@@ -80,6 +80,8 @@
     "allow-report-delete",
     "allow-report-clear",
     "allow-report-open-folder",
-    "allow-update-info"
+    "allow-update-info",
+    "allow-donation-open",
+    "allow-donation-open-website"
   ]
 }

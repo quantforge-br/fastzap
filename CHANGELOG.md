@@ -119,6 +119,8 @@
 - Send message to number dialog (Ctrl+M) with country code picker, live
   validation matching the backend rules and an optional message.
 - Keyboard shortcuts dialog listing the WhatsApp Web and FastZap shortcuts.
+- Donation page and startup support reminder; the methods are ZapZap's
+  (FastZap is a port) and the backend opens only their fixed URLs.
 
 ### Fixed
 
