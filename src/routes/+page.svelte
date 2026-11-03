@@ -13,6 +13,11 @@
   import { spellPicker } from "$lib/spellcheck/request.svelte";
   import ReportDialog from "$lib/reporting/ReportDialog.svelte";
   import UpdateDialog from "$lib/update/UpdateDialog.svelte";
+  import OpenChatDialog from "$lib/chat/OpenChatDialog.svelte";
+  import DonationReminder from "$lib/donation/DonationReminder.svelte";
+  import DonationView from "$lib/donation/DonationView.svelte";
+  import Onboarding from "$lib/onboarding/Onboarding.svelte";
+  import ShortcutsDialog from "$lib/shortcuts/ShortcutsDialog.svelte";
   import { closeReport, openReport, reportDialog } from "$lib/reporting/request.svelte";
   import { DEFAULT_PAGE } from "$lib/settings/pages";
   import { patchSettings, startSettings, store } from "$lib/stores/settings.svelte";
@@ -44,6 +49,10 @@
   let layout = $state<LayoutState>({ active: null, grid: false, overlay: false });
   let unread = $state<UnreadSnapshot>({ per_account: {}, total: 0 });
   let panel = $state<string | null>(null);
+  // The account an "open chat by number" request came from.
+  let chatAccount = $state<number | null>(null);
+  // First-run setup, then the support reminder, decided once per launch.
+  let startup = $state<"pending" | "onboarding" | "donation" | "done">("pending");
   // Close confirmation (ZapZap's "Close ZapZap" question); `quit` also
   // covers Quit from the tray or Ctrl+Q.
   let confirm = $state<{ quit: boolean } | null>(null);
@@ -114,7 +123,13 @@
   let removing = $state<Account | null>(null);
   const editTarget = $derived(editing ? (accounts.find((a) => a.id === editing!.id) ?? null) : null);
 
-  const overlay = $derived(panel !== null || confirm !== null || editTarget !== null || removing !== null || prompts.length > 0 || permissionPrompts.length > 0 || reportDialog.open || pendingReport !== null || showUpdate);
+  const overlay = $derived(panel !== null || confirm !== null || editTarget !== null || removing !== null || prompts.length > 0 || permissionPrompts.length > 0 || reportDialog.open || pendingReport !== null || showUpdate || startup === "onboarding" || startup === "donation");
+  $effect(() => {
+    const s = store.settings;
+    if (!s || startup !== "pending") return;
+    if (!s.onboarding.completed) startup = "onboarding";
+    else startup = s.notifications.donation_message_hidden ? "done" : "donation";
+  });
   $effect(() => {
     layoutApi.setOverlay(overlay);
   });
@@ -170,6 +185,7 @@
       return openPanel("settings");
     }
     if (action.action === "settings") settingsPage = DEFAULT_PAGE;
+    if (action.action === "open_chat_by_number") chatAccount = action.account_id;
     openPanel(action.action);
   }
 
@@ -284,14 +300,8 @@
           openPanel("settings");
         }}
       />
-    {:else if panel}
-      <section class="panel">
-        <header>
-          <h1>{panel}</h1>
-          <button onclick={() => openPanel(null)}>Close</button>
-        </header>
-        <p>This section is not available yet.</p>
-      </section>
+    {:else if panel === "donate"}
+      <DonationView onclose={() => openPanel(null)} />
     {:else if confirm}
       <!-- Shown in place of the hidden webviews. -->
     {:else if active?.kind === "evolution_go"}
@@ -408,6 +418,24 @@
 
 {#if reportDialog.open}
   <ReportDialog review={reportDialog.review} onclose={closeReport} />
+{/if}
+
+{#if panel === "open_chat_by_number"}
+  <OpenChatDialog accountId={chatAccount} onclose={() => openPanel(null)} />
+{:else if panel === "show_shortcuts"}
+  <ShortcutsDialog onclose={() => openPanel(null)} />
+{/if}
+
+{#if startup === "onboarding" && store.settings}
+  <Onboarding settings={store.settings} onclose={() => (startup = "done")} />
+{:else if startup === "donation" && !panel}
+  <DonationReminder
+    onsupport={() => {
+      startup = "done";
+      openPanel("donate");
+    }}
+    onclose={() => (startup = "done")}
+  />
 {/if}
 
 <style>
@@ -566,17 +594,8 @@
     min-width: 0;
     position: relative;
   }
-  .panel,
   .placeholder {
     padding: 24px;
-  }
-  .panel header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .panel h1 {
-    text-transform: capitalize;
   }
   .backdrop {
     position: fixed;

@@ -210,3 +210,6 @@
   removed.
 - About's Report a problem row opens the report dialog instead of the issue
   list.
+- The main window shows the onboarding on first run, then the support
+  reminder, and opens the send message, shortcuts and donation panels instead
+  of placeholders; architecture and parity docs cover them.

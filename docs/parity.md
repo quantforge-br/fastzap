@@ -20,7 +20,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Contador de não lidas pelo título | `web_view.py::_on_title_changed` | `webview/scripts/bridge.js` | |
 | Allowlist de navegação e popups | `PopupRoutingPage` | `webview::navigation` | |
 | Deep links `whatsapp:` / wa.me | `deeplink.py` | `webview::deeplink` | |
-| Chat por número (`Ctrl+M`) | `open_chat.py` | `webview::deeplink` + diálogo | |
+| Chat por número (`Ctrl+M`) | `open_chat.py`, `send_message_to_number_dialog.py` | `webview::deeplink` + `src/lib/chat/` | |
 | Colar como texto e tabelas de planilha | `clipboard_table.py`, `web_view.py` | `webview::clipboard` | |
 | Menu de contexto | `web_view.py` | `spellcheck::linux` (sinal `context-menu` do WebKitGTK) | Linux; remove navegação/abrir link/inspecionar e acrescenta "Verificar ortografia" e "Idiomas…"; rótulos padrão vêm do WebKit no idioma do sistema |
 | CSS/JS personalizados | `features/customizations` | `customizations` + página Customizações avançadas | mesma árvore de arquivos; CSS é reaplicado nas páginas abertas ao salvar |
@@ -28,7 +28,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Downloads e histórico (`Ctrl+J`) | `features/downloads` | `downloads` + `src/lib/downloads/` | decisão após o término do download; ver lacunas |
 | Notificações (portal, D-Bus, Windows, macOS) | `features/notifications` | `notifications` | |
 | Bandeja, temas de ícone, contador, badge | `features/tray` | `tray` | |
-| Atalhos | `features/shortcuts` | `app::shortcuts` + `bridge.js` | |
+| Atalhos | `features/shortcuts` | `app::shortcuts` + `bridge.js` + `src/lib/shortcuts/` | diálogo "Atalhos de teclado" |
 | Iniciar com o sistema | `features/startup` | `autostart` | portal `RequestBackground` no Flatpak; entrada XDG nomeada pelo App ID nos demais Linux |
 | Permissões (câmera, microfone etc.) | `features/permissions` | `permissions` | Linux; ver lacunas |
 | Proxy e proxy estrito | `core/environment/proxy_manager.py` | `proxy` | proxy estrito via bloqueio de WebRTC não proxiado |
@@ -40,8 +40,8 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Idioma da interface | gettext `po/` | `i18n` (catálogos JSON gerados dos `.po`) | |
 | Verificação de atualizações | `core/update_checker.py` | `update` | mesma política por empacotamento; diálogo em vez de popover; download pela página de releases |
 | Relatórios de problemas | `core/reporting`, `features/reporting` | `reporting` + `src/lib/reporting/` | sem `faulthandler`/zip de crash: logs são os avisos da sessão atual; ver lacunas |
-| Doação e lembrete | `features/donation` | página Doação | |
-| Onboarding | `features/initial_setup` | `src/routes/onboarding` | |
+| Doação e lembrete | `features/donation` | `donation` + `src/lib/donation/` | as doações vão para o autor do ZapZap; lembrete é um diálogo e esconde as webviews enquanto aberto |
+| Onboarding | `features/initial_setup` | `src/lib/onboarding/` | o idioma é aplicado ao concluir; seção Flatpak mostra o comando `flatpak override` sem link para o Flatseal |
 | Desempenho | `core/config/settings/performance.py` | `settings::performance` | ver lacunas |
 
 ## Lacunas conhecidas
