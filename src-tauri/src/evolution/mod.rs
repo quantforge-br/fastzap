@@ -354,7 +354,10 @@ async fn run(app: AppHandle, session: Arc<Session>, stop: watch::Receiver<bool>)
 
 /// Connect the instance when it is down or misconfigured, keeping its other
 /// integrations, then report whether WhatsApp is linked.
-pub async fn ensure_connected(app: &AppHandle, session: &Session) {
+pub async fn ensure_connected(
+    app: &AppHandle,
+    session: &Session,
+) -> Option<client::ConnectionStatus> {
     let row = match session
         .client
         .instance(&session.admin, &session.instance_id)
@@ -363,7 +366,7 @@ pub async fn ensure_connected(app: &AppHandle, session: &Session) {
         Ok(row) => row,
         Err(e) => {
             set_connection(app, session, Connection::Offline { reason: reason(&e) });
-            return;
+            return None;
         }
     };
     *session.own_jid.lock().unwrap() = row.jid.clone();
@@ -371,14 +374,24 @@ pub async fn ensure_connected(app: &AppHandle, session: &Session) {
         let payload = client::connect_payload(Some(&row));
         if let Err(e) = session.client.connect(&session.token, &payload).await {
             set_connection(app, session, Connection::Offline { reason: reason(&e) });
-            return;
+            return None;
         }
     }
-    refresh_status(app, session).await;
+    refresh_status(app, session).await
 }
 
-async fn refresh_status(app: &AppHandle, session: &Session) {
-    match session.client.status(&session.token).await {
+/// Linked and connected is online; linked but disconnected waits for the
+/// server's own reconnect (or an explicit retry).
+async fn refresh_status(app: &AppHandle, session: &Session) -> Option<client::ConnectionStatus> {
+    let status = session.client.status(&session.token).await;
+    match &status {
+        Ok(status) if status.logged_in && !status.connected => set_connection(
+            app,
+            session,
+            Connection::Offline {
+                reason: tr("WhatsApp disconnected from the server."),
+            },
+        ),
         Ok(status) if status.logged_in => {
             set_connection(app, session, Connection::Online);
             if !session.contacts_loaded.swap(true, Ordering::SeqCst) {
@@ -386,8 +399,9 @@ async fn refresh_status(app: &AppHandle, session: &Session) {
             }
         }
         Ok(_) => set_connection(app, session, Connection::Pairing),
-        Err(e) => set_connection(app, session, Connection::Offline { reason: reason(&e) }),
+        Err(e) => set_connection(app, session, Connection::Offline { reason: reason(e) }),
     }
+    status.ok()
 }
 
 /// Contact names and group subjects (read-only).
@@ -603,7 +617,7 @@ fn handle(app: &AppHandle, session: &Session, payload: &serde_json::Value, live:
 
 /// Re-check the instance from a fresh task (events are handled in order and
 /// must not wait on HTTP).
-fn spawn_refresh(app: &AppHandle, account_id: i64, delay: Option<Duration>) {
+pub fn spawn_refresh(app: &AppHandle, account_id: i64, delay: Option<Duration>) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         if let Some(delay) = delay {

@@ -4,6 +4,7 @@
 
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Duration;
 
 use base64::Engine;
 use serde::{Deserialize, Serialize};
@@ -186,7 +187,11 @@ pub fn evo_connection(app: AppHandle, account_id: i64) -> Connection {
 #[tauri::command]
 pub async fn evo_reconnect(app: AppHandle, account_id: i64) -> CommandResult<()> {
     let session = session(&app, account_id)?;
-    evo::ensure_connected(&app, &session).await;
+    let status = evo::ensure_connected(&app, &session).await;
+    if status.is_some_and(|s| s.logged_in && !s.connected) {
+        session.client.reconnect(&session.token).await?;
+        evo::spawn_refresh(&app, account_id, Some(Duration::from_secs(3)));
+    }
     Ok(())
 }
 

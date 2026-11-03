@@ -470,6 +470,13 @@ impl Client {
             .map(drop)
     }
 
+    /// Reconnect a running client to WhatsApp (keeps the link).
+    pub async fn reconnect(&self, token: &InstanceToken) -> EvoResult<()> {
+        self.call(Method::POST, "/instance/reconnect", &token.0, None)
+            .await
+            .map(drop)
+    }
+
     pub async fn status(&self, token: &InstanceToken) -> EvoResult<ConnectionStatus> {
         let data = self
             .call(Method::GET, "/instance/status", &token.0, None)
@@ -963,6 +970,19 @@ mod tests {
             .unwrap();
         assert_eq!(page.events[0].id, "42");
         assert_eq!(page.next_cursor, "42");
+    }
+
+    #[tokio::test]
+    async fn reconnect_uses_the_instance_token() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/instance/reconnect"))
+            .and(header("apikey", "instance-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({"message": "success"})))
+            .expect(1)
+            .mount(&server)
+            .await;
+        client(&server).await.reconnect(&token()).await.unwrap();
     }
 
     #[tokio::test]

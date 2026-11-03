@@ -257,6 +257,9 @@
   backlog longer than one batch keeps being read.
 - Evolution Go: a late send error no longer downgrades a message the server
   already confirmed as sent, delivered or read.
+- Evolution Go: an instance that is linked but disconnected from WhatsApp is
+  shown as offline instead of online, and Retry asks the server to reconnect
+  it.
 
 ### Changed
 
