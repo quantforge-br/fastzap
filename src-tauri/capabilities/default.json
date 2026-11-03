@@ -32,6 +32,7 @@
     "allow-unread-get",
     "allow-account-sync-photo",
     "allow-calling-codes",
-    "allow-open-chat-by-number"
+    "allow-open-chat-by-number",
+    "allow-app-locale"
   ]
 }

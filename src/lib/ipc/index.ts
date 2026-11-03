@@ -64,6 +64,7 @@ export const app = {
     invoke<void>("app_close_confirmed", { quit, dontAskAgain }),
   unread: () => invoke<UnreadSnapshot>("unread_get"),
   desktop: () => invoke<string>("app_desktop"),
+  locale: () => invoke<string>("app_locale"),
   callingCodes: () => invoke<RegionCallingCode[]>("calling_codes"),
   openChatByNumber: (target: ChatTarget, accountId?: number) =>
     invoke<void>("open_chat_by_number", { target, accountId: accountId ?? null }),

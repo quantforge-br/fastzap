@@ -22,6 +22,7 @@ const UI_COMMANDS: &[&str] = &[
     "account_sync_photo",
     "calling_codes",
     "open_chat_by_number",
+    "app_locale",
 ];
 
 /// Commands exposed to https://web.whatsapp.com.

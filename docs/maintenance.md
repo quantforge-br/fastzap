@@ -20,6 +20,12 @@ As preferências ficam em `settings.json` no diretório de configuração do app
 campo `version`; mudanças de formato devem acrescentar uma etapa em
 `settings::store::migrate` em vez de alterar o significado de um campo.
 
+## Traduções
+
+Ao atualizar `po/*.po`, rode `pnpm i18n` e versione os JSON gerados em
+`src/lib/i18n/catalogs/`. Strings novas da UI usam o texto em inglês como
+`msgid`.
+
 ## Empacotamento
 
 Os artefatos e manifestos ficam em `packaging/`; os workflows em

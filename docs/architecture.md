@@ -138,6 +138,17 @@ preferência, vale o tema da janela informado pelo toolkit
 (`WindowEvent::ThemeChanged`). O tema é aplicado à janela (decorações e
 `prefers-color-scheme` da UI) e às páginas pelo `theme_controller.js`.
 
+## Traduções
+
+`po/*.po` vem do ZapZap (mesmo domínio e idiomas). `pnpm i18n`
+(`scripts/po2json.mjs`) gera `src/lib/i18n/catalogs/<locale>.json`, versionados:
+`{plural, messages, plurals}`, sem entradas `fuzzy`, com "ZapZap" trocado por
+"FastZap". O Rust embute os catálogos no build (`build.rs`) e usa `i18n::tr`
+na bandeja, menus e notificações; a UI usa `t`/`tn` de `$lib/i18n`, com
+`Plural-Forms` avaliado sem `eval` (`plural.ts`). O comando `app_locale`
+resolve `system` para o locale do SO; o layout troca o catálogo ao vivo
+quando `interface_language` muda.
+
 ## Bandeja e badge
 
 `tray` renderiza com `resvg` os SVGs do ZapZap (`default`, `symbolic_light`,

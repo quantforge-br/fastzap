@@ -126,6 +126,7 @@ pub fn run() {
             wv::account_sync_photo,
             wv::calling_codes,
             wv::open_chat_by_number,
+            set::app_locale,
             bridge::wa_title_changed,
             bridge::wa_shortcut,
             bridge::wa_theme_event,

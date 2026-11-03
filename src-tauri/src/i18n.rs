@@ -7,7 +7,14 @@ use std::sync::RwLock;
 
 include!(concat!(env!("OUT_DIR"), "/catalogs.rs"));
 
-static ACTIVE: RwLock<Option<HashMap<&'static str, &'static str>>> = RwLock::new(None);
+static ACTIVE: RwLock<Option<Catalog>> = RwLock::new(None);
+
+/// Shape written by `scripts/po2json.mjs`; plural forms are only used by the UI.
+#[derive(Debug, Default, serde::Deserialize)]
+struct Catalog {
+    #[serde(default)]
+    messages: HashMap<String, String>,
+}
 
 /// Resolve `"system"` to the OS locale, normalized to `ll_CC` form.
 pub fn resolve_locale(setting: &str) -> String {
@@ -44,9 +51,8 @@ pub fn catalog_for(locale: &str) -> Option<&'static str> {
 
 pub fn set_language(setting: &str) {
     let locale = resolve_locale(setting);
-    let map = catalog_for(&locale)
-        .and_then(|json| serde_json::from_str::<HashMap<&'static str, &'static str>>(json).ok());
-    *ACTIVE.write().unwrap() = map;
+    let catalog = catalog_for(&locale).and_then(|json| serde_json::from_str(json).ok());
+    *ACTIVE.write().unwrap() = catalog;
 }
 
 pub fn available_languages() -> Vec<&'static str> {
@@ -59,10 +65,9 @@ pub fn tr(source: &str) -> String {
         .read()
         .unwrap()
         .as_ref()
-        .and_then(|m| m.get(source).copied())
+        .and_then(|c| c.messages.get(source))
         .filter(|t| !t.is_empty())
-        .unwrap_or(source)
-        .to_owned()
+        .map_or_else(|| source.to_owned(), Clone::clone)
 }
 
 #[cfg(test)]
@@ -79,5 +84,16 @@ mod tests {
     fn untranslated_strings_fall_back_to_source() {
         set_language("xx_YY");
         assert_eq!(tr("Quit"), "Quit");
+    }
+
+    #[test]
+    fn embedded_catalogs_parse() {
+        assert!(available_languages().contains(&"pt_BR"));
+        for (code, json) in CATALOGS {
+            let catalog: Catalog = serde_json::from_str(json).unwrap();
+            assert!(!catalog.messages.is_empty(), "{code}");
+        }
+        let pt: Catalog = serde_json::from_str(catalog_for("pt_BR").unwrap()).unwrap();
+        assert_eq!(pt.messages["Quit"], "Sair");
     }
 }

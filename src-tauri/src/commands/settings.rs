@@ -25,3 +25,9 @@ pub async fn settings_patch(
     effects::on_settings_changed(&app, &old, &settings);
     Ok(settings)
 }
+
+/// Resolved interface locale (`ll_CC`); `"system"` follows the OS.
+#[tauri::command]
+pub fn app_locale(state: State<'_, AppState>) -> String {
+    crate::i18n::resolve_locale(&state.settings.get().system.interface_language)
+}

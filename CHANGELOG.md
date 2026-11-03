@@ -64,6 +64,8 @@
 - Quick access panel window with accounts, unread counts, new account, mute,
   downloads and settings, following the always, when hidden and on demand
   modes, staying on top and remembering or locking its position.
+- Interface translations imported from ZapZap's po/ catalogs, with live
+  language switching in the UI.
 
 ### Fixed
 
