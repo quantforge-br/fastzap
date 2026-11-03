@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-account-photo-pick"
+description = "Enables the account_photo_pick command without any pre-configured scope."
+commands.allow = ["account_photo_pick"]
+
+[[permission]]
+identifier = "deny-account-photo-pick"
+description = "Denies the account_photo_pick command without any pre-configured scope."
+commands.deny = ["account_photo_pick"]

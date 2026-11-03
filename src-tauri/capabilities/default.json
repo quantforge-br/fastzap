@@ -43,6 +43,7 @@
     "allow-dialog-pick-files",
     "allow-open-path",
     "allow-reveal-path",
-    "allow-downloads-default-dir"
+    "allow-downloads-default-dir",
+    "allow-account-photo-pick"
   ]
 }

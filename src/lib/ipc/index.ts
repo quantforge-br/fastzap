@@ -56,6 +56,7 @@ export const accounts = {
   userAgentPresets: () => invoke<string[]>("user_agent_presets"),
   activate: (id: number) => invoke<void>("account_activate", { id }),
   syncPhoto: (id: number) => invoke<void>("account_sync_photo", { id }),
+  pickPhoto: (title: string) => invoke<string | null>("account_photo_pick", { title }),
 };
 
 export const layout = {

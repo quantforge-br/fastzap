@@ -16,7 +16,8 @@
     type Settings,
     type UnreadSnapshot,
   } from "$lib/ipc";
-  import { initials, isImageIcon, unreadLabel } from "$lib/shell/format";
+  import { iconSrc } from "$lib/accounts/icon";
+  import { unreadLabel } from "$lib/shell/format";
 
   let accounts = $state<Account[]>([]);
   let active = $state<number | null>(null);
@@ -82,11 +83,7 @@
             aria-label={name}
             onclick={() => activate(account)}
           >
-            {#if isImageIcon(account.icon)}
-              <img class="avatar" src={account.icon} alt="" />
-            {:else}
-              <span class="avatar initials">{initials(name)}</span>
-            {/if}
+            <img class="avatar" src={iconSrc(account.icon)} alt="" />
             <span class="name">{name}</span>
             {#if count > 0}<span class="badge">{unreadLabel(count)}</span>{/if}
           </button>

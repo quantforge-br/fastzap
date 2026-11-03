@@ -4,7 +4,8 @@ import type { EvolutionConfig } from "./EvolutionConfig";
 
 export type Account = { id: number, name: string, 
 /**
- * SVG markup or a `data:image/png;base64,...` URL.
+ * SVG markup, a `data:image/png;base64,...` photo or a ZapZap icon
+ * profile keeping both (see [`icon`]).
  */
 icon: string | null, enabled: boolean, zoom: number, kind: AccountKind, position: number, 
 /**

@@ -1,6 +1,7 @@
 //! Accounts persisted in SQLite (`accounts.db`).
 
 pub mod avatar;
+pub mod icon;
 pub mod user_agent;
 
 use std::path::Path;
@@ -49,7 +50,8 @@ pub struct Account {
     #[ts(type = "number")]
     pub id: i64,
     pub name: String,
-    /// SVG markup or a `data:image/png;base64,...` URL.
+    /// SVG markup, a `data:image/png;base64,...` photo or a ZapZap icon
+    /// profile keeping both (see [`icon`]).
     pub icon: Option<String>,
     pub enabled: bool,
     pub zoom: f64,

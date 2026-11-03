@@ -1,6 +1,7 @@
 // Settings pages in ZapZap's order. Ids are stable; labels are translated.
 import type { Component } from "svelte";
 
+import Accounts from "./pages/Accounts.svelte";
 import Appearance from "./pages/Appearance.svelte";
 import Notifications from "./pages/Notifications.svelte";
 import Permissions from "./pages/Permissions.svelte";
@@ -17,6 +18,7 @@ export interface SettingsPage {
 }
 
 export const PAGES: SettingsPage[] = [
+  { id: "accounts", label: "Accounts", component: Accounts },
   { id: "appearance", label: "Appearance", component: Appearance },
   { id: "notifications", label: "Notifications", component: Notifications },
   { id: "permissions", label: "Permissions", component: Permissions },

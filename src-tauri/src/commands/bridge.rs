@@ -213,8 +213,10 @@ pub async fn wa_profile_photo(
 ) -> CommandResult<()> {
     let id = caller(&webview)?;
     let url = url.ok_or("no profile photo available")?;
-    let icon = crate::accounts::avatar::download(&url).await?;
+    let photo = crate::accounts::avatar::download(&url).await?;
     let state = app.state::<AppState>();
+    let current = state.accounts.get(id)?.icon;
+    let icon = crate::accounts::icon::with_photo(current.as_deref(), photo);
     state.accounts.update(
         id,
         AccountPatch {

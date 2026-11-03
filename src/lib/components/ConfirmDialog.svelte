@@ -23,7 +23,7 @@
 </script>
 
 <svelte:window
-  onkeydown={(e) => {
+  onkeydowncapture={(e) => {
     if (e.key === "Escape") {
       e.preventDefault();
       oncancel();

@@ -76,6 +76,10 @@
 - Interface scale applied to the shell and to every account zoom; WebKitGTK
   hardware acceleration, smooth scrolling and disable animations performance
   options.
+- Accounts settings page with ZapZap's account cards (enable/disable, do not
+  disturb, remove with confirmation), the edit dialog (name, generated or
+  photo icon, profile photo sync, User-Agent) and the sidebar account context
+  menu; New account (Ctrl+U) creates an unnamed account with a generated icon.
 
 ### Fixed
 
@@ -156,3 +160,7 @@
 
 - docs/parity.md declares that Windows and macOS notifications are not
   replaced, withdrawn or removed on exit.
+- Account icons use ZapZap's generated SVG icon and its icon profile format,
+  which keeps both the generated icon and a photo; a synced profile photo no
+  longer discards the generated icon. The default account (id 1) cannot be
+  removed.

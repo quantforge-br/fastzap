@@ -2,6 +2,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, tick } from "svelte";
 
+  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import MenuBar from "$lib/components/MenuBar.svelte";
   import TitleBar from "$lib/components/TitleBar.svelte";
   import { t } from "$lib/i18n/index.svelte";
@@ -20,7 +21,11 @@
     type UiAction,
     type UnreadSnapshot,
   } from "$lib/ipc";
-  import { initials, isImageIcon, unreadLabel } from "$lib/shell/format";
+  import AccountEditDialog from "$lib/accounts/AccountEditDialog.svelte";
+  import { addAccount } from "$lib/accounts/actions";
+  import { showAccountMenu } from "$lib/accounts/contextMenu";
+  import { iconSrc } from "$lib/accounts/icon";
+  import { unreadLabel } from "$lib/shell/format";
 
   let accounts = $state<Account[]>([]);
   let layout = $state<LayoutState>({ active: null, grid: false, overlay: false });
@@ -68,9 +73,23 @@
   const active = $derived(visible.find((a) => a.id === layout.active) ?? null);
 
   // Owned UI panels cover the native webviews, which are hidden meanwhile.
-  async function openPanel(name: string | null) {
+  function openPanel(name: string | null) {
     panel = name;
-    await layoutApi.setOverlay(name !== null);
+  }
+
+  let editing = $state<Account | null>(null);
+  let removing = $state<Account | null>(null);
+  const editTarget = $derived(editing ? (accounts.find((a) => a.id === editing!.id) ?? null) : null);
+
+  const overlay = $derived(panel !== null || confirm !== null || editTarget !== null || removing !== null);
+  $effect(() => {
+    layoutApi.setOverlay(overlay);
+  });
+
+  async function removeAccount() {
+    const target = removing;
+    removing = null;
+    if (target) await accountsApi.remove(target.id).catch(() => {});
   }
 
   function reportBounds() {
@@ -100,11 +119,17 @@
     if (action.action === "confirm_close" || action.action === "confirm_quit") {
       confirm = { quit: action.action === "confirm_quit" };
       dontAskAgain = false;
-      layoutApi.setOverlay(true);
       return;
     }
     // "accounts" shows the grid, so any panel covering it is closed.
     if (action.action === "accounts") return openPanel(null);
+    if (action.action === "add_account") {
+      // As in ZapZap: create the account right away and show it in settings.
+      // At the limit the backend refuses and the page shows the limit.
+      addAccount().catch(() => {});
+      settingsPage = "accounts";
+      return openPanel("settings");
+    }
     if (action.action === "settings") settingsPage = DEFAULT_PAGE;
     openPanel(action.action);
   }
@@ -112,7 +137,6 @@
   async function answerClose(confirmed: boolean) {
     const request = confirm;
     confirm = null;
-    await layoutApi.setOverlay(panel !== null);
     if (confirmed && request) await app.closeConfirmed(request.quit, dontAskAgain);
   }
 
@@ -164,12 +188,12 @@
         title={account.name}
         aria-label={account.name}
         onclick={() => accountsApi.activate(account.id)}
+        oncontextmenu={(e) => {
+          e.preventDefault();
+          showAccountMenu(account, { onedit: () => (editing = account), onremove: () => (removing = account) });
+        }}
       >
-        {#if isImageIcon(account.icon)}
-          <img src={account.icon} alt="" />
-        {:else}
-          <span class="initials">{initials(account.name)}</span>
-        {/if}
+        <img src={iconSrc(account.icon)} alt="" />
         {#if badge}<span class="badge">{badge}</span>{/if}
         {#if !account.notifications}<span class="dnd" title="Do not disturb"></span>{/if}
       </button>
@@ -233,6 +257,26 @@
       </div>
     </div>
   </div>
+{/if}
+
+{#if editTarget}
+  <AccountEditDialog account={editTarget} onclose={() => (editing = null)} />
+{/if}
+
+{#if removing}
+  <ConfirmDialog
+    title={t("Remove account?")}
+    message={t('The account "{name}" will be removed from FastZap.', {
+      name: removing.name || t("Unnamed account"),
+    })}
+    detail={t(
+      "Its session will be closed and related local data may be permanently removed. This action cannot be undone.",
+    )}
+    confirmLabel={t("Remove")}
+    danger
+    onconfirm={removeAccount}
+    oncancel={() => (removing = null)}
+  />
 {/if}
 
 <svelte:window onkeydown={(e) => confirm && e.key === "Escape" && answerClose(false)} />
@@ -338,20 +382,11 @@
   .account.active {
     border-color: var(--accent);
   }
-  .account img,
-  .initials {
+  .account img {
     width: 100%;
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
-  }
-  .initials {
-    display: grid;
-    place-items: center;
-    background: var(--accent);
-    color: #fff;
-    font-size: 15px;
-    font-weight: 600;
   }
   .badge {
     position: absolute;

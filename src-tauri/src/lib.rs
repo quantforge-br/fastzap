@@ -139,6 +139,7 @@ pub fn run() {
             appcmd::open_path,
             appcmd::reveal_path,
             appcmd::downloads_default_dir,
+            acc::account_photo_pick,
             bridge::wa_title_changed,
             bridge::wa_shortcut,
             bridge::wa_theme_event,

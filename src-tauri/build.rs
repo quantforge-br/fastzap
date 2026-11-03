@@ -33,6 +33,7 @@ const UI_COMMANDS: &[&str] = &[
     "open_path",
     "reveal_path",
     "downloads_default_dir",
+    "account_photo_pick",
 ];
 
 /// Commands exposed to https://web.whatsapp.com.

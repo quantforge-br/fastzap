@@ -150,6 +150,14 @@ ação `restart`. `commands::app` expõe informações do build (`build_info`,
 preenchido por `FASTZAP_BUILD_*`), senha do proxy no keyring, restauração
 dos padrões, diálogos de arquivo/pasta e abertura de caminhos.
 
+A página Contas e o menu de contexto da sidebar usam `src/lib/accounts/`.
+Ícones seguem o formato do ZapZap (`accounts::icon` / `icon.ts`): SVG
+gerado com cores aleatórias, foto PNG de 256 px recortada em círculo ou o
+perfil `zapzap-account-image:v1:` que guarda as duas escolhas. A foto
+escolhida passa por `account_photo_pick`, que abre o diálogo e normaliza a
+imagem no Rust, sem expor o caminho à UI. A conta 1 (`storage-whats` no
+ZapZap) não pode ser removida.
+
 `MenuBar.svelte` reproduz os menus Arquivo/Exibir/Chat/Usuários/Ajuda com
 menus nativos (`@tauri-apps/api/menu`), porque menus HTML ficariam sob as
 webviews nativas das contas. A escala da interface vira zoom da webview
