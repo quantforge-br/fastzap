@@ -116,6 +116,8 @@
 - Release check for official DEB, macOS and Windows builds: one GitHub request
   per process, a sidebar button with the update dialog and a row on the About
   page.
+- Send message to number dialog (Ctrl+M) with country code picker, live
+  validation matching the backend rules and an optional message.
 
 ### Fixed
 
