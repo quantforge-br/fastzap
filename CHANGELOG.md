@@ -164,6 +164,9 @@
   the GNOME 50 runtime (WebKitGTK 4.1) with the rust-stable and node24
   extensions, and libayatana-appindicator from the flathub shared-modules
   submodule.
+- Build workflows for deb, rpm, AppImage, Flatpak, snap, Windows (NSIS/MSI
+  x86_64, NSIS arm64) and macOS (universal dmg), sharing the `setup-build`
+  composite action.
 
 ### Fixed
 

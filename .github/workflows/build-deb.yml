@@ -1,0 +1,78 @@
+name: Build Debian package
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_upload:
+        description: "Upload the artifacts to a GitHub release"
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: "Release tag to upload to"
+        required: false
+        type: string
+        default: ""
+  workflow_call:
+    inputs:
+      release_upload:
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    # The oldest supported runner keeps the glibc requirement low.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate release tag
+        if: ${{ inputs.release_upload && inputs.release_tag == '' }}
+        shell: bash
+        run: |
+          echo "release_tag is required when release_upload=true"
+          exit 1
+
+      - uses: ./.github/actions/setup-build
+
+      - name: Mark official build
+        run: packaging/common/build-info.sh "DEB"
+
+      - name: Build
+        run: pnpm tauri build --bundles deb
+
+      - name: Validate declared runtime dependencies
+        run: |
+          DEB_FILES=(src-tauri/target/release/bundle/deb/*.deb)
+          DEB_FILE="${DEB_FILES[0]}"
+          DEPENDS="$(dpkg-deb -f "${DEB_FILE}" Depends)"
+          echo "Depends: ${DEPENDS}"
+          echo "${DEPENDS}" \
+            | tr ',' '\n' \
+            | sed -E 's/\(.*\)//g; s/\|.*//g; s/^[[:space:]]+//; s/[[:space:]]+$//' \
+            | while read -r dep; do
+                [ -n "${dep}" ] || continue
+                apt-cache show "${dep}" >/dev/null 2>&1 || { echo "missing: ${dep}"; exit 1; }
+              done
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastzap-deb
+          path: src-tauri/target/release/bundle/deb/*.deb
+          if-no-files-found: error
+
+      - name: Upload to GitHub release
+        if: ${{ inputs.release_upload }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          files: src-tauri/target/release/bundle/deb/*.deb

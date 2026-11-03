@@ -1,0 +1,60 @@
+name: Build Flatpak bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_upload:
+        description: "Upload the artifacts to a GitHub release"
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: "Release tag to upload to"
+        required: false
+        type: string
+        default: ""
+  workflow_call:
+    inputs:
+      release_upload:
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Validate release tag
+        if: ${{ inputs.release_upload && inputs.release_tag == '' }}
+        shell: bash
+        run: |
+          echo "release_tag is required when release_upload=true"
+          exit 1
+
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: fastzap.flatpak
+          manifest-path: packaging/flatpak/io.github.quantmind_br.fastzap.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+          upload-artifact: true
+
+      - name: Upload to GitHub release
+        if: ${{ inputs.release_upload }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          files: fastzap.flatpak

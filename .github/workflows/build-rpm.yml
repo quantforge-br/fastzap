@@ -1,0 +1,64 @@
+name: Build RPM package
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_upload:
+        description: "Upload the artifacts to a GitHub release"
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: "Release tag to upload to"
+        required: false
+        type: string
+        default: ""
+  workflow_call:
+    inputs:
+      release_upload:
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    # The oldest supported runner keeps the glibc requirement low.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate release tag
+        if: ${{ inputs.release_upload && inputs.release_tag == '' }}
+        shell: bash
+        run: |
+          echo "release_tag is required when release_upload=true"
+          exit 1
+
+      - uses: ./.github/actions/setup-build
+
+      - name: Mark official build
+        run: packaging/common/build-info.sh "RPM"
+
+      - name: Build
+        run: pnpm tauri build --bundles rpm
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastzap-rpm
+          path: src-tauri/target/release/bundle/rpm/*.rpm
+          if-no-files-found: error
+
+      - name: Upload to GitHub release
+        if: ${{ inputs.release_upload }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          files: src-tauri/target/release/bundle/rpm/*.rpm

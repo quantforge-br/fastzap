@@ -1,0 +1,81 @@
+name: Build snap
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_upload:
+        description: "Upload the artifacts to a GitHub release"
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: "Release tag to upload to"
+        required: false
+        type: string
+        default: ""
+      publish_snap:
+        description: "Publish to the Snap Store (stable)"
+        required: false
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      release_upload:
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        required: false
+        type: string
+        default: ""
+      publish_snap:
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate release tag
+        if: ${{ inputs.release_upload && inputs.release_tag == '' }}
+        shell: bash
+        run: |
+          echo "release_tag is required when release_upload=true"
+          exit 1
+
+      - name: Prepare snap recipe
+        run: |
+          packaging/common/build-info.sh "Snap"
+          packaging/snap/prepare.sh
+
+      - uses: snapcore/action-build@v1
+        id: snap
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastzap-snap
+          path: ${{ steps.snap.outputs.snap }}
+          if-no-files-found: error
+
+      - name: Upload to GitHub release
+        if: ${{ inputs.release_upload }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          files: ${{ steps.snap.outputs.snap }}
+
+      - name: Publish to the Snap Store
+        if: ${{ inputs.publish_snap }}
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        with:
+          snap: ${{ steps.snap.outputs.snap }}
+          release: stable
