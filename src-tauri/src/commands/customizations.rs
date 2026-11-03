@@ -54,6 +54,14 @@ fn update_toggle(
     Ok(())
 }
 
+/// A CSS file changed on disk: restyle the open pages, since the settings
+/// (which normally trigger it) may be unchanged.
+fn restyle(app: &AppHandle, kind: AssetKind) {
+    if kind == AssetKind::Css {
+        crate::customizations::reapply_all(app);
+    }
+}
+
 fn user_error(err: FileError) -> super::CommandError {
     tr(&err.to_string()).into()
 }
@@ -108,6 +116,7 @@ pub fn custom_write(
             }
         })?;
     }
+    restyle(&app, kind);
     Ok(saved)
 }
 
@@ -131,6 +140,7 @@ pub async fn custom_import_file(
     };
     let name =
         files::import_file(&kind_dir(&state, scope, kind), kind, &source).map_err(user_error)?;
+    restyle(&app, kind);
     Ok(Some(name))
 }
 
@@ -173,6 +183,7 @@ pub async fn custom_import_url(
         })?;
         preview = true;
     }
+    restyle(&app, kind);
     Ok(UrlImport {
         name: saved,
         preview,
@@ -181,12 +192,15 @@ pub async fn custom_import_url(
 
 #[tauri::command]
 pub fn custom_duplicate(
+    app: AppHandle,
     state: State<'_, AppState>,
     scope: Scope,
     kind: AssetKind,
     name: String,
 ) -> CommandResult<String> {
-    files::duplicate(&kind_dir(&state, scope, kind), kind, &name).map_err(user_error)
+    let copy = files::duplicate(&kind_dir(&state, scope, kind), kind, &name).map_err(user_error)?;
+    restyle(&app, kind);
+    Ok(copy)
 }
 
 /// Delete a file with its flag and preview (the image goes too when no
@@ -212,6 +226,7 @@ pub fn custom_delete(
     if let Some(image) = orphan {
         let _ = files::delete(&previews_dir(&state, scope), &image);
     }
+    restyle(&app, kind);
     Ok(())
 }
 

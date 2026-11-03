@@ -211,6 +211,8 @@
   serialized, so none of them loses another's change or shares the temporary
   file.
 - An imported dictionary shows up in the open dictionary manager right away.
+- Saving, importing, duplicating or deleting a CSS file restyles the open
+  pages immediately.
 
 ### Changed
 
