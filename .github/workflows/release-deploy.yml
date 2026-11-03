@@ -1,0 +1,66 @@
+name: Release Deploy
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  deb:
+    if: ${{ !github.event.release.prerelease }}
+    uses: ./.github/workflows/build-deb.yml
+    with:
+      release_upload: true
+      release_tag: ${{ github.event.release.tag_name }}
+    secrets: inherit
+
+  rpm:
+    if: ${{ !github.event.release.prerelease }}
+    uses: ./.github/workflows/build-rpm.yml
+    with:
+      release_upload: true
+      release_tag: ${{ github.event.release.tag_name }}
+    secrets: inherit
+
+  appimage:
+    if: ${{ !github.event.release.prerelease }}
+    uses: ./.github/workflows/build-appimage.yml
+    with:
+      release_upload: true
+      release_tag: ${{ github.event.release.tag_name }}
+    secrets: inherit
+
+  flatpak:
+    if: ${{ !github.event.release.prerelease }}
+    uses: ./.github/workflows/build-flatpak.yml
+    with:
+      release_upload: true
+      release_tag: ${{ github.event.release.tag_name }}
+    secrets: inherit
+
+  snap:
+    if: ${{ !github.event.release.prerelease }}
+    uses: ./.github/workflows/build-snap.yml
+    with:
+      release_upload: true
+      release_tag: ${{ github.event.release.tag_name }}
+      publish_snap: true
+    secrets: inherit
+
+  windows:
+    if: ${{ !github.event.release.prerelease }}
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      release_upload: true
+      release_tag: ${{ github.event.release.tag_name }}
+    secrets: inherit
+
+  macos:
+    if: ${{ !github.event.release.prerelease }}
+    uses: ./.github/workflows/build-macos.yml
+    with:
+      release_upload: true
+      release_tag: ${{ github.event.release.tag_name }}
+    secrets: inherit

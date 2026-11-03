@@ -167,6 +167,8 @@
 - Build workflows for deb, rpm, AppImage, Flatpak, snap, Windows (NSIS/MSI
   x86_64, NSIS arm64) and macOS (universal dmg), sharing the `setup-build`
   composite action.
+- Release workflows: `release-candidate` tags and builds a release candidate,
+  `release-deploy` builds every format and publishes the GitHub release.
 
 ### Fixed
 
