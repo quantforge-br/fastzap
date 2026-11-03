@@ -4,7 +4,7 @@
 //! catches up through the journal after each `Up`. The URL carries the admin
 //! key: it is never logged, and connection errors are reduced to generic text.
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use futures_util::{SinkExt, StreamExt};
 use serde_json::Value;
@@ -20,6 +20,9 @@ const PING_EVERY: Duration = Duration::from_secs(20);
 const BACKOFF_MIN: Duration = Duration::from_secs(1);
 const BACKOFF_MAX: Duration = Duration::from_secs(60);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
+/// No frame (not even a pong) for this long means the link is dead.
+const SILENCE_LIMIT: Duration = Duration::from_secs(65);
+const WRITE_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug)]
 pub enum Signal {
@@ -114,16 +117,26 @@ where
     let (mut sink, mut stream) = socket.split();
     let mut ping = tokio::time::interval(PING_EVERY);
     ping.tick().await;
+    let mut last_seen = Instant::now();
     let reason = loop {
         tokio::select! {
             _ = stop.changed() => break "stopped",
             _ = ping.tick() => {
-                if sink.send(Frame::Ping(Vec::new().into())).await.is_err() {
+                // Writes only fill local buffers on a silently dead network.
+                if last_seen.elapsed() > SILENCE_LIMIT {
+                    break "lost";
+                }
+                let sent = tokio::select! {
+                    sent = tokio::time::timeout(WRITE_TIMEOUT, sink.send(Frame::Ping(Vec::new().into()))) => sent,
+                    _ = stop.changed() => break "stopped",
+                };
+                if !matches!(sent, Ok(Ok(()))) {
                     break "lost";
                 }
             }
             frame = stream.next() => match frame {
                 Some(Ok(Frame::Text(text))) => {
+                    last_seen = Instant::now();
                     if let Some(event) = decode_frame(&text, instance_id)
                         && signals.send(Signal::Event(event)).is_err()
                     {
@@ -131,15 +144,18 @@ where
                     }
                 }
                 Some(Ok(Frame::Close(_))) | None => break "closed",
-                Some(Ok(_)) => {}
+                Some(Ok(_)) => last_seen = Instant::now(),
                 Some(Err(_)) => break "lost",
             },
         }
     };
     // Close before the next connect: the server drops the newer socket when
     // the old one's cleanup runs late.
-    let _ = sink.send(Frame::Close(None)).await;
-    let _ = sink.close().await;
+    let close = async {
+        let _ = sink.send(Frame::Close(None)).await;
+        let _ = sink.close().await;
+    };
+    let _ = tokio::time::timeout(WRITE_TIMEOUT, close).await;
     reason
 }
 

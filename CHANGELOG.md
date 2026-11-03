@@ -266,6 +266,9 @@
 - Evolution Go: local chats, media and the journal cursor are tied to the
   server, instance and linked phone; pointing an account elsewhere or linking
   another phone starts from a clean store instead of mixing conversations.
+- Evolution Go: the WebSocket reconnects when nothing (not even a pong)
+  arrives for 65 seconds, and its writes and close are time-limited, so a
+  silently dead network no longer looks online.
 
 ### Changed
 
