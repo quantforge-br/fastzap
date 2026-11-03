@@ -34,6 +34,9 @@
 
   // ---- Notifications are routed to the native backend. ----
   const notifications = new Map();
+  // Desktop notifications outlive page reloads, so ids carry a random
+  // per-document prefix (kept below 2^53) instead of restarting at 1.
+  const notificationIdBase = Math.floor(Math.random() * 2 ** 32) * 2 ** 20;
   let nextNotificationId = 1;
 
   const toDataUrl = async (url) => {
@@ -67,9 +70,11 @@
       this.onclose = null;
       this.onshow = null;
       this.onerror = null;
-      this._id = nextNotificationId++;
+      this._id = notificationIdBase + nextNotificationId++;
       notifications.set(this._id, this);
       toDataUrl(this.icon).then((icon) =>
+        // Closed while the icon was being read: nothing to show.
+        notifications.has(this._id) &&
         invoke("wa_notify", {
           notification: {
             id: this._id,

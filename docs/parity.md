@@ -55,7 +55,10 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 - **Dicionários `.bdic`**: formato exclusivo do Chromium. O FastZap usa
   Hunspell.
 - **Notificações em Windows/macOS** não informam cliques ao app
-  (`tauri-plugin-notification`); clicar não abre a conversa. O portal não
+  (`tauri-plugin-notification`); clicar não abre a conversa. O plugin também
+  não devolve identificadores: notificações com a mesma tag não se
+  substituem, não são retiradas quando a conversa é lida nem ao sair (o
+  backend macOS do ZapZap retirava). O portal não
   recebe o pedido de som silencioso.
 - **Proxy estrito** desativa o WebRTC em vez de forçar UDP pelo proxy: o
   WebKit não tem a política `disable_non_proxied_udp` do Chromium. No Linux o

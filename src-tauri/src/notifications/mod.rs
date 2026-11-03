@@ -11,6 +11,7 @@ pub mod policy;
 #[cfg(target_os = "linux")]
 mod portal;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -57,6 +58,9 @@ struct Record {
 pub struct NotificationService {
     backend: tokio::sync::Mutex<Option<Arc<Backend>>>,
     records: Mutex<Vec<Record>>,
+    /// Notifications being submitted, and whether the page closed them
+    /// meanwhile, by (account, page id).
+    pending: Mutex<HashMap<(i64, u64), bool>>,
 }
 
 async fn connect(app: &AppHandle) -> Option<Backend> {
@@ -156,69 +160,18 @@ pub async fn notify(app: &AppHandle, account_id: i64, web: WebNotification) {
     let Some(content) = policy::compose(&state.settings.get(), &account, &web) else {
         return;
     };
-    let photo = content.photo.then(|| web.icon.clone()).flatten();
-    let mut outgoing = {
-        // Decoding is CPU-bound: keep it off the async workers, two at a time.
-        let Ok(_permit) = IMAGE_JOBS.acquire().await else {
-            return;
-        };
-        let (app, title) = (app.clone(), content.title.clone());
-        match tauri::async_runtime::spawn_blocking(move || {
-            image_for(&app, account_id, &title, photo.as_deref())
-        })
-        .await
-        {
-            Ok(outgoing) => outgoing,
-            Err(_) => return,
-        }
-    };
-    outgoing.title = content.title;
-    outgoing.body = content.body;
-    outgoing.silent = content.silent;
-
+    let key = (account_id, web.id);
     let service = app.state::<NotificationService>();
-    let Some(backend) = service.backend(app).await else {
+    service.pending.lock().unwrap().insert(key, false);
+    let outcome = submit(app, account_id, &web, content).await;
+    let cancelled = service.pending.lock().unwrap().remove(&key) == Some(true);
+    let Some((backend, native)) = outcome else {
         return;
     };
-    let native = match backend.as_ref() {
-        #[cfg(target_os = "linux")]
-        Backend::Freedesktop(f) => match f.notify(&outgoing).await {
-            Ok(id) => id,
-            Err(e) => {
-                log::warn!("notification failed, reconnecting next time: {e}");
-                service.drop_backend().await;
-                return;
-            }
-        },
-        #[cfg(target_os = "linux")]
-        Backend::Portal(p) => {
-            let id = format!(
-                "fastzap-account-{account_id}-{:016x}",
-                rand::random::<u64>()
-            );
-            if let Err(e) = p.notify(&outgoing, &id).await {
-                log::warn!("portal notification failed: {e}");
-                return;
-            }
-            id
-        }
-        Backend::System => {
-            use tauri_plugin_notification::NotificationExt;
-            let mut builder = app
-                .notification()
-                .builder()
-                .title(&outgoing.title)
-                .body(&outgoing.body);
-            if !outgoing.silent {
-                builder = builder.sound("default");
-            }
-            if let Err(e) = builder.show() {
-                log::warn!("system notification failed: {e}");
-            }
-            return;
-        }
-    };
-
+    if cancelled {
+        close_native(&backend, &native).await;
+        return;
+    }
     // A newer notification with the same tag replaces older ones (ZapZap closes
     // them after posting the new one).
     let replaced = if web.tag.is_empty() {
@@ -237,9 +190,89 @@ pub async fn notify(app: &AppHandle, account_id: i64, web: WebNotification) {
     }
 }
 
+/// Post the notification; returns the backend and the native id to track.
+async fn submit(
+    app: &AppHandle,
+    account_id: i64,
+    web: &WebNotification,
+    content: policy::Content,
+) -> Option<(Arc<Backend>, String)> {
+    let photo = content.photo.then(|| web.icon.clone()).flatten();
+    let mut outgoing = {
+        // Decoding is CPU-bound: keep it off the async workers, two at a time.
+        let Ok(_permit) = IMAGE_JOBS.acquire().await else {
+            return None;
+        };
+        let (app, title) = (app.clone(), content.title.clone());
+        match tauri::async_runtime::spawn_blocking(move || {
+            image_for(&app, account_id, &title, photo.as_deref())
+        })
+        .await
+        {
+            Ok(outgoing) => outgoing,
+            Err(_) => return None,
+        }
+    };
+    outgoing.title = content.title;
+    outgoing.body = content.body;
+    outgoing.silent = content.silent;
+
+    let service = app.state::<NotificationService>();
+    let backend = service.backend(app).await?;
+    let native = match backend.as_ref() {
+        #[cfg(target_os = "linux")]
+        Backend::Freedesktop(f) => match f.notify(&outgoing).await {
+            Ok(id) => id,
+            Err(e) => {
+                log::warn!("notification failed, reconnecting next time: {e}");
+                service.drop_backend().await;
+                return None;
+            }
+        },
+        #[cfg(target_os = "linux")]
+        Backend::Portal(p) => {
+            let id = format!(
+                "fastzap-account-{account_id}-{:016x}",
+                rand::random::<u64>()
+            );
+            if let Err(e) = p.notify(&outgoing, &id).await {
+                log::warn!("portal notification failed: {e}");
+                return None;
+            }
+            id
+        }
+        Backend::System => {
+            use tauri_plugin_notification::NotificationExt;
+            let mut builder = app
+                .notification()
+                .builder()
+                .title(&outgoing.title)
+                .body(&outgoing.body);
+            if !outgoing.silent {
+                builder = builder.sound("default");
+            }
+            if let Err(e) = builder.show() {
+                log::warn!("system notification failed: {e}");
+            }
+            return None;
+        }
+    };
+    Some((backend, native))
+}
+
 /// The page closed its notification (e.g. the chat was read).
 pub async fn close_web(app: &AppHandle, account_id: i64, web_id: u64) {
     let service = app.state::<NotificationService>();
+    // Still being submitted: `notify` withdraws it once posted.
+    if let Some(cancelled) = service
+        .pending
+        .lock()
+        .unwrap()
+        .get_mut(&(account_id, web_id))
+    {
+        *cancelled = true;
+        return;
+    }
     let records = service.take_records(|r| r.account_id == account_id && r.web_id == web_id);
     if records.is_empty() {
         return;
@@ -255,11 +288,11 @@ pub async fn close_web(app: &AppHandle, account_id: i64, web_id: u64) {
 /// Focus the window and account, then let the page open the chat.
 fn activated(app: &AppHandle, activation: Activation) {
     let service = app.state::<NotificationService>();
+    // Notification daemons may broadcast actions of other applications.
     let Some(record) = service
         .take_records(|r| r.native == activation.native)
         .pop()
     else {
-        window::show_with_token(app, activation.token);
         return;
     };
     window::show_with_token(app, activation.token);

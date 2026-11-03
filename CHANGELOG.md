@@ -122,3 +122,13 @@
   toggles of start with the system can no longer finish out of order.
 - Notification photos are decoded with size and memory limits, off the async
   workers and two at a time.
+- A notification closed by the page while it was still being posted is
+  withdrawn instead of staying on screen, notification ids no longer collide
+  after a page reload, the activation token is no longer lost when D-Bus
+  signals interleave, and clicks on other applications' notifications are
+  ignored.
+
+### Changed
+
+- docs/parity.md declares that Windows and macOS notifications are not
+  replaced, withdrawn or removed on exit.

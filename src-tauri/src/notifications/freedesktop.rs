@@ -48,29 +48,37 @@ impl Freedesktop {
     ) -> zbus::Result<Self> {
         let conn = zbus::Connection::session().await?;
         let proxy = NotificationsProxy::new(&conn).await?;
-        let mut actions = proxy.receive_action_invoked().await?;
-        let mut tokens = proxy.receive_activation_token().await?;
+        // One stream for both signals keeps their order: the daemon sends
+        // ActivationToken before ActionInvoked for the same id, and two
+        // separate streams could deliver the action first.
+        let rule = zbus::MatchRule::builder()
+            .msg_type(zbus::message::Type::Signal)
+            .interface("org.freedesktop.Notifications")?
+            .path("/org/freedesktop/Notifications")?
+            .build();
+        let mut signals = zbus::MessageStream::for_match_rule(rule, &conn, None).await?;
         tokio::spawn(async move {
-            // The token signal precedes ActionInvoked for the same id.
             let mut pending: HashMap<u32, String> = HashMap::new();
-            loop {
-                tokio::select! {
-                    Some(signal) = tokens.next() => {
-                        if let Ok(args) = signal.args() {
-                            pending.insert(args.id, args.activation_token);
+            while let Some(Ok(message)) = signals.next().await {
+                let header = message.header();
+                match header.member().map(|m| m.as_str()) {
+                    Some("ActivationToken") => {
+                        if let Ok((id, token)) = message.body().deserialize::<(u32, String)>() {
+                            pending.insert(id, token);
                         }
                     }
-                    Some(signal) = actions.next() => {
-                        if let Ok(args) = signal.args()
-                            && args.action_key == "default"
-                        {
-                            on_activate(Activation {
-                                native: args.id.to_string(),
-                                token: pending.remove(&args.id),
-                            });
+                    Some("ActionInvoked") => {
+                        if let Ok((id, key)) = message.body().deserialize::<(u32, String)>() {
+                            let token = pending.remove(&id);
+                            if key == "default" {
+                                on_activate(Activation {
+                                    native: id.to_string(),
+                                    token,
+                                });
+                            }
                         }
                     }
-                    else => break,
+                    _ => {}
                 }
             }
         });
