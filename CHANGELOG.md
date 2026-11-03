@@ -129,6 +129,8 @@
   ignored.
 - A link forwarded while its account page finished loading is no longer lost.
 - macOS opens whatsapp: links delivered as Apple events.
+- A locked quick access panel keeps its new placement instead of snapping back
+  to the previous anchor.
 
 ### Changed
 

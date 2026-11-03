@@ -166,14 +166,16 @@ fn place<R: Runtime>(app: &AppHandle<R>, window: &WebviewWindow<R>, saved: Optio
         frame,
         saved,
     );
-    controller(app).0.lock().unwrap().placing = true;
-    let _ = window.set_position(LogicalPosition::new(x, y));
-    let position = window.outer_position().ok();
-    let mut flags = controller(app).0.lock().unwrap();
-    flags.placing = false;
-    if flags.locked_at.is_some() {
-        flags.locked_at = position;
+    // tao queues the move, so the window cannot report it yet: anchor the
+    // lock to the requested position, which its `Moved` event will match.
+    let target = LogicalPosition::new(x, y).to_physical::<i32>(scale);
+    {
+        let mut flags = controller(app).0.lock().unwrap();
+        if flags.locked_at.is_some() {
+            flags.locked_at = Some(target);
+        }
     }
+    let _ = window.set_position(target);
 }
 
 /// Apply on-top and position lock without changing visibility.
