@@ -80,6 +80,15 @@
   disturb, remove with confirmation), the edit dialog (name, generated or
   photo icon, profile photo sync, User-Agent) and the sidebar account context
   menu; New account (Ctrl+U) creates an unnamed account with a generated icon.
+- Downloads following ZapZap's rules: Download dialog (Save, Open, Save as,
+  Open folder, Cancel), automatic and ask every time behaviors, the multiple-
+  download question with Allow once/Always allow/Block, ZapZap's file name
+  sanitizing with a Chromium-style ' (N)' suffix for taken names, per-account
+  Save As folder memory, auto-open of PDFs and images whose content matches
+  the extension, and a history of 100 files.
+- Downloads view (Ctrl+J, sidebar button, floating panel) with open, show in
+  folder, delete file, remove from history and clear history, plus a busy
+  indicator and a ✓ badge when a file is saved.
 
 ### Fixed
 

@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use crate::accounts::AccountStore;
+use crate::downloads::Downloads;
 use crate::paths::AppPaths;
 use crate::secrets::SecretStore;
 use crate::settings::store::SettingsStore;
@@ -16,4 +17,5 @@ pub struct AppState {
     pub secrets: Arc<dyn SecretStore>,
     pub webviews: WebviewManager,
     pub unread: UnreadRegistry,
+    pub downloads: Downloads,
 }

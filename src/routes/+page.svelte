@@ -2,6 +2,8 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, tick } from "svelte";
 
+  import DownloadPromptDialog from "$lib/downloads/DownloadPromptDialog.svelte";
+  import DownloadsView from "$lib/downloads/DownloadsView.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import MenuBar from "$lib/components/MenuBar.svelte";
   import TitleBar from "$lib/components/TitleBar.svelte";
@@ -13,10 +15,12 @@
   import {
     accounts as accountsApi,
     app,
+    downloads as downloadsApi,
     events,
     layout as layoutApi,
     on,
     type Account,
+    type DownloadPrompt,
     type LayoutState,
     type UiAction,
     type UnreadSnapshot,
@@ -77,11 +81,26 @@
     panel = name;
   }
 
+  let prompts = $state<DownloadPrompt[]>([]);
+  let downloading = $state(false);
+  let savedBadge = $state(false);
+  let savedTimer: ReturnType<typeof setTimeout> | undefined;
+
+  async function refreshDownloads() {
+    downloading = (await downloadsApi.list()).some((i) => i.live);
+  }
+
+  function onDownloadSaved() {
+    clearTimeout(savedTimer);
+    savedBadge = true;
+    savedTimer = setTimeout(() => (savedBadge = false), 900);
+  }
+
   let editing = $state<Account | null>(null);
   let removing = $state<Account | null>(null);
   const editTarget = $derived(editing ? (accounts.find((a) => a.id === editing!.id) ?? null) : null);
 
-  const overlay = $derived(panel !== null || confirm !== null || editTarget !== null || removing !== null);
+  const overlay = $derived(panel !== null || confirm !== null || editTarget !== null || removing !== null || prompts.length > 0);
   $effect(() => {
     layoutApi.setOverlay(overlay);
   });
@@ -146,6 +165,9 @@
       on<LayoutState>(events.layoutChanged, (state) => (layout = state)),
       on<UnreadSnapshot>(events.unreadChanged, (snapshot) => (unread = snapshot)),
       on<UiAction>(events.uiAction, onUiAction),
+      on<DownloadPrompt>(events.downloadPrompt, (p) => (prompts = [...prompts, p])),
+      on(events.downloadsChanged, refreshDownloads),
+      on(events.downloadSaved, onDownloadSaved),
       win.onResized(async () => (maximized = await win.isMaximized())),
     ];
     startSettings();
@@ -199,6 +221,14 @@
       </button>
     {/each}
     <div class="spacer"></div>
+    <button
+      class="tool"
+      class:busy={downloading}
+      title={`${t("Downloads")} (Ctrl+J)`}
+      aria-label={t("Downloads")}
+      onclick={() => openPanel("downloads")}
+      >⬇{#if savedBadge}<span class="saved">✓</span>{/if}</button
+    >
     <button class="tool" title={`${t("Grid View")} (Ctrl+G)`} onclick={() => app.action("toggle_grid")}>▦</button>
     <button
       class="tool"
@@ -214,6 +244,14 @@
   <main class="content" bind:this={content}>
     {#if panel === "settings"}
       <SettingsView bind:page={settingsPage} onclose={() => openPanel(null)} ondonate={() => openPanel("donate")} />
+    {:else if panel === "downloads"}
+      <DownloadsView
+        onclose={() => openPanel(null)}
+        onsettings={() => {
+          settingsPage = "language_downloads";
+          openPanel("settings");
+        }}
+      />
     {:else if panel}
       <section class="panel">
         <header>
@@ -257,6 +295,12 @@
       </div>
     </div>
   </div>
+{/if}
+
+{#if prompts.length > 0}
+  {#key prompts[0].id}
+    <DownloadPromptDialog prompt={prompts[0]} ondone={() => (prompts = prompts.slice(1))} />
+  {/key}
 {/if}
 
 {#if editTarget}
@@ -378,6 +422,26 @@
     color: inherit;
     cursor: pointer;
     font-size: 18px;
+  }
+  .tool.busy {
+    border-color: var(--accent);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    50% {
+      opacity: 0.5;
+    }
+  }
+  .saved {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    padding: 0 4px;
+    border-radius: 6px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
   }
   .account.active {
     border-color: var(--accent);

@@ -3,6 +3,7 @@
 pub mod accounts;
 pub mod app;
 pub mod bridge;
+pub mod downloads;
 pub mod settings;
 pub mod webview;
 

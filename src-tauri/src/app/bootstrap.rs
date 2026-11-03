@@ -6,6 +6,7 @@ use tauri::{AppHandle, Manager, Runtime};
 
 use super::state::AppState;
 use crate::accounts::AccountStore;
+use crate::downloads::Downloads;
 use crate::migration;
 use crate::paths::AppPaths;
 use crate::secrets::{KeyringStore, SecretStore};
@@ -58,6 +59,7 @@ pub fn init_state<R: Runtime>(app: &AppHandle<R>) -> anyhow::Result<()> {
     }
     accounts.ensure_default()?;
 
+    let downloads = Downloads::new(paths.download_staging_dir());
     app.manage(AppState {
         paths,
         settings,
@@ -65,6 +67,7 @@ pub fn init_state<R: Runtime>(app: &AppHandle<R>) -> anyhow::Result<()> {
         secrets,
         webviews: Default::default(),
         unread: Default::default(),
+        downloads,
     });
     Ok(())
 }

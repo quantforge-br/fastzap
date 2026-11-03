@@ -69,7 +69,7 @@ impl Settings {
         sp.languages.dedup();
         sp.languages.truncate(MAX_SPELLCHECK_LANGUAGES);
         sp.recent_languages.truncate(MAX_SPELLCHECK_LANGUAGES);
-        self.downloads.recent.truncate(20);
+        self.downloads.recent.truncate(crate::downloads::MAX_RECENT);
         if self.proxy.port > 65535 {
             self.proxy.port = 0;
         }

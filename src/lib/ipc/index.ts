@@ -11,6 +11,9 @@ import type { AccountPatch } from "./generated/AccountPatch";
 import type { ChatTarget } from "./generated/ChatTarget";
 import type { LayoutState } from "./generated/LayoutState";
 import type { NewAccount } from "./generated/NewAccount";
+import type { DownloadDecision } from "./generated/DownloadDecision";
+import type { DownloadItem } from "./generated/DownloadItem";
+import type { DownloadPrompt } from "./generated/DownloadPrompt";
 import type { Rect } from "./generated/Rect";
 import type { RegionCallingCode } from "./generated/RegionCallingCode";
 import type { Settings } from "./generated/Settings";
@@ -27,6 +30,9 @@ export type {
   ChatTarget,
   LayoutState,
   NewAccount,
+  DownloadDecision,
+  DownloadItem,
+  DownloadPrompt,
   Rect,
   RegionCallingCode,
   Settings,
@@ -40,6 +46,9 @@ export const events = {
   layoutChanged: "layout://changed",
   unreadChanged: "unread://changed",
   uiAction: "ui://action",
+  downloadsChanged: "downloads://changed",
+  downloadPrompt: "downloads://prompt",
+  downloadSaved: "downloads://saved",
 } as const;
 
 export const settings = {
@@ -57,6 +66,16 @@ export const accounts = {
   activate: (id: number) => invoke<void>("account_activate", { id }),
   syncPhoto: (id: number) => invoke<void>("account_sync_photo", { id }),
   pickPhoto: (title: string) => invoke<string | null>("account_photo_pick", { title }),
+};
+
+export const downloads = {
+  list: () => invoke<DownloadItem[]>("downloads_list"),
+  answer: (id: number, decision: DownloadDecision) => invoke<boolean>("download_answer", { id, decision }),
+  clearHistory: () => invoke<void>("downloads_clear_history"),
+  remove: (path: string) => invoke<void>("download_remove", { path }),
+  deleteFile: (path: string) => invoke<void>("download_delete_file", { path }),
+  open: (path: string) => invoke<void>("download_open", { path }),
+  reveal: (path: string) => invoke<void>("download_reveal", { path }),
 };
 
 export const layout = {

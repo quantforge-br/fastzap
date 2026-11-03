@@ -26,6 +26,11 @@ pub fn on_settings_changed<R: Runtime>(app: &AppHandle<R>, old: &Settings, new: 
     let state = app.state::<AppState>();
     let webviews = &state.webviews;
 
+    if old.downloads.remember_last_save_as_directory
+        && !new.downloads.remember_last_save_as_directory
+    {
+        state.downloads.forget_last_dirs();
+    }
     if old.system.interface_language != new.system.interface_language {
         crate::i18n::set_language(&new.system.interface_language);
     }

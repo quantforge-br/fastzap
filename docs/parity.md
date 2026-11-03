@@ -25,7 +25,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Menu de contexto | `web_view.py` | menu padrão do motor; `webview::context_menu` com a fase de corretor | itens de idioma/corretor ainda ausentes |
 | CSS/JS personalizados | `features/customizations` | `customizations` | mesma árvore de arquivos |
 | Corretor ortográfico | `features/dictionaries` (`.bdic`) | `spellcheck` | **formato Hunspell** (`.dic/.aff`); `.bdic` não é importado |
-| Downloads e histórico (`Ctrl+J`) | `features/downloads` | `downloads` | |
+| Downloads e histórico (`Ctrl+J`) | `features/downloads` | `downloads` + `src/lib/downloads/` | decisão após o término do download; ver lacunas |
 | Notificações (portal, D-Bus, Windows, macOS) | `features/notifications` | `notifications` | |
 | Bandeja, temas de ícone, contador, badge | `features/tray` | `tray` | |
 | Atalhos | `features/shortcuts` | `app::shortcuts` + `bridge.js` | |
@@ -75,3 +75,10 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
   aplicadas.
 - **`dont_use_native_dialog`** é importado e exibido, mas o FastZap sempre
   usa os diálogos do sistema.
+- **Downloads**: o Tauri não expõe progresso, pausa, retomada nem
+  cancelamento. O arquivo é recebido numa pasta temporária e o diálogo de
+  download, a pergunta de vários downloads e o "Salvar como" aparecem quando
+  ele termina; não há fila de 6 downloads ativos, anel de progresso nem
+  popover (o botão da barra lateral abre o histórico). O tipo MIME informado
+  pelo servidor não é conhecido, então a abertura automática confere só
+  conteúdo e extensão.

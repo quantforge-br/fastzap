@@ -50,6 +50,11 @@ impl AppPaths {
         self.data_dir.join("reports")
     }
 
+    /// Where the engine writes downloads until the user's decision.
+    pub fn download_staging_dir(&self) -> PathBuf {
+        self.cache_dir.join("download-staging")
+    }
+
     pub fn notification_images_dir(&self) -> PathBuf {
         self.cache_dir.join("notification-images")
     }

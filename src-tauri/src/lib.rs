@@ -16,7 +16,9 @@ pub mod settings;
 pub mod tray;
 pub mod webview;
 
-use commands::{accounts as acc, app as appcmd, bridge, settings as set, webview as wv};
+use commands::{
+    accounts as acc, app as appcmd, bridge, downloads as dl, settings as set, webview as wv,
+};
 use tauri::Manager;
 use tauri_plugin_window_state::StateFlags;
 
@@ -140,6 +142,13 @@ pub fn run() {
             appcmd::reveal_path,
             appcmd::downloads_default_dir,
             acc::account_photo_pick,
+            dl::downloads_list,
+            dl::download_answer,
+            dl::downloads_clear_history,
+            dl::download_remove,
+            dl::download_delete_file,
+            dl::download_open,
+            dl::download_reveal,
             bridge::wa_title_changed,
             bridge::wa_shortcut,
             bridge::wa_theme_event,

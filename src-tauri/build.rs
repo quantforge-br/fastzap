@@ -34,6 +34,13 @@ const UI_COMMANDS: &[&str] = &[
     "reveal_path",
     "downloads_default_dir",
     "account_photo_pick",
+    "downloads_list",
+    "download_answer",
+    "downloads_clear_history",
+    "download_remove",
+    "download_delete_file",
+    "download_open",
+    "download_reveal",
 ];
 
 /// Commands exposed to https://web.whatsapp.com.

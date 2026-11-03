@@ -44,6 +44,13 @@
     "allow-open-path",
     "allow-reveal-path",
     "allow-downloads-default-dir",
-    "allow-account-photo-pick"
+    "allow-account-photo-pick",
+    "allow-downloads-list",
+    "allow-download-answer",
+    "allow-downloads-clear-history",
+    "allow-download-remove",
+    "allow-download-delete-file",
+    "allow-download-open",
+    "allow-download-reveal"
   ]
 }

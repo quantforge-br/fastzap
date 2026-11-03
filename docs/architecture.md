@@ -167,6 +167,19 @@ aplica no WebKitGTK a política de aceleração de hardware, a rolagem suave e
 o WebRTC do proxy estrito; `disable_animations.js` entra nos scripts de
 início quando `performance.disable_animations` está ativo.
 
+## Downloads
+
+`downloads` recebe o `on_download` de cada conta. O motor grava o arquivo
+em `cache/download-staging/<seq>/`; só ao terminar valem as regras do
+ZapZap: a pergunta de vários downloads (o primeiro da sessão sempre passa),
+depois o comportamento (`dialog` via evento `downloads://prompt` e comando
+`download_answer`, `automatic` ou `ask_every_time` com o diálogo nativo).
+O arquivo vai para a pasta configurada com nome saneado
+(`downloads::naming`) e sufixo ` (N)` quando o nome existe, entra no
+histórico (`downloads.recent`, 100 entradas) e abre sozinho se
+`downloads::sniff` confirmar PDF ou imagem pelo conteúdo e pela extensão.
+Os comandos de abrir, revelar e excluir só aceitam caminhos do histórico.
+
 ## Traduções
 
 `po/*.po` vem do ZapZap (mesmo domínio e idiomas). `pnpm i18n`
