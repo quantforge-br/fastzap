@@ -14,12 +14,14 @@ pub struct AppPaths {
 }
 
 impl AppPaths {
+    /// Named after the app ID, not Tauri's bundle identifier: bundle
+    /// identifiers cannot contain `_`, and the folders must not move.
     pub fn resolve<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Self> {
         let path = app.path();
         Ok(Self {
-            config_dir: path.app_config_dir()?,
-            data_dir: path.app_data_dir()?,
-            cache_dir: path.app_cache_dir()?,
+            config_dir: path.config_dir()?.join(crate::APP_ID),
+            data_dir: path.data_dir()?.join(crate::APP_ID),
+            cache_dir: path.cache_dir()?.join(crate::APP_ID),
         })
     }
 

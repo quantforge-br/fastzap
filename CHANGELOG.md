@@ -293,3 +293,7 @@
   retries, store binding, lifecycle lock and WebSocket deadlines.
 - App icons (Linux PNGs, Windows .ico, macOS .icns, Store logos) are generated
   from the FastZap SVG in packaging/share/icons instead of the Tauri template.
+- Tauri's bundle identifier is io.github.quantmind-br.fastzap, because bundle
+  identifiers cannot contain an underscore; the app ID, D-Bus name, keyring
+  service and config, data and cache folders stay
+  io.github.quantmind_br.fastzap. Saved window geometry starts over once.
