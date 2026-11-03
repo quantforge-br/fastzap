@@ -202,6 +202,8 @@
 - Screen sharing requests are no longer treated as camera requests on Linux,
   and permission prompts of a recreated account page are denied instead of
   granting the new page.
+- Problem reports also remove quoted and unquoted credential assignments
+  (passwords, tokens, API keys, Basic/Bearer authorization).
 
 ### Changed
 

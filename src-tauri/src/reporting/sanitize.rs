@@ -21,6 +21,9 @@ static PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
         r"(?i)()\b\d{6,20}@(?:c|g|s\.whatsapp)\.(?:us|net)\b",
         // GitHub token
         r"()\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b",
+        // credential assignments, quoted or not (`password=…`, `"token": "…"`,
+        // `Authorization: Basic …`)
+        r#"(?i)()["']?\b[\w-]*(?:passw(?:or)?d|secret|token|api[_-]?key|authorization|credential)[\w-]*["']?\s*[:=]\s*(?:"[^"]*"|'[^']*'|(?:basic|bearer|digest)\s+\S+|[^\s,;&}\]]+)"#,
         // bearer / token / authorization values
         r"(?i)()\b(?:bearer|token|authorization|apikey)\s*[:=]?\s*[A-Za-z0-9._~+/=-]{8,}",
         // cookies
@@ -114,6 +117,29 @@ pub fn value(input: &Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn credential_assignments_are_removed() {
+        for leak in [
+            "Authorization: Basic dXNlcjpwYXNzd29yZA==",
+            "proxy_password=hunter2",
+            r#"{"token":"abcdefghijklmno"}"#,
+            "api-key: 'abc def'",
+            "secret = s3cr3t-value",
+        ] {
+            let out = text(leak);
+            for secret in [
+                "dXNlcjpwYXNzd29yZA",
+                "hunter2",
+                "abcdefghijklmno",
+                "abc def",
+                "s3cr3t",
+            ] {
+                assert!(!out.contains(secret), "{leak:?} -> {out:?}");
+            }
+        }
+        assert_eq!(text("tokens are fine"), "tokens are fine");
+    }
     use serde_json::json;
 
     #[test]
