@@ -62,8 +62,14 @@ pub struct LayoutState {
 pub struct WebviewManager {
     layout: Mutex<Layout>,
     /// Accounts whose page finished loading, and scripts waiting for it.
-    ready: Mutex<BTreeSet<i64>>,
-    pending: Mutex<Vec<(i64, String)>>,
+    /// One mutex, so a script cannot be queued after its page drained.
+    loads: Mutex<PageLoads>,
+}
+
+#[derive(Default)]
+struct PageLoads {
+    ready: BTreeSet<i64>,
+    pending: Vec<(i64, String)>,
 }
 
 impl WebviewManager {
@@ -237,7 +243,7 @@ impl WebviewManager {
             builder = builder.proxy_url(proxy);
         }
 
-        self.ready.lock().unwrap().remove(&account.id);
+        self.loads.lock().unwrap().ready.remove(&account.id);
         let webview = window.add_child(
             builder,
             LogicalPosition::new(0.0, 0.0),
@@ -341,19 +347,25 @@ impl WebviewManager {
 
     /// Evaluate `script` now if the page has loaded, or after it loads.
     pub fn eval_when_ready<R: Runtime>(&self, app: &AppHandle<R>, account_id: i64, script: String) {
-        if self.ready.lock().unwrap().contains(&account_id) {
-            self.eval(app, account_id, &script);
-        } else {
-            self.pending.lock().unwrap().push((account_id, script));
+        {
+            let mut loads = self.loads.lock().unwrap();
+            if !loads.ready.contains(&account_id) {
+                loads.pending.push((account_id, script));
+                return;
+            }
         }
+        self.eval(app, account_id, &script);
     }
 
     fn page_loaded<R: Runtime>(&self, webview: &Webview<R>, account_id: i64) {
-        self.ready.lock().unwrap().insert(account_id);
         let scripts: Vec<String> = {
-            let mut pending = self.pending.lock().unwrap();
-            let (now, later) = pending.drain(..).partition(|(id, _)| *id == account_id);
-            *pending = later;
+            let mut loads = self.loads.lock().unwrap();
+            loads.ready.insert(account_id);
+            let (now, later) = loads
+                .pending
+                .drain(..)
+                .partition(|(id, _)| *id == account_id);
+            loads.pending = later;
             now.into_iter().map(|(_, script)| script).collect()
         };
         for script in scripts {
