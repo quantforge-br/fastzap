@@ -728,7 +728,10 @@ impl Client {
     /// The private journal after `after`; works while WhatsApp is offline.
     pub async fn chat_events(&self, token: &InstanceToken, after: &str) -> EvoResult<EventPage> {
         let mut url = self.url("/chat/events");
-        url.query_pairs_mut().append_pair("after", after);
+        // The server rejects an empty cursor; without one it starts at 0.
+        if !after.is_empty() {
+            url.query_pairs_mut().append_pair("after", after);
+        }
         let (name, value) = key_header(&token.0);
         let response = self
             .http
@@ -768,7 +771,9 @@ fn sent_id(data: &Value, fallback: &str) -> EvoResult<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::matchers::{body_json, header, method, path, query_param};
+    use wiremock::matchers::{
+        body_json, header, method, path, query_param, query_param_is_missing,
+    };
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     fn admin() -> AdminKey {
@@ -958,5 +963,24 @@ mod tests {
             .unwrap();
         assert_eq!(page.events[0].id, "42");
         assert_eq!(page.next_cursor, "42");
+    }
+
+    #[tokio::test]
+    async fn first_journal_read_sends_no_cursor() {
+        let server = MockServer::start().await;
+        Mock::given(path("/chat/events"))
+            .and(query_param_is_missing("after"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "message": "success",
+                "data": {"events": [], "nextCursor": "0", "hasMore": false}
+            })))
+            .mount(&server)
+            .await;
+        let page = client(&server)
+            .await
+            .chat_events(&token(), "")
+            .await
+            .unwrap();
+        assert!(page.events.is_empty());
     }
 }

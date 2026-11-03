@@ -247,6 +247,8 @@
 - Evolution Go QR and phone pairing requests are refused while WhatsApp is
   linked, since the server restarts a logged-in client to issue a new QR;
   passkey ceremonies open in the system browser.
+- Evolution Go: the first journal read no longer sends an empty cursor, which
+  the server rejected, so recovery now starts on a fresh install.
 
 ### Changed
 
