@@ -142,6 +142,9 @@
   edits, deletes, read receipts, typing, cached media, older history requests,
   avatars and contacts.
 - Typed IPC wrappers and formatting helpers for the Evolution Go chat.
+- Evolution Go account setup dialog in Settings → Accounts: server address,
+  admin key, instance listing, reuse or creation of an instance, and
+  reconfiguration of existing accounts.
 
 ### Fixed
 

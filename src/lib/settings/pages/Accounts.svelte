@@ -5,6 +5,7 @@
   import { addAccount, DEFAULT_ACCOUNT, setDoNotDisturb, setEnabled } from "$lib/accounts/actions";
   import { iconSrc } from "$lib/accounts/icon";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+  import SetupDialog from "$lib/evolution/SetupDialog.svelte";
   import Row from "$lib/components/settings/Row.svelte";
   import Section from "$lib/components/settings/Section.svelte";
   import Switch from "$lib/components/settings/Switch.svelte";
@@ -17,6 +18,8 @@
   let list = $state<Account[]>([]);
   let editing = $state<Account | null>(null);
   let removing = $state<Account | null>(null);
+  // Evolution Go setup: `null` adds an account, an account reconfigures it.
+  let evolutionSetup = $state<{ account: Account | null } | null>(null);
   let alert = $state<{ title: string; message: string } | null>(null);
 
   const limit = $derived((store.settings as Settings).system.max_accounts);
@@ -73,6 +76,12 @@
   <Section title={t("Account list")} description={t("Each account can have independent settings.")}>
     {#snippet actions()}
       <button class="btn primary" disabled={full} onclick={add}>+ {t("Add account")}</button>
+      <button
+        class="btn"
+        disabled={full}
+        title={t("Use WhatsApp through your own Evolution Go server instead of WhatsApp Web.")}
+        onclick={() => (evolutionSetup = { account: null })}>+ {t("Evolution Go")}</button
+      >
     {/snippet}
     <p class="limit muted">
       {full
@@ -87,6 +96,11 @@
       <header>
         <img class="avatar" src={iconSrc(account.icon)} alt="" />
         <span class="name" title={name}>{name}</span>
+        {#if account.kind === "evolution_go"}
+          <button class="btn" title={account.evolution?.base_url ?? ""} onclick={() => (evolutionSetup = { account })}>
+            {t("Evolution Go")}
+          </button>
+        {/if}
         <button class="btn" title={t("Edit account")} onclick={() => (editing = account)}>{t("Edit")}</button>
         <button
           class="btn danger"
@@ -132,6 +146,10 @@
 
 {#if editTarget}
   <AccountEditDialog account={editTarget} onclose={() => (editing = null)} />
+{/if}
+
+{#if evolutionSetup}
+  <SetupDialog account={evolutionSetup.account} onclose={() => (evolutionSetup = null)} />
 {/if}
 
 {#if removing}
