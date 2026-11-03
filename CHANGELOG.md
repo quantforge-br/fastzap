@@ -36,3 +36,5 @@
 - Account updates and creation are atomic, a JSON `null` icon clears the
   avatar, partial reorders append the omitted accounts and imported accounts
   never replace existing ones.
+- An unreadable `settings.json` stops startup instead of being replaced by
+  defaults.

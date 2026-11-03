@@ -13,7 +13,7 @@ use crate::settings::store::SettingsStore;
 
 pub fn init_state<R: Runtime>(app: &AppHandle<R>) -> anyhow::Result<()> {
     let paths = AppPaths::resolve(app)?;
-    let settings = SettingsStore::load(paths.settings_file());
+    let settings = SettingsStore::load(paths.settings_file())?;
     let accounts = AccountStore::open(&paths.accounts_db())?;
     let secrets: Arc<dyn SecretStore> = Arc::new(KeyringStore);
 

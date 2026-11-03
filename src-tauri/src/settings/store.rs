@@ -23,24 +23,26 @@ pub struct SettingsStore {
 
 impl SettingsStore {
     /// Load `settings.json` from `path`. A missing file yields defaults; a corrupt
-    /// file is moved aside to `settings.json.corrupt` and defaults are used.
-    pub fn load(path: impl Into<PathBuf>) -> Self {
+    /// file is moved aside to `settings.json.corrupt` and defaults are used. Any
+    /// other I/O error is returned so an unreadable file is never overwritten.
+    pub fn load(path: impl Into<PathBuf>) -> Result<Self, StoreError> {
         let path = path.into();
         let settings = match fs::read_to_string(&path) {
             Ok(text) => match parse(&text) {
                 Ok(settings) => settings,
                 Err(err) => {
                     log::warn!("discarding unreadable settings file: {err}");
-                    let _ = fs::rename(&path, path.with_extension("json.corrupt"));
+                    fs::rename(&path, path.with_extension("json.corrupt"))?;
                     Settings::default()
                 }
             },
-            Err(_) => Settings::default(),
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => Settings::default(),
+            Err(err) => return Err(err.into()),
         };
-        Self {
+        Ok(Self {
             path,
             current: RwLock::new(settings),
-        }
+        })
     }
 
     pub fn path(&self) -> &Path {
@@ -123,7 +125,7 @@ mod tests {
     #[test]
     fn missing_file_yields_defaults() {
         let dir = tempfile::tempdir().unwrap();
-        let store = SettingsStore::load(dir.path().join("settings.json"));
+        let store = SettingsStore::load(dir.path().join("settings.json")).unwrap();
         assert_eq!(store.get(), Settings::default());
         assert!(!store.exists_on_disk());
     }
@@ -132,11 +134,11 @@ mod tests {
     fn patch_persists_and_reloads() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("settings.json");
-        let store = SettingsStore::load(&path);
+        let store = SettingsStore::load(&path).unwrap();
         store
             .patch(&json!({"appearance": {"theme": "dark", "scale": 125}}))
             .unwrap();
-        let reloaded = SettingsStore::load(&path).get();
+        let reloaded = SettingsStore::load(&path).unwrap().get();
         assert_eq!(reloaded.appearance.theme, ThemeMode::Dark);
         assert_eq!(reloaded.appearance.scale, 125);
         assert!(reloaded.appearance.sidebar);
@@ -145,7 +147,7 @@ mod tests {
     #[test]
     fn invalid_patch_is_rejected_without_changes() {
         let dir = tempfile::tempdir().unwrap();
-        let store = SettingsStore::load(dir.path().join("settings.json"));
+        let store = SettingsStore::load(dir.path().join("settings.json")).unwrap();
         assert!(
             store
                 .patch(&json!({"appearance": {"theme": "purple"}}))
@@ -159,8 +161,18 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("settings.json");
         fs::write(&path, "{not json").unwrap();
-        let store = SettingsStore::load(&path);
+        let store = SettingsStore::load(&path).unwrap();
         assert_eq!(store.get(), Settings::default());
         assert!(dir.path().join("settings.json.corrupt").exists());
+    }
+
+    #[test]
+    fn unreadable_file_is_an_error() {
+        let dir = tempfile::tempdir().unwrap();
+        // A directory in place of the file fails with an error other than NotFound.
+        let path = dir.path().join("settings.json");
+        fs::create_dir(&path).unwrap();
+        assert!(SettingsStore::load(&path).is_err());
+        assert!(path.is_dir());
     }
 }
