@@ -42,6 +42,12 @@ pub fn on_settings_changed<R: Runtime>(app: &AppHandle<R>, old: &Settings, new: 
             log::warn!("failed to recreate account webviews: {e}");
         }
     }
+    if old.reporting.crash_prompts != new.reporting.crash_prompts {
+        crate::reporting::session::CRASH_PROMPTS.store(
+            new.reporting.crash_prompts,
+            std::sync::atomic::Ordering::Relaxed,
+        );
+    }
     if old.spellcheck != new.spellcheck {
         crate::spellcheck::apply_all(app);
     }

@@ -39,7 +39,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Tema auto/claro/escuro | `core/theme`, `theme_controller.js` | `theme` + script portado | `auto` segue o portal `color-scheme` |
 | Idioma da interface | gettext `po/` | `i18n` (catálogos JSON gerados dos `.po`) | |
 | Verificação de atualizações | `core/update_checker.py` | `update` | mesma política por empacotamento |
-| Relatórios de problemas | `core/reporting`, `features/reporting` | `reporting` | |
+| Relatórios de problemas | `core/reporting`, `features/reporting` | `reporting` + `src/lib/reporting/` | sem `faulthandler`/zip de crash: logs são os avisos da sessão atual; ver lacunas |
 | Doação e lembrete | `features/donation` | página Doação | |
 | Onboarding | `features/initial_setup` | `src/routes/onboarding` | |
 | Desempenho | `core/config/settings/performance.py` | `settings::performance` | ver lacunas |
@@ -88,3 +88,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 - **Permissões em Windows/macOS**: o Tauri não expõe o pedido de permissão
   do WebView2/WKWebView; valem os prompts próprios do sistema e as opções de
   concessão automática não têm efeito.
+- **Relatórios**: não há `faulthandler.log`, zips de crash nem rastro de
+  diagnóstico do motor. Um pânico vira relatório (o build de release aborta
+  logo depois); uma saída sem limpeza só registra o marcador, sem sinal nem
+  logs da sessão anterior. Diagnósticos de GPU/VAAPI/Vulkan não são coletados.

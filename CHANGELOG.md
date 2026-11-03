@@ -107,6 +107,12 @@
   entries, with Check Spelling and Languages… items.
 - scripts/hunspell-catalog.mjs regenerates the embedded Hunspell catalog from
   a wooorm/dictionaries commit.
+- Problem reports kept on the device: the Report a problem settings page, a
+  form with a sanitized review, Markdown copied to the clipboard and the
+  GitHub new-issue page, local records (20 files, 30 days), unclean-exit
+  detection through a session marker, panic capture and the startup review
+  prompt when failure notifications are on.
+- Reset settings in the Report a problem page's maintenance section.
 
 ### Fixed
 
@@ -191,3 +197,5 @@
   which keeps both the generated icon and a photo; a synced profile photo no
   longer discards the generated icon. The default account (id 1) cannot be
   removed.
+- About's Report a problem row opens the report dialog instead of the issue
+  list.

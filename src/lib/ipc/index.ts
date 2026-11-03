@@ -17,6 +17,10 @@ import type { DownloadPrompt } from "./generated/DownloadPrompt";
 import type { PermissionPrompt } from "./generated/PermissionPrompt";
 import type { Rect } from "./generated/Rect";
 import type { RegionCallingCode } from "./generated/RegionCallingCode";
+import type { ProblemForm } from "./generated/ProblemForm";
+import type { ReportHandoff } from "./generated/ReportHandoff";
+import type { ReportStatus } from "./generated/ReportStatus";
+import type { ReportView } from "./generated/ReportView";
 import type { Settings } from "./generated/Settings";
 import type { SpellState } from "./generated/SpellState";
 import type { UiAction } from "./generated/UiAction";
@@ -38,6 +42,10 @@ export type {
   PermissionPrompt,
   Rect,
   RegionCallingCode,
+  ProblemForm,
+  ReportHandoff,
+  ReportStatus,
+  ReportView,
   Settings,
   SpellState,
   UiAction,
@@ -91,6 +99,19 @@ export const spellcheck = {
   remove: (tag: string, disable: boolean) => invoke<void>("spell_remove", { tag, disable }),
   import: () => invoke<string | null>("spell_import"),
   openFolder: () => invoke<void>("spell_open_folder"),
+};
+
+export const reporting = {
+  preview: (form: ProblemForm) => invoke<ReportView>("report_preview", { form }),
+  save: (id: string | null, document: Record<string, unknown>) =>
+    invoke<ReportHandoff>("report_save", { id, document }),
+  openGithub: (id: string) => invoke<boolean>("report_open_github", { id }),
+  list: () => invoke<ReportView[]>("report_list"),
+  pending: () => invoke<ReportView | null>("report_pending"),
+  keep: (id: string) => invoke<void>("report_keep", { id }),
+  remove: (id: string) => invoke<void>("report_delete", { id }),
+  clear: () => invoke<void>("report_clear"),
+  openFolder: () => invoke<void>("report_open_folder"),
 };
 
 export const layout = {

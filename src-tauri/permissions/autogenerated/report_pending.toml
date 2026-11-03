@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-report-pending"
+description = "Enables the report_pending command without any pre-configured scope."
+commands.allow = ["report_pending"]
+
+[[permission]]
+identifier = "deny-report-pending"
+description = "Denies the report_pending command without any pre-configured scope."
+commands.deny = ["report_pending"]

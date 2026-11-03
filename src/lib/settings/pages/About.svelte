@@ -5,6 +5,7 @@
   import Section from "$lib/components/settings/Section.svelte";
   import { t } from "$lib/i18n/index.svelte";
   import { app, type AppInfo } from "$lib/ipc";
+  import { openReport } from "$lib/reporting/request.svelte";
 
   import Page from "../Page.svelte";
 
@@ -58,7 +59,7 @@
     </Row>
     <Row title={t("Report a problem")} description={t("Report bugs or suggest improvements on GitHub.")}>
       {#snippet control()}
-        <a class="btn" href={`${REPOSITORY}/issues`} target="_blank" rel="noreferrer">↗</a>
+        <button class="btn" onclick={() => openReport()}>↗</button>
       {/snippet}
     </Row>
     <Row title={t("Support FastZap")} description={t("Learn how to contribute to the project's development.")}>

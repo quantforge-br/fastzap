@@ -70,6 +70,15 @@
     "allow-spell-install",
     "allow-spell-remove",
     "allow-spell-import",
-    "allow-spell-open-folder"
+    "allow-spell-open-folder",
+    "allow-report-preview",
+    "allow-report-save",
+    "allow-report-open-github",
+    "allow-report-list",
+    "allow-report-pending",
+    "allow-report-keep",
+    "allow-report-delete",
+    "allow-report-clear",
+    "allow-report-open-folder"
   ]
 }

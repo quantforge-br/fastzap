@@ -11,6 +11,8 @@
   import { t } from "$lib/i18n/index.svelte";
   import SettingsView from "$lib/settings/SettingsView.svelte";
   import { spellPicker } from "$lib/spellcheck/request.svelte";
+  import ReportDialog from "$lib/reporting/ReportDialog.svelte";
+  import { closeReport, openReport, reportDialog } from "$lib/reporting/request.svelte";
   import { DEFAULT_PAGE } from "$lib/settings/pages";
   import { patchSettings, startSettings, store } from "$lib/stores/settings.svelte";
 
@@ -21,9 +23,11 @@
     events,
     layout as layoutApi,
     on,
+    reporting,
     type Account,
     type DownloadPrompt,
     type PermissionPrompt,
+    type ReportView,
     type LayoutState,
     type UiAction,
     type UnreadSnapshot,
@@ -86,6 +90,8 @@
 
   let prompts = $state<DownloadPrompt[]>([]);
   let permissionPrompts = $state<PermissionPrompt[]>([]);
+  // A crash report from the last run, offered once at startup.
+  let pendingReport = $state<ReportView | null>(null);
   let downloading = $state(false);
   let savedBadge = $state(false);
   let savedTimer: ReturnType<typeof setTimeout> | undefined;
@@ -104,7 +110,7 @@
   let removing = $state<Account | null>(null);
   const editTarget = $derived(editing ? (accounts.find((a) => a.id === editing!.id) ?? null) : null);
 
-  const overlay = $derived(panel !== null || confirm !== null || editTarget !== null || removing !== null || prompts.length > 0 || permissionPrompts.length > 0);
+  const overlay = $derived(panel !== null || confirm !== null || editTarget !== null || removing !== null || prompts.length > 0 || permissionPrompts.length > 0 || reportDialog.open || pendingReport !== null);
   $effect(() => {
     layoutApi.setOverlay(overlay);
   });
@@ -153,6 +159,7 @@
       settingsPage = "accounts";
       return openPanel("settings");
     }
+    if (action.action === "report_problem") return openReport();
     if (action.action === "spellcheck_languages") {
       spellPicker.requested = true;
       settingsPage = "language_downloads";
@@ -181,6 +188,7 @@
       win.onResized(async () => (maximized = await win.isMaximized())),
     ];
     startSettings();
+    reporting.pending().then((report) => (pendingReport = report));
     app.desktop().then((d) => (desktop = d));
     win.isMaximized().then((m) => (maximized = m));
     Promise.all([accountsApi.list(), layoutApi.get(), app.unread()]).then(([a, l, u]) => {
@@ -338,6 +346,51 @@
 {/if}
 
 <svelte:window onkeydown={(e) => confirm && e.key === "Escape" && answerClose(false)} />
+
+
+{#if pendingReport}
+  <div class="backdrop">
+    <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="crash-title">
+      <h2 id="crash-title">{t("FastZap found a problem")}</h2>
+      <p>{t("FastZap closed unexpectedly during the last run.")}</p>
+      <p class="muted">
+        {t(
+          "A sanitized report was prepared on this device. FastZap will not send it; after reviewing, you can copy it and open GitHub.",
+        )}
+      </p>
+      <div class="actions">
+        <button
+          onclick={() => {
+            if (pendingReport?.id) reporting.keep(pendingReport.id);
+            pendingReport = null;
+          }}>{t("Keep locally")}</button
+        >
+        <button
+          class="danger"
+          onclick={() => {
+            if (pendingReport?.id) reporting.remove(pendingReport.id);
+            pendingReport = null;
+          }}>{t("Discard report")}</button
+        >
+        <!-- svelte-ignore a11y_autofocus -->
+        <button
+          class="primary"
+          autofocus
+          onclick={() => {
+            const report = pendingReport;
+            pendingReport = null;
+            if (report?.id) reporting.keep(report.id);
+            openReport(report);
+          }}>{t("Review report")}</button
+        >
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if reportDialog.open}
+  <ReportDialog review={reportDialog.review} onclose={closeReport} />
+{/if}
 
 <style>
   .window {

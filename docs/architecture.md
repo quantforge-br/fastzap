@@ -232,6 +232,29 @@ leitura. As tags seguem a normalização do Enchant (`pt-PT` → `pt_PT`).
 - UI: seção da página Idioma e Download, `LanguagePicker` e
   `DictionaryManager`; o evento `spellcheck://changed` atualiza ambos.
 
+## Relatórios de problemas
+
+`reporting` segue o `core/reporting` do ZapZap; nada sai do dispositivo sem
+revisão do usuário.
+
+- `sanitize`: remove caminhos pessoais, query/fragmento de URLs, e-mails, IDs
+  de chat, tokens, cookies, UUIDs e telefones; em documentos JSON descarta
+  chaves com cara de segredo e preserva IDs, versões e horários bem formados.
+- `document`: relatório manual (`manual_problem`), pânico
+  (`automatic_crash`) e sessão anterior não encerrada
+  (`unexpected_shutdown`); Markdown em inglês e URL
+  `github.com/quantmind-br/fastzap/issues/new?title=…` (só o título).
+- `store`: `<data>/reports/<id>.json`, no máximo 20 e 30 dias; status
+  `pending`, `pending_review`, `copied`, `opened_on_github`.
+- `session`: `.session-active` com fases `startup`/`running`/`shutdown`
+  (`crashed` após um pânico); removido no `RunEvent::Exit`. Um marcador
+  sobrando vira relatório na próxima execução quando
+  `reporting.crash_prompts` está ligado. O `TeeLogger` mantém avisos e erros
+  da sessão (16 kB) para a opção de logs; o panic hook guarda o último pânico.
+- UI: página Relatar um problema (`debugging`), `ReportDialog` (formulário e
+  revisão; a UI copia o Markdown e o backend abre o GitHub),
+  `ReportsDialog` e o aviso de inicialização (só após o onboarding).
+
 ## Traduções
 
 `po/*.po` vem do ZapZap (mesmo domínio e idiomas). `pnpm i18n`

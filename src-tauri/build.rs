@@ -60,6 +60,15 @@ const UI_COMMANDS: &[&str] = &[
     "spell_remove",
     "spell_import",
     "spell_open_folder",
+    "report_preview",
+    "report_save",
+    "report_open_github",
+    "report_list",
+    "report_pending",
+    "report_keep",
+    "report_delete",
+    "report_clear",
+    "report_open_folder",
 ];
 
 /// Commands exposed to https://web.whatsapp.com.

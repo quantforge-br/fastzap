@@ -12,6 +12,7 @@ pub mod paths;
 pub mod permissions;
 pub mod platform;
 pub mod proxy;
+pub mod reporting;
 pub mod secrets;
 pub mod settings;
 pub mod spellcheck;
@@ -20,7 +21,7 @@ pub mod webview;
 
 use commands::{
     accounts as acc, app as appcmd, bridge, customizations as custom, downloads as dl,
-    settings as set, spellcheck as spell, webview as wv,
+    reporting as report, settings as set, spellcheck as spell, webview as wv,
 };
 use tauri::Manager;
 use tauri_plugin_window_state::StateFlags;
@@ -29,7 +30,10 @@ pub const APP_ID: &str = "io.github.quantmind_br.fastzap";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    reporting::session::TeeLogger::init(
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).build(),
+    );
+    reporting::session::install_panic_hook();
     let options = app::cli::parse(std::env::args().skip(1));
     #[cfg(target_os = "linux")]
     if let Some(backend) = app::cli::gdk_backend(
@@ -81,6 +85,10 @@ pub fn run() {
             let handle = app.handle();
             app::bootstrap::init_state(handle)?;
             let state = handle.state::<app::state::AppState>();
+            reporting::session::start(
+                &reporting::store::ReportStore::new(state.paths.reports_dir()),
+                state.settings.get().reporting.crash_prompts,
+            );
             let started_with_system = state.settings.get().system.start_system;
             if !options.set_settings.is_empty() {
                 state.settings.update(|s| {
@@ -124,6 +132,7 @@ pub fn run() {
                 }
             }
             app::lifecycle::mark_ready(handle);
+            reporting::session::mark("running");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -184,6 +193,15 @@ pub fn run() {
             spell::spell_remove,
             spell::spell_import,
             spell::spell_open_folder,
+            report::report_preview,
+            report::report_save,
+            report::report_open_github,
+            report::report_list,
+            report::report_pending,
+            report::report_keep,
+            report::report_delete,
+            report::report_clear,
+            report::report_open_folder,
             bridge::wa_title_changed,
             bridge::wa_shortcut,
             bridge::wa_theme_event,
@@ -196,8 +214,14 @@ pub fn run() {
         .expect("error while building FastZap");
     app.run(|handle, event| match event {
         // Windows still exist here, unlike at `Exit`.
-        tauri::RunEvent::ExitRequested { .. } => app::panel::shutdown(handle),
-        tauri::RunEvent::Exit => app::lifecycle::shutdown(handle),
+        tauri::RunEvent::ExitRequested { .. } => {
+            reporting::session::mark("shutdown");
+            app::panel::shutdown(handle);
+        }
+        tauri::RunEvent::Exit => {
+            app::lifecycle::shutdown(handle);
+            reporting::session::close();
+        }
         // macOS delivers `whatsapp:` links as Apple events, not arguments.
         #[cfg(target_os = "macos")]
         tauri::RunEvent::Opened { urls } => {

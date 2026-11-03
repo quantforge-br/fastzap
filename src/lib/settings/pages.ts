@@ -11,6 +11,7 @@ import NetworkPrivacy from "./pages/NetworkPrivacy.svelte";
 import Customizations from "./pages/Customizations.svelte";
 import Performance from "./pages/Performance.svelte";
 import About from "./pages/About.svelte";
+import Debugging from "./pages/Debugging.svelte";
 
 export interface SettingsPage {
   id: string;
@@ -28,6 +29,7 @@ export const PAGES: SettingsPage[] = [
   { id: "network_privacy", label: "Privacy and Network", component: NetworkPrivacy },
   { id: "advanced_customizations", label: "Advanced Customizations", component: Customizations },
   { id: "performance_experimental", label: "Performance experimental", component: Performance },
+  { id: "debugging", label: "Report a problem", component: Debugging },
   { id: "about", label: "About", component: About },
 ];
 

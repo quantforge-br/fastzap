@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-report-delete"
+description = "Enables the report_delete command without any pre-configured scope."
+commands.allow = ["report_delete"]
+
+[[permission]]
+identifier = "deny-report-delete"
+description = "Denies the report_delete command without any pre-configured scope."
+commands.deny = ["report_delete"]
