@@ -128,6 +128,8 @@ pub struct InstanceRow {
     pub rabbitmq_enable: String,
     #[serde(default, rename = "natsEnable")]
     pub nats_enable: String,
+    #[serde(default, rename = "websocketEnable")]
+    pub websocket_enable: String,
     #[serde(default)]
     pub events: String,
 }
@@ -149,6 +151,16 @@ impl InstanceRow {
             connected: self.connected,
             jid: self.jid.clone(),
         }
+    }
+
+    /// Whether `connect` must run: the client is down, the WebSocket is off
+    /// or a category this app needs is not subscribed.
+    pub fn needs_connect(&self) -> bool {
+        let subscribed: Vec<&str> = self.events.split(',').map(str::trim).collect();
+        !self.connected
+            || !matches!(self.websocket_enable.as_str(), "true" | "enabled")
+            || !(subscribed.contains(&"ALL")
+                || SUBSCRIPTIONS.iter().all(|s| subscribed.contains(s)))
     }
 
     pub fn token(&self) -> Option<InstanceToken> {
@@ -509,6 +521,10 @@ impl Client {
         quote: Option<&Quote>,
     ) -> EvoResult<String> {
         let mut body = json!({"number": number, "text": text, "id": id});
+        // A known JID must not be reformatted (Brazilian ninth digit, LIDs).
+        if number.contains('@') {
+            body["formatJid"] = false.into();
+        }
         if let Some(quote) = quote {
             body["quoted"] = serde_json::to_value(quote).unwrap_or_default();
         }
@@ -534,6 +550,9 @@ impl Client {
             .text("id", id.to_owned())
             .text("filename", media.filename)
             .part("file", part);
+        if number.contains('@') {
+            form = form.text("formatJid", "false");
+        }
         if !media.caption.is_empty() {
             form = form.text("caption", media.caption);
         }
@@ -860,6 +879,12 @@ mod tests {
             .collect();
         assert!(subscribe.contains(&"CALL") && subscribe.contains(&"HISTORY_SYNC"));
         assert_eq!(subscribe.iter().filter(|s| **s == "MESSAGE").count(), 1);
+        assert!(row.needs_connect());
+        let ready: InstanceRow = serde_json::from_value(json!({
+            "id": "u1", "connected": true, "websocketEnable": "true", "events": "ALL"
+        }))
+        .unwrap();
+        assert!(!ready.needs_connect());
 
         let server = MockServer::start().await;
         Mock::given(method("POST"))

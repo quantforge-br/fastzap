@@ -76,6 +76,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .manage(notifications::NotificationService::default())
+        .manage(evolution::Evolution::default())
         .manage(update::UpdateState::default())
         .manage(app::lifecycle::Services::default())
         .on_menu_event(bridge::on_menu_event);
@@ -103,6 +104,7 @@ pub fn run() {
             i18n::set_language(&settings.system.interface_language);
             app::window::create_main(handle)?;
             state.webviews.sync(handle)?;
+            evolution::sync(handle);
             spellcheck::provision(handle);
             tray::init(handle)?;
             #[cfg(unix)]

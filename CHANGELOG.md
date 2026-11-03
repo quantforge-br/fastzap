@@ -133,6 +133,9 @@
   history-sync anchors.
 - Evolution Go WebSocket loop with 20-second pings, bounded reconnect backoff,
   double-decoded frames, instance filtering and instance-token redaction.
+- Evolution Go session manager: instance connect with preserved configuration,
+  WebSocket events, journal catch-up from a saved cursor, unread counts,
+  native notifications and notification clicks that open the chat.
 
 ### Fixed
 

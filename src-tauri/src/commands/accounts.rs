@@ -10,6 +10,7 @@ fn changed(app: &AppHandle, state: &AppState) -> CommandResult<Vec<Account>> {
     let list = state.accounts.list()?;
     app.emit(ACCOUNTS_CHANGED, &list)?;
     effects::on_accounts_changed(app);
+    crate::evolution::sync(app);
     Ok(list)
 }
 
@@ -63,6 +64,7 @@ pub async fn accounts_delete(
         return Err("the default account cannot be removed".into());
     }
     state.accounts.delete(id)?;
+    crate::evolution::stop(&app, id);
     // Close the webview before deleting its data directory.
     if let Some(webview) = tauri::Manager::get_webview(&app, &crate::webview::manager::label(id)) {
         let _ = webview.close();

@@ -307,6 +307,7 @@ fn activated(app: &AppHandle, activation: Activation) {
         record.account_id,
         &scripts::notification_clicked(record.web_id),
     );
+    crate::evolution::notification_clicked(app, record.account_id, &record.tag);
     #[cfg(target_os = "linux")]
     if crate::platform::is_flatpak() {
         let app = app.clone();
