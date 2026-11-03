@@ -24,14 +24,18 @@ cobre:
 - **webview**: allowlist de navegação, deep links, User-Agent por conta.
 - **notifications**: política global/por conta, ocultação de nome e texto.
 - **evolution**: cliente REST com `wiremock` (escopo admin vs instância,
-  payload completo do connect, campos capitalizados, erros não-2xx, timeout
-  de envio → resultado desconhecido), decodificação dupla do WebSocket,
-  remoção de `instanceToken`, deduplicação e store SQLite.
+  payload completo e mesclado do connect, campos capitalizados, erros não-2xx
+  sanitizados, timeout de envio → resultado ambíguo, journal); WebSocket
+  contra um servidor `tokio-tungstenite` local (decodificação dupla, remoção
+  de `instanceToken`, filtro de instância, frame de 20 MiB, reconexão);
+  parser de eventos (texto, resposta, mídia desembrulhada, reação, edição,
+  revogação, recibos, HistorySync); store SQLite (deduplicação, outbox,
+  recibos que só avançam, páginas, âncora do history-sync, nomes).
 - **customizations**, **downloads**, **reporting**: regras puras de arquivos,
   histórico e sanitização.
 
 Testes do frontend (Vitest) cobrem funções puras de `src/lib/` (formatação,
-i18n, agrupamento de mensagens).
+i18n, validação, `src/lib/evolution/format.ts`).
 
 ## Verificações manuais
 

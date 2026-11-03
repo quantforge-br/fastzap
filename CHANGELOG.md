@@ -261,3 +261,5 @@
 - The main window shows the onboarding on first run, then the support
   reminder, and opens the send message, shortcuts and donation panels instead
   of placeholders; architecture and parity docs cover them.
+- Architecture, parity and testing documentation describe the Evolution Go
+  account mode, its secrets handling and its known gaps.

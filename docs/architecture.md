@@ -43,8 +43,10 @@ Regras de dependência:
 - `SettingsStore` (`RwLock<Settings>` + caminho do JSON);
 - `AccountStore` (SQLite `accounts.db`);
 - `UnreadRegistry` (contagem por conta → tray, badge e sidebar);
-- `EvolutionHub` (um `EvolutionSession` por conta Evolution Go);
 - `DownloadHistory`.
+
+`evolution::Evolution` é registrado à parte (`app.manage`) e guarda uma
+`evolution::Session` por conta Evolution Go ativa.
 
 Mudanças de estado relevantes para a UI são emitidas como eventos Tauri com
 nomes estáveis (`settings://changed`, `accounts://changed`,
@@ -321,11 +323,42 @@ Fotos circulares ficam em `<cache>/notification-images/`.
 
 ## Contas Evolution Go
 
-Contas do tipo Evolution Go não criam webview remoto. `evolution::session`
-mantém, por conta, o cliente REST, a conexão WebSocket e o store SQLite de
-mensagens; a UI Svelte em `src/routes/chat/` consome os comandos
-`evo_*` e o evento `evolution://event`. Detalhes em
-`docs/evolution-go.md` (a ser escrito com a feature).
+Contas do tipo Evolution Go não criam webview remoto: a área de conteúdo
+mostra `src/lib/evolution/ChatView.svelte` (pareamento, lista de chats e
+conversa), que conversa com o backend pelos comandos `evo_*` e pelo evento
+`evolution://event` (`EvolutionEvent`).
+
+- `evolution::client`: adaptador REST. `AdminKey` e `InstanceToken` são tipos
+  distintos; respostas não-2xx viram `EvoError` antes de abrir
+  `{message, data}` e mensagens do servidor passam por
+  `reporting::sanitize`. Envios que expiram depois de sair viram
+  `Ambiguous` e nunca são repetidos automaticamente.
+- `evolution::ws`: um socket por instância (`/ws?token=<admin>&instanceId=`),
+  ping a cada 20 s, backoff de 1 s a 60 s, frames sem limite de tamanho,
+  decodificação dupla `{queue, payload}` e remoção de `instanceToken`. A URL
+  carrega a chave admin e nunca é registrada.
+- `evolution::model`: converte eventos whatsmeow (mensagens, histórico,
+  recibos, presença, conexão) em `Change`/`Event`, desembrulhando
+  `ephemeralMessage`/`viewOnce`/`editedMessage` e removendo miniaturas.
+- `evolution::store`: SQLite por conta em `<data>/evolution/<id>/chats.db`
+  (chats, mensagens com chave `(chat, id)`, reações, contatos, meta). Status
+  de entrega só avança; o cursor do journal é gravado na mesma transação das
+  mensagens da página. Mídia baixada fica em `<data>/evolution/<id>/media/`.
+- `evolution` (sessão): `sync` inicia/para sessões conforme as contas
+  habilitadas. Cada sessão confere a instância pela listagem admin e só chama
+  `POST /instance/connect` quando o cliente está parado, o WebSocket está
+  desligado ou falta uma categoria; o payload preserva webhook, RabbitMQ, NATS
+  e eventos existentes. Depois de cada conexão do socket, lê
+  `GET /chat/events` a partir do cursor salvo (o journal privado cobre os
+  eventos perdidos com o socket fora). Não lidas entram no `UnreadRegistry`
+  (chats com não lidas, como o título do WhatsApp Web) e mensagens novas
+  geram notificações pelo pipeline comum com `tag` = JID do chat; o clique
+  emite `open_chat`.
+- Segredos: a chave admin e o token da instância ficam só no keyring
+  (`evolution-admin-key:<id>`, `evolution-instance-token:<id>`). A chave admin
+  entra apenas por `evo_instances`/`evo_setup`; nenhum comando a devolve.
+- `GET /instance/qr` reinicia um cliente logado para gerar QR novo, então
+  QR e código por telefone só são pedidos com `LoggedIn` falso.
 
 ## Inicialização e encerramento
 

@@ -43,6 +43,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Doação e lembrete | `features/donation` | `donation` + `src/lib/donation/` | as doações vão para o autor do ZapZap; lembrete é um diálogo e esconde as webviews enquanto aberto |
 | Onboarding | `features/initial_setup` | `src/lib/onboarding/` | o idioma é aplicado ao concluir; seção Flatpak mostra o comando `flatpak override` sem link para o Flatseal |
 | Desempenho | `core/config/settings/performance.py` | `settings::performance` | ver lacunas |
+| Conta Evolution Go (novo) | — | `evolution` + `src/lib/evolution/` | chat nativo sobre uma instância Evolution Go: pareamento por QR, código ou passkey; texto, mídia, respostas, reações, edição, exclusão, recibos e digitação; ver lacunas |
 
 ## Lacunas conhecidas
 
@@ -92,3 +93,16 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
   diagnóstico do motor. Um pânico vira relatório (o build de release aborta
   logo depois); uma saída sem limpeza só registra o marcador, sem sinal nem
   logs da sessão anterior. Diagnósticos de GPU/VAAPI/Vulkan não são coletados.
+- **Contas Evolution Go** não têm a interface do WhatsApp Web: fixar,
+  arquivar e silenciar chats, status, chamadas, enquetes, figurinhas
+  enviadas, menções, encaminhamento e criação de grupos não existem. Respostas
+  a mensagens que o FastZap não guardou chegam sem texto citado; só as
+  próprias mensagens podem ser apagadas ou editadas; envios de mídia que
+  falham não têm "enviar de novo". Histórico antigo depende do sync inicial
+  do pareamento ou de um pedido ao telefone ("carregar mensagens antigas").
+  Sem `PRIVATE_CHAT_HISTORY` no servidor, eventos perdidos com o WebSocket
+  fora não voltam. A grade (`Ctrl+G`), o zoom, customizações, corretor e o
+  seletor de contas integrado valem só para contas WhatsApp Web; "enviar
+  mensagem para número" abre o WhatsApp Web, enquanto o chat nativo tem o
+  próprio campo de número. A chave admin do servidor fica no keyring local,
+  então o modo serve para uso pessoal num servidor próprio.
