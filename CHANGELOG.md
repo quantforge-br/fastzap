@@ -389,6 +389,11 @@
   is up, missed messages appear and notify, and a socket that missed them is
   replaced; a replaced socket reconnects only after the server dropped the
   old one.
+- Evolution Go replies show the quoted message with its author ("You" or the
+  contact) and content instead of a bare "Quoted message": replies sent from
+  FastZap, quoted media without a caption (by kind, documents by name) and
+  edited quotes; stores migrate to schema 4 (`messages.quote_kind`) and fill
+  the kind and text of stored quotes.
 
 ### Changed
 

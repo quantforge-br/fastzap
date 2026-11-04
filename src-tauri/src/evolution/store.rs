@@ -13,7 +13,7 @@ use ts_rs::TS;
 
 use super::client::ArchivedChat;
 use super::model::{
-    Change, Event, History, Message, MessageKind, QuoteRef, Receipt, Status, is_lid, is_phone,
+    Change, Event, History, Message, MessageKind, Receipt, Status, is_lid, is_phone, quote_of_raw,
 };
 
 pub type StoreResult<T> = Result<T, rusqlite::Error>;
@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS messages (
     quote_id TEXT NOT NULL DEFAULT '',
     quote_participant TEXT NOT NULL DEFAULT '',
     quote_text TEXT NOT NULL DEFAULT '',
+    quote_kind TEXT NOT NULL DEFAULT 'text',
     status INTEGER NOT NULL DEFAULT 3,
     edited INTEGER NOT NULL DEFAULT 0,
     revoked INTEGER NOT NULL DEFAULT 0,
@@ -152,11 +153,27 @@ pub struct ChatMessage {
     pub body: String,
     pub file_name: String,
     pub mime: String,
-    pub quote: Option<QuoteRef>,
+    pub quote: Option<QuotedMessage>,
     pub status: Status,
     pub edited: bool,
     pub revoked: bool,
     pub reactions: Vec<ReactionCount>,
+}
+
+/// The message a reply quotes, as shown above the reply.
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export)]
+pub struct QuotedMessage {
+    pub id: String,
+    /// Author as the reply named it, for sending the reply again.
+    pub participant: String,
+    /// Author JID, under the phone JID when known.
+    pub sender: String,
+    pub sender_name: String,
+    pub from_me: bool,
+    pub kind: MessageKind,
+    /// Text, caption or document name; empty when unknown.
+    pub text: String,
 }
 
 /// What an applied change means for the UI and notifications.
@@ -222,7 +239,12 @@ impl ChatStore {
                 [CURSOR],
             )?;
         }
-        conn.pragma_update(None, "user_version", 3)?;
+        // Version 3 stores did not keep the kind of quoted messages, and
+        // dropped the text of quoted media without a caption.
+        if (1..4).contains(&version) {
+            add_quote_kinds(&conn)?;
+        }
+        conn.pragma_update(None, "user_version", 4)?;
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -559,13 +581,17 @@ impl ChatStore {
             .query_map(params![chat, before, limit], row_to_message)?
             .collect::<StoreResult<Vec<_>>>()?;
         list.reverse();
-        let own = own_chat(&conn)?.is_some_and(|own| own == chat);
+        let own_jid = own_chat(&conn)?;
+        let own = own_jid.as_deref() == Some(chat);
         for message in &mut list {
             if message.from_me {
                 message.status = shown_status(message.status, own);
             }
             if !message.from_me {
                 message.sender_name = display_name(&conn, &message.sender)?;
+            }
+            if let Some(quote) = &mut message.quote {
+                resolve_quote(&conn, chat, own_jid.as_deref(), quote)?;
             }
             message.reactions = reactions(&conn, chat, &message.id)?;
         }
@@ -862,10 +888,15 @@ fn row_to_message(r: &Row<'_>) -> rusqlite::Result<ChatMessage> {
         file_name: r.get("file_name")?,
         mime: r.get("mime")?,
         quote: (!quote_id.is_empty())
-            .then(|| -> rusqlite::Result<QuoteRef> {
-                Ok(QuoteRef {
+            .then(|| -> rusqlite::Result<QuotedMessage> {
+                let participant: String = r.get("quote_participant")?;
+                Ok(QuotedMessage {
                     id: quote_id,
-                    participant: r.get("quote_participant")?,
+                    sender: participant.clone(),
+                    participant,
+                    sender_name: String::new(),
+                    from_me: false,
+                    kind: MessageKind::parse(&r.get::<_, String>("quote_kind")?),
                     text: r.get("quote_text")?,
                 })
             })
@@ -875,6 +906,100 @@ fn row_to_message(r: &Row<'_>) -> rusqlite::Result<ChatMessage> {
         revoked: r.get("revoked")?,
         reactions: Vec::new(),
     })
+}
+
+/// Show a quote with the quoted message when it is stored (its current
+/// text, a caption-less file by name), else with what the reply carried,
+/// and name its author.
+fn resolve_quote(
+    conn: &Connection,
+    chat: &str,
+    own_jid: Option<&str>,
+    quote: &mut QuotedMessage,
+) -> StoreResult<()> {
+    let stored = conn
+        .query_row(
+            "SELECT from_me, sender, kind, body, file_name, revoked FROM messages
+             WHERE chat = ?1 AND id = ?2",
+            params![chat, quote.id],
+            |r| {
+                Ok((
+                    r.get::<_, bool>(0)?,
+                    r.get::<_, String>(1)?,
+                    MessageKind::parse(&r.get::<_, String>(2)?),
+                    r.get::<_, String>(3)?,
+                    r.get::<_, String>(4)?,
+                    r.get::<_, bool>(5)?,
+                ))
+            },
+        )
+        .optional()?;
+    match stored {
+        Some((from_me, sender, kind, body, file_name, revoked)) => {
+            quote.from_me = from_me;
+            quote.sender = sender;
+            // A deleted message keeps the copy the reply carried.
+            if !revoked {
+                quote.kind = kind;
+                quote.text = if body.is_empty() && kind == MessageKind::Document {
+                    file_name
+                } else {
+                    body
+                };
+            }
+        }
+        None => {
+            quote.sender = canonical(conn, &quote.participant)?;
+            quote.from_me = own_jid.is_some_and(|own| own == quote.sender);
+        }
+    }
+    if quote.from_me {
+        quote.sender.clear();
+    } else {
+        if quote.sender.is_empty() {
+            quote.sender = chat.to_owned();
+        }
+        quote.sender_name = display_name(conn, &quote.sender)?;
+    }
+    Ok(())
+}
+
+/// Add `messages.quote_kind` and fill the kind and text of stored quotes from
+/// each reply's proto, in one transaction with the version bump.
+fn add_quote_kinds(conn: &Connection) -> StoreResult<()> {
+    let tx = conn.unchecked_transaction()?;
+    let has_column: bool = tx.query_row(
+        "SELECT EXISTS (SELECT 1 FROM pragma_table_info('messages') WHERE name = 'quote_kind')",
+        [],
+        |r| r.get(0),
+    )?;
+    if !has_column {
+        tx.execute_batch(
+            "ALTER TABLE messages ADD COLUMN quote_kind TEXT NOT NULL DEFAULT 'text'",
+        )?;
+    }
+    {
+        let mut select = tx.prepare("SELECT seq, raw FROM messages WHERE quote_id <> ''")?;
+        let mut update =
+            tx.prepare("UPDATE messages SET quote_kind = ?2, quote_text = ?3 WHERE seq = ?1")?;
+        let mut rows = select.query([])?;
+        while let Some(row) = rows.next()? {
+            let raw: String = row.get(1)?;
+            let Some(quote) = serde_json::from_str(&raw)
+                .ok()
+                .and_then(|v| quote_of_raw(&v))
+            else {
+                continue;
+            };
+            update.execute(params![
+                row.get::<_, i64>(0)?,
+                quote.kind.as_str(),
+                quote.text
+            ])?;
+        }
+    }
+    tx.pragma_update(None, "user_version", 4)?;
+    tx.commit()
 }
 
 /// Recompute a chat's preview from its newest message.
@@ -914,11 +1039,12 @@ fn apply_change(
 ) -> StoreResult<()> {
     match &canonical_change(conn, change)? {
         Change::New(m) => {
-            let quote = m.quote.clone().unwrap_or_default();
+            let quote = m.quote.as_ref();
             let inserted = conn.execute(
                 "INSERT INTO messages (chat, id, sender, from_me, ts, kind, body, file_name,
-                    mime, push_name, quote_id, quote_participant, quote_text, status, raw)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
+                    mime, push_name, quote_id, quote_participant, quote_text, quote_kind,
+                    status, raw)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
                  ON CONFLICT (chat, id) DO NOTHING",
                 params![
                     m.chat,
@@ -931,9 +1057,10 @@ fn apply_change(
                     m.file_name,
                     m.mime,
                     m.push_name,
-                    quote.id,
-                    quote.participant,
-                    quote.text,
+                    quote.map_or("", |q| q.id.as_str()),
+                    quote.map_or("", |q| q.participant.as_str()),
+                    quote.map_or("", |q| q.text.as_str()),
+                    quote.map_or(MessageKind::Text, |q| q.kind).as_str(),
                     status_rank(m.status),
                     m.raw.to_string(),
                 ],
@@ -1018,7 +1145,7 @@ fn apply_change(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::evolution::model::HistoryChat;
+    use crate::evolution::model::{HistoryChat, QuoteRef};
 
     const CHAT: &str = "5511@s.whatsapp.net";
 
@@ -1494,5 +1621,101 @@ mod tests {
         store.set_meta(CURSOR, "997").unwrap();
         drop(store);
         assert_eq!(ChatStore::open(&path).unwrap().cursor().unwrap(), "997");
+    }
+
+    fn reply(id: &str, ts: i64, quote: QuoteRef) -> Message {
+        Message {
+            quote: Some(quote),
+            ..message(id, ts, true, "answer")
+        }
+    }
+
+    #[test]
+    fn quotes_show_the_stored_message_or_the_carried_copy() {
+        let store = ChatStore::in_memory().unwrap();
+        store.bind(BIND_OWNER, "5599", &[]).unwrap();
+        let mut document = message("D", 10, false, "");
+        document.kind = MessageKind::Document;
+        document.file_name = "a.pdf".into();
+        let quote = |id: &str, participant: &str, kind, text: &str| QuoteRef {
+            id: id.into(),
+            participant: participant.into(),
+            kind,
+            text: text.into(),
+        };
+        store
+            .apply(
+                &[
+                    Change::New(document),
+                    Change::New(message("T", 11, false, "old")),
+                    // Our own reply stored before the quote text was kept.
+                    Change::New(reply("R1", 12, quote("D", CHAT, MessageKind::Text, ""))),
+                    Change::New(reply("R2", 13, quote("T", CHAT, MessageKind::Text, "old"))),
+                    Change::New(reply(
+                        "R3",
+                        14,
+                        quote("X", "5599@s.whatsapp.net", MessageKind::Image, ""),
+                    )),
+                    Change::New(reply(
+                        "R4",
+                        15,
+                        quote("Y", "77@s.whatsapp.net", MessageKind::Text, "gone"),
+                    )),
+                    Change::Edit {
+                        chat: CHAT.into(),
+                        target: "T".into(),
+                        body: "new".into(),
+                    },
+                ],
+                true,
+                None,
+            )
+            .unwrap();
+        let quotes: Vec<_> = store
+            .messages(CHAT, None, 10)
+            .unwrap()
+            .into_iter()
+            .filter_map(|m| m.quote)
+            .map(|q| (q.from_me, q.sender_name, q.kind, q.text))
+            .collect();
+        assert_eq!(
+            quotes,
+            [
+                (false, "Ana".into(), MessageKind::Document, "a.pdf".into()),
+                (false, "Ana".into(), MessageKind::Text, "new".into()),
+                (true, String::new(), MessageKind::Image, String::new()),
+                (false, "+77".into(), MessageKind::Text, "gone".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn version_3_stores_learn_the_kind_of_quoted_messages() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("chats.db");
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(&SCHEMA.replace("quote_kind TEXT NOT NULL DEFAULT 'text',", ""))
+                .unwrap();
+            let raw = json!({"extendedTextMessage": {"text": "yes", "contextInfo": {
+                "stanzaID": "Q", "participant": CHAT,
+                "quotedMessage": {"documentMessage": {"fileName": "a.pdf"}}}}});
+            conn.execute(
+                "INSERT INTO messages (chat, id, kind, body, quote_id, quote_participant, raw)
+                 VALUES (?1, 'R', 'text', 'yes', 'Q', ?1, ?2)",
+                params![CHAT, raw.to_string()],
+            )
+            .unwrap();
+            conn.pragma_update(None, "user_version", 3).unwrap();
+        }
+        let store = ChatStore::open(&path).unwrap();
+        let quote = store.messages(CHAT, None, 10).unwrap()[0]
+            .quote
+            .clone()
+            .unwrap();
+        assert_eq!(
+            (quote.kind, quote.text.as_str()),
+            (MessageKind::Document, "a.pdf")
+        );
     }
 }

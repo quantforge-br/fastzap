@@ -391,6 +391,11 @@ atualizar os ticks.
   funde no chat do número o que estava sob o LID. Um HistorySync sob demanda
   (`syncType` 6) não sobrescreve não lidas. Ao migrar do schema 2 com chats
   LID, o cursor do journal é apagado para reler o journal e fundir os pares.
+  `messages.quote_kind` (schema 4) guarda o tipo da mensagem citada; a
+  migração o preenche, com o texto, a partir do proto de cada resposta. Ao
+  ler uma página, a citação usa a mensagem citada quando ela está guardada
+  (texto atual, autor, documento pelo nome) e, senão, a cópia que a resposta
+  trouxe.
 - `evolution` (sessão): `sync` inicia/para sessões conforme as contas
   habilitadas, serializado por um lock de ciclo de vida; parar a sessão
   cancela o trabalho em andamento. Cada sessão confere a instância pela listagem admin e só chama

@@ -19,7 +19,7 @@ use crate::app::{effects, state::AppState};
 use crate::evolution::client::{
     self, AdminKey, Client, InstanceSummary, InstanceToken, MediaKind, MediaUpload, QrCode, Quote,
 };
-use crate::evolution::model::{Change, Message, MessageKind, Status};
+use crate::evolution::model::{Change, Message, MessageKind, QuoteRef, Status};
 use crate::evolution::store::{self, ChatMessage, ChatSummary};
 use crate::evolution::{self as evo, Connection, Evolution, Session};
 use crate::i18n::tr;
@@ -311,7 +311,8 @@ pub async fn evo_typing(
     Ok(())
 }
 
-fn quote_for(session: &Session, chat: &str, id: Option<&str>) -> CommandResult<Option<Quote>> {
+/// The reply target of a send, with the kind and text shown above our copy.
+fn quote_for(session: &Session, chat: &str, id: Option<&str>) -> CommandResult<Option<QuoteRef>> {
     let Some(id) = id.filter(|id| !id.is_empty()) else {
         return Ok(None);
     };
@@ -325,10 +326,24 @@ fn quote_for(session: &Session, chat: &str, id: Option<&str>) -> CommandResult<O
     } else {
         quoted.sender
     };
-    Ok(Some(Quote {
-        message_id: quoted.id,
+    let text = if quoted.body.is_empty() && quoted.kind == MessageKind::Document {
+        quoted.file_name
+    } else {
+        quoted.body
+    };
+    Ok(Some(QuoteRef {
+        id: quoted.id,
         participant,
+        kind: quoted.kind,
+        text,
     }))
+}
+
+fn client_quote(quote: &QuoteRef) -> Quote {
+    Quote {
+        message_id: quote.id.clone(),
+        participant: quote.participant.clone(),
+    }
 }
 
 fn pending_message(
@@ -399,13 +414,9 @@ fn insert_pending(
     app: &AppHandle,
     session: &Session,
     mut message: Message,
-    quote: Option<&Quote>,
+    quote: Option<QuoteRef>,
 ) -> CommandResult<()> {
-    message.quote = quote.map(|q| crate::evolution::model::QuoteRef {
-        id: q.message_id.clone(),
-        participant: q.participant.clone(),
-        text: String::new(),
-    });
+    message.quote = quote;
     let applied = session.store.apply(&[Change::New(message)], true, None)?;
     evo::after_apply(app, session, applied);
     Ok(())
@@ -425,12 +436,13 @@ pub async fn evo_send_text(
     }
     let session = session(&app, account_id)?;
     let quote = quote_for(&session, &chat, quote.as_deref())?;
+    let sent_quote = quote.as_ref().map(client_quote);
     let message = pending_message(&chat, MessageKind::Text, &text, "", "");
     let local = message.id.clone();
-    insert_pending(&app, &session, message, quote.as_ref())?;
+    insert_pending(&app, &session, message, quote)?;
     let result = session
         .client
-        .send_text(&session.token, &chat, &text, &local, quote.as_ref())
+        .send_text(&session.token, &chat, &text, &local, sent_quote.as_ref())
         .await;
     finish_send(&app, &session, &chat, &local, result)
 }
@@ -577,9 +589,10 @@ pub async fn evo_send_file(
         .unwrap_or("file")
         .to_owned();
     let quote = quote_for(&session, &chat, quote.as_deref())?;
+    let sent_quote = quote.as_ref().map(client_quote);
     let message = pending_message(&chat, kind, caption.trim(), &file_name, mime);
     let local = message.id.clone();
-    insert_pending(&app, &session, message, quote.as_ref())?;
+    insert_pending(&app, &session, message, quote)?;
     // Our copy serves as the media cache of the sent message.
     if let Ok(cached) = cache_bytes(&session, &chat, &local, &bytes, mime) {
         let _ = session.store.set_media_file(&chat, &local, &cached);
@@ -593,7 +606,7 @@ pub async fn evo_send_file(
     };
     let result = session
         .client
-        .send_media(&session.token, &chat, upload, &local, quote.as_ref())
+        .send_media(&session.token, &chat, upload, &local, sent_quote.as_ref())
         .await;
     finish_send(&app, &session, &chat, &local, result).map(|()| true)
 }
