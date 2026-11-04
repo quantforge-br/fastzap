@@ -196,6 +196,11 @@ histórico (`downloads.recent`, 100 entradas) e abre sozinho se
 `downloads::sniff` confirmar PDF ou imagem pelo conteúdo e pela extensão.
 Os comandos de abrir, revelar e excluir só aceitam caminhos do histórico.
 
+No Linux o Tauri mantém o contexto WebKit de cada conta pela vida do app, e
+o wry registra os sinais de download de novo a cada webview recriada; a
+mesma conclusão chega uma vez por registro. Só um download ainda em
+recebimento casa com a conclusão, então as repetições são ignoradas.
+
 ## Permissões
 
 `permissions` conecta o sinal `permission-request` do WebKitGTK em cada

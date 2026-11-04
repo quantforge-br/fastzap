@@ -119,6 +119,29 @@ struct Inner {
     last_dirs: HashMap<i64, PathBuf>,
 }
 
+impl Inner {
+    /// The live download an engine completion belongs to, if exactly one
+    /// matches. Only downloads still being received match: WebKitGTK reports
+    /// a completion once per handler registration, and an account's web
+    /// context outlives its webview on Linux, so every recreated webview
+    /// registers again and repeats the completion. An ambiguous pathless
+    /// completion is left alone rather than failing another transfer.
+    fn completed_seq(&self, account_id: i64, url: &str, path: Option<&Path>) -> Option<u64> {
+        let mut found = self.live.iter().filter_map(|(seq, live)| {
+            let matches = live.status == DownloadStatus::Active
+                && match path {
+                    Some(p) => p == live.staged,
+                    None => live.account_id == account_id && live.url == url,
+                };
+            matches.then_some(*seq)
+        });
+        match (found.next(), found.next()) {
+            (Some(seq), None) => Some(seq),
+            _ => None,
+        }
+    }
+}
+
 pub struct Downloads {
     staging: PathBuf,
     inner: Mutex<Inner>,
@@ -316,21 +339,7 @@ pub fn handle_event<R: Runtime>(
         }
         DownloadEvent::Finished { url, path, success } => {
             let mut inner = downloads.inner.lock().unwrap();
-            let url = url.to_string();
-            let mut found = inner.live.iter().filter_map(|(seq, live)| {
-                let matches = match &path {
-                    Some(p) => *p == live.staged,
-                    None => {
-                        live.status == DownloadStatus::Active
-                            && live.account_id == account_id
-                            && live.url == url
-                    }
-                };
-                matches.then_some(*seq)
-            });
-            // An ambiguous pathless completion is left alone rather than
-            // failing another transfer.
-            let (Some(seq), None) = (found.next(), found.next()) else {
+            let Some(seq) = inner.completed_seq(account_id, url.as_str(), path.as_deref()) else {
                 return true;
             };
             if !success {
@@ -689,5 +698,32 @@ mod tests {
         }
         assert_eq!(inner.records.len(), MAX_SESSION_RECORDS);
         assert_eq!(inner.records[0].seq, 50);
+    }
+
+    fn live(account_id: i64, url: &str, staged: &str) -> Live {
+        Live {
+            account_id,
+            url: url.into(),
+            name: "f.pdf".into(),
+            staged: staged.into(),
+            status: DownloadStatus::Active,
+            needs_gate: false,
+            answer: None,
+        }
+    }
+
+    #[test]
+    fn repeated_completions_are_ignored() {
+        let mut inner = Inner::default();
+        inner.live.insert(1, live(7, "blob:a", "/s/1/f.pdf"));
+        inner.live.insert(2, live(7, "blob:b", "/s/2/f.pdf"));
+        let path = Path::new("/s/2/f.pdf");
+        assert_eq!(inner.completed_seq(7, "blob:b", Some(path)), Some(2));
+        inner.live.get_mut(&2).unwrap().status = DownloadStatus::Pending;
+        // A second registration reports the same completion again.
+        assert_eq!(inner.completed_seq(7, "blob:b", Some(path)), None);
+        assert_eq!(inner.completed_seq(7, "blob:b", None), None);
+        assert_eq!(inner.completed_seq(7, "blob:a", None), Some(1));
+        assert_eq!(inner.completed_seq(8, "blob:a", None), None);
     }
 }

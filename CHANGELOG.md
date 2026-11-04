@@ -191,6 +191,8 @@
   and unread count, laid out in the configured columns. A card opens its
   account; a disabled one offers to reactivate it. Grid view no longer shows
   a blank screen when the active account is an Evolution Go account.
+- WhatsApp Web downloads are no longer lost or deleted after an account's
+  webview is recreated, when the engine reports the same completion twice.
 - Account updates and creation are atomic, a JSON `null` icon clears the
   avatar, partial reorders append the omitted accounts and imported accounts
   never replace existing ones.
