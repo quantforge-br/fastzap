@@ -332,6 +332,8 @@
 - Release uploads send every file under the downloaded artifacts, so the
   Windows x64 installers in `nsis/` and `msi/` subdirectories reach the
   release.
+- Register the dialog plugin; opening a file or folder picker (downloads,
+  avatars, customizations, attachments, dictionaries) aborted the app.
 
 ### Changed
 
