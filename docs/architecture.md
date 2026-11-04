@@ -201,6 +201,12 @@ o wry registra os sinais de download de novo a cada webview recriada; a
 mesma conclusão chega uma vez por registro. Só um download ainda em
 recebimento casa com a conclusão, então as repetições são ignoradas.
 
+Mídias do chat Evolution Go (`evo_save_media`, clique no documento ou
+"Download" no menu da mensagem) entram pelo mesmo fluxo com
+`downloads::save_native`: os bytes são preparados no staging e seguem
+comportamento, pasta, histórico e abertura automática. Como o download parte
+de um clique do usuário, a pergunta de vários downloads não se aplica.
+
 ## Permissões
 
 `permissions` conecta o sinal `permission-request` do WebKitGTK em cada

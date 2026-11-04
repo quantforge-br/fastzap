@@ -765,34 +765,25 @@ pub async fn evo_media(
     ))
 }
 
-/// Save a message's media where the user chooses.
+/// Download a message's media with the download settings, like a WhatsApp
+/// Web download; it lands in the download history.
 #[tauri::command]
 pub async fn evo_save_media(
     app: AppHandle,
     account_id: i64,
     chat: String,
     id: String,
-) -> CommandResult<bool> {
-    use tauri_plugin_dialog::DialogExt;
+) -> CommandResult<()> {
     let session = session(&app, account_id)?;
-    let (_, bytes) = media_bytes(&session, &chat, &id).await?;
+    let (mime, bytes) = media_bytes(&session, &chat, &id).await?;
     let suggested = session
         .store
         .message(&chat, &id)?
         .map(|m| m.file_name)
         .filter(|n| !n.is_empty())
         .unwrap_or_else(|| id.clone());
-    let Some(target) = app
-        .dialog()
-        .file()
-        .set_file_name(&suggested)
-        .blocking_save_file()
-        .and_then(|p| p.into_path().ok())
-    else {
-        return Ok(false);
-    };
-    tokio::fs::write(target, bytes).await?;
-    Ok(true)
+    crate::downloads::save_native(&app, account_id, &suggested, &mime, bytes).await?;
+    Ok(())
 }
 
 /// Ask the phone for older messages of a chat; they arrive as a history sync.

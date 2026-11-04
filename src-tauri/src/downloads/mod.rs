@@ -361,6 +361,52 @@ pub fn handle_event<R: Runtime>(
     }
 }
 
+/// Download a file the app already holds (an Evolution Go media message):
+/// it is staged like a finished page download and then follows the same
+/// rules, folder, history and auto-open. The user started it, so the
+/// multiple-download gate does not apply. Returns once it is decided.
+pub async fn save_native<R: Runtime>(
+    app: &AppHandle<R>,
+    account_id: i64,
+    suggested: &str,
+    mime: &str,
+    bytes: Vec<u8>,
+) -> std::io::Result<()> {
+    let state = app.state::<AppState>();
+    let downloads = &state.downloads;
+    let name = naming::normalized_file_name(suggested, mime, "");
+    let seq = {
+        let mut inner = downloads.inner.lock().unwrap();
+        inner.seq += 1;
+        inner.seq
+    };
+    let staged = downloads.staging.join(seq.to_string()).join(&name);
+    let written = async {
+        tokio::fs::create_dir_all(staged.parent().expect("staged has a parent")).await?;
+        tokio::fs::write(&staged, bytes).await
+    };
+    if let Err(err) = written.await {
+        discard_staging(&staged);
+        return Err(err);
+    }
+    downloads.inner.lock().unwrap().live.insert(
+        seq,
+        Live {
+            account_id,
+            // Received already: no engine completion has to find it.
+            url: String::new(),
+            name,
+            staged,
+            status: DownloadStatus::Pending,
+            needs_gate: false,
+            answer: None,
+        },
+    );
+    emit_changed(app);
+    resolve(app.clone(), seq).await;
+    Ok(())
+}
+
 fn discard_staging(staged: &Path) {
     if let Some(dir) = staged.parent() {
         let _ = std::fs::remove_dir_all(dir);

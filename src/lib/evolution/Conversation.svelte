@@ -551,7 +551,7 @@
               {#if m.body}<button role="menuitem" onclick={() => act(() => navigator.clipboard.writeText(m.body))}>{t("Copy")}</button>{/if}
               <button role="menuitem" onclick={() => toggleMenu(m.id, "react")}>{t("React")}</button>
               {#if m.kind !== "text" && m.kind !== "location" && m.kind !== "contact" && m.kind !== "unsupported"}
-                <button role="menuitem" onclick={() => act(() => evolution.saveMedia(target, m.id))}>{t("Save as…")}</button>
+                <button role="menuitem" onclick={() => act(() => evolution.saveMedia(target, m.id))}>{t("Download")}</button>
               {/if}
               {#if canChange(m) && m.kind === "text"}<button role="menuitem" onclick={() => startEdit(m)}>{t("Edit")}</button>{/if}
               {#if m.from_me && (m.status === "failed" || m.status === "unknown") && m.kind === "text"}

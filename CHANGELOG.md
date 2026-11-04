@@ -191,6 +191,9 @@
   and unread count, laid out in the configured columns. A card opens its
   account; a disabled one offers to reactivate it. Grid view no longer shows
   a blank screen when the active account is an Evolution Go account.
+- Evolution Go media downloads (document click and the message menu's
+  Download) follow the download settings and appear in the download history,
+  instead of always opening a save dialog outside of it.
 - WhatsApp Web downloads are no longer lost or deleted after an account's
   webview is recreated, when the engine reports the same completion twice.
 - Account updates and creation are atomic, a JSON `null` icon clears the

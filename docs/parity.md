@@ -26,7 +26,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Menu de contexto | `web_view.py` | `spellcheck::linux` (sinal `context-menu` do WebKitGTK) | Linux; remove navegação/abrir link/inspecionar e acrescenta "Verificar ortografia" e "Idiomas…"; rótulos padrão vêm do WebKit no idioma do sistema |
 | CSS/JS personalizados | `features/customizations` | `customizations` + página Customizações avançadas | mesma árvore de arquivos; CSS é reaplicado nas páginas abertas ao salvar |
 | Corretor ortográfico | `features/dictionaries` (`.bdic`) | `spellcheck` + `src/lib/spellcheck/` | **formato Hunspell** (`.dic/.aff`) do `wooorm/dictionaries` em commit fixo; `.bdic` não é importado; Linux |
-| Downloads e histórico (`Ctrl+J`) | `features/downloads` | `downloads` + `src/lib/downloads/` | decisão após o término do download; ver lacunas |
+| Downloads e histórico (`Ctrl+J`) | `features/downloads` | `downloads` + `src/lib/downloads/` | decisão após o término do download; mídias do chat Evolution Go seguem o mesmo fluxo e histórico; ver lacunas |
 | Notificações (portal, D-Bus, Windows, macOS) | `features/notifications` | `notifications` | |
 | Bandeja, temas de ícone, contador, badge | `features/tray` | `tray` | |
 | Atalhos | `features/shortcuts` | `bridge.js` (páginas) + `src/lib/shell/shortcuts.ts` (UI local) + `src/lib/shortcuts/` | diálogo "Atalhos de teclado"; os dois mapeamentos devem ficar iguais |

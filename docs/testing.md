@@ -62,9 +62,10 @@ confira a versão local com `pacman -Q dsr-fastzap-git`, a propriedade de
 Child webviews, foco, tray, notificações e compositor não são verificáveis em
 testes automatizados. Antes de publicar, rode `pnpm tauri dev` e confira:
 duas contas WhatsApp Web isoladas, contador de não lidas, clique em notificação,
-tray, segunda instância com `xdg-open "whatsapp://send?phone=..."`, downloads,
-tema e grade (cartões de todas as contas, inclusive desativadas e Evolution
-Go; o cartão abre a conta).
+tray, segunda instância com `xdg-open "whatsapp://send?phone=..."`, downloads
+(WhatsApp Web e documento do chat Evolution Go no histórico, também depois de
+desativar e reativar a conta WhatsApp Web), tema e grade (cartões de todas as
+contas, inclusive desativadas e Evolution Go; o cartão abre a conta).
 
 Para o Evolution Go, use primeiro o probe somente leitura da skill
 `evolutiongo-integration`. Pareamento e envio reais só com conta e destinatário
