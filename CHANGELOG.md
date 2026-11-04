@@ -352,6 +352,8 @@
   management) are blocked instead of opening in the browser at every start, as
   in ZapZap.
 - The Evolution Go composer text lines up with its buttons.
+- Evolution Go chat list ticks update when a send fails, times out or is
+  retried.
 
 ### Changed
 

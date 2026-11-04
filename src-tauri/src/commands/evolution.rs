@@ -385,6 +385,13 @@ fn finish_send(
             chat: chat.to_owned(),
         },
     );
+    // The chat list shows the ticks of our newest message.
+    let _ = app.emit(
+        evo::EVOLUTION_EVENT,
+        evo::UiEvent::Chats {
+            account_id: session.account_id,
+        },
+    );
     outcome
 }
 

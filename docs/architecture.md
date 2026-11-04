@@ -335,7 +335,8 @@ escuro por `prefers-color-scheme`) herdadas por `Conversation.svelte`,
 `Avatar.svelte` e `Icon.svelte` (caminhos Material Icons); agrupamento de
 balões, rótulos de dia, links e cores de remetente ficam em `format.ts`. O
 `ChatSummary` traz `preview_status` (ticks da última mensagem nossa) e `own`
-(conversa consigo mesmo); recibos reemitem `Chats` para atualizar os ticks.
+(conversa consigo mesmo); recibos e o fim de cada envio reemitem `Chats` para
+atualizar os ticks.
 
 - `evolution::client`: adaptador REST. `AdminKey` e `InstanceToken` são tipos
   distintos; respostas não-2xx viram `EvoError` antes de abrir
