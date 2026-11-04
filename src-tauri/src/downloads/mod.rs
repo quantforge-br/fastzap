@@ -660,9 +660,14 @@ fn finish<R: Runtime>(
         }
     }
     discard_staging(&live.staged);
+    // A free name may carry a ` (N)` suffix: the row shows the saved file.
+    let name = saved
+        .as_deref()
+        .and_then(Path::file_name)
+        .map_or(live.name, |n| n.to_string_lossy().into_owned());
     {
         let mut inner = state.downloads.inner.lock().unwrap();
-        Downloads::record(&mut inner, seq, live.name.clone(), saved.clone(), status);
+        Downloads::record(&mut inner, seq, name, saved.clone(), status);
     }
     if let Some(path) = saved {
         let path_str = path_string(&path);
