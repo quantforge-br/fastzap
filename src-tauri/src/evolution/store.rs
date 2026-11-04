@@ -68,6 +68,9 @@ CREATE TABLE IF NOT EXISTS meta (
 );
 "#;
 
+/// Meta key holding the linked phone number (see `ChatStore::bind`).
+pub const BIND_OWNER: &str = "bind:owner";
+
 /// Journal position of `GET /chat/events`.
 const CURSOR: &str = "journal_cursor";
 
@@ -521,7 +524,14 @@ impl ChatStore {
             .query_map(params![chat, before, limit], row_to_message)?
             .collect::<StoreResult<Vec<_>>>()?;
         list.reverse();
+        let own = own_chat(&conn)?.is_some_and(|own| own == chat);
         for message in &mut list {
+            // WhatsApp sends no usable receipt for notes to yourself; they
+            // count as read once sent, as the phone shows them.
+            if own && message.from_me && matches!(message.status, Status::Sent | Status::Delivered)
+            {
+                message.status = Status::Read;
+            }
             if !message.from_me {
                 message.sender_name = display_name(&conn, &message.sender)?;
             }
@@ -664,6 +674,16 @@ fn apply_receipt(conn: &Connection, receipt: &Receipt) -> StoreResult<Option<Str
         changed
     };
     Ok(changed.then_some(chat))
+}
+
+/// The chat with the linked number itself ("message yourself").
+fn own_chat(conn: &Connection) -> StoreResult<Option<String>> {
+    let owner: Option<String> = conn
+        .query_row("SELECT value FROM meta WHERE key = ?", [BIND_OWNER], |r| {
+            r.get(0)
+        })
+        .optional()?;
+    Ok(owner.map(|o| format!("{o}@s.whatsapp.net")))
 }
 
 fn upsert_push_name(conn: &Connection, jid: &str, name: &str) -> StoreResult<()> {
@@ -982,6 +1002,34 @@ mod tests {
                 .apply_receipt(&receipt(&["M"], false, "1@g.us"))
                 .unwrap(),
             None
+        );
+    }
+
+    #[test]
+    fn notes_to_yourself_show_as_read_once_sent() {
+        let store = ChatStore::in_memory().unwrap();
+        store.bind(BIND_OWNER, "5511", &[]).unwrap();
+        let mut sent = message("S", 10, true, "note");
+        sent.status = Status::Sent;
+        let pending = message("P", 11, true, "later");
+        store
+            .apply(&[Change::New(sent), Change::New(pending)], true, None)
+            .unwrap();
+        let statuses: Vec<_> = store
+            .messages(CHAT, None, 10)
+            .unwrap()
+            .iter()
+            .map(|m| m.status)
+            .collect();
+        assert_eq!(statuses, [Status::Read, Status::Pending]);
+        // Another chat keeps the real status.
+        store.bind(BIND_OWNER, "5599", &[]).unwrap();
+        let mut other = message("O", 12, true, "hi");
+        other.status = Status::Sent;
+        store.apply(&[Change::New(other)], true, None).unwrap();
+        assert_eq!(
+            store.messages(CHAT, None, 10).unwrap()[0].status,
+            Status::Sent
         );
     }
 

@@ -31,7 +31,7 @@ use crate::notifications::policy::WebNotification;
 use crate::secrets;
 use client::{AdminKey, Client, EvoError, InstanceToken, QrCode};
 use model::{Event, Link, Message, MessageKind};
-use store::{Applied, ChatStore};
+use store::{Applied, BIND_OWNER, ChatStore};
 
 pub const EVOLUTION_EVENT: &str = "evolution://event";
 
@@ -45,7 +45,6 @@ const ARCHIVED_REFRESH: Duration = Duration::from_secs(5 * 60);
 const JOURNAL_MAX_PAGES: usize = 200;
 /// Store meta keys tying local data to its source.
 const BIND_SERVER: &str = "bind:server";
-const BIND_OWNER: &str = "bind:owner";
 const JOURNAL_PAUSE: Duration = Duration::from_secs(1);
 const JOURNAL_RETRY: Duration = Duration::from_secs(30);
 const JOURNAL_RETRY_MAX: Duration = Duration::from_secs(30 * 60);

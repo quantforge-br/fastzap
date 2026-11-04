@@ -344,6 +344,8 @@
 - Evolution Go delivery and read ticks now update for direct chats whose
   receipts name the contact's LID instead of the phone number; read-on-
   another-device clears those chats' unread count too.
+- Evolution Go notes to yourself show as read once sent, as on the phone; the
+  server drops the receipts WhatsApp sends for them.
 
 ### Changed
 
