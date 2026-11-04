@@ -311,6 +311,8 @@
 - `version.sh` rejects unknown arguments and missing versions, reads the Cargo
   version from the `[package]` table only, and `--check` also compares the
   newest AppStream release.
+- `build-info.sh` marks a build `Official` only on GitHub Actions runs of
+  `quantmind-br/fastzap`; forks and local runs record channel `Unknown`.
 
 ### Changed
 
