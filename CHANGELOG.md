@@ -308,6 +308,9 @@
 - Shell scripts keep LF line endings through `.gitattributes`, so the Windows
   build runners can run `build-info.sh` and `version.sh` after a CRLF
   checkout.
+- `version.sh` rejects unknown arguments and missing versions, reads the Cargo
+  version from the `[package]` table only, and `--check` also compares the
+  newest AppStream release.
 
 ### Changed
 
