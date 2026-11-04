@@ -94,7 +94,11 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
   diagnóstico do motor. Um pânico vira relatório (o build de release aborta
   logo depois); uma saída sem limpeza só registra o marcador, sem sinal nem
   logs da sessão anterior. Diagnósticos de GPU/VAAPI/Vulkan não são coletados.
-- **Contas Evolution Go** não têm a interface do WhatsApp Web: fixar,
+- **Contas Evolution Go** reproduzem o layout do WhatsApp Web (lista com
+  busca, filtros Tudo/Não lidas/Grupos e pasta Arquivadas; conversa com papel
+  de parede, balões com cauda, ticks e reações; compositor com anexo e
+  emojis), mas não a barra lateral de status, canais e chamadas, nem gravação
+  de áudio. Fixar,
   arquivar, desarquivar e silenciar chats pelo FastZap (a pasta "Arquivadas"
   só espelha o telefone, com até 5 min de atraso), status, chamadas, enquetes, figurinhas
   enviadas, menções, encaminhamento e criação de grupos não existem. Respostas

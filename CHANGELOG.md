@@ -398,3 +398,8 @@
   GitHub Actions is disabled on the `quantmind-br` account. The app ID
   `io.github.quantmind_br.fastzap` is unchanged.
 - The Flatpak workflow pins its privileged builder container by digest.
+- The Evolution Go chat replicates the WhatsApp Web layout: chat list with
+  search, All/Unread/Groups filters, Archived row, ticks and media icons;
+  conversation with wallpaper, day pills, tailed bubbles with in-bubble ticks,
+  reaction pills, link opening, scroll-to-bottom and a rounded composer with
+  emoji picker.

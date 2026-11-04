@@ -330,6 +330,12 @@ Contas do tipo Evolution Go não criam webview remoto: a área de conteúdo
 mostra `src/lib/evolution/ChatView.svelte` (pareamento, lista de chats e
 conversa), que conversa com o backend pelos comandos `evo_*` e pelo evento
 `evolution://event` (`EvolutionEvent`).
+O layout segue o WhatsApp Web: `ChatView` define as cores `--wa-*` (claro e
+escuro por `prefers-color-scheme`) herdadas por `Conversation.svelte`,
+`Avatar.svelte` e `Icon.svelte` (caminhos Material Icons); agrupamento de
+balões, rótulos de dia, links e cores de remetente ficam em `format.ts`. O
+`ChatSummary` traz `preview_status` (ticks da última mensagem nossa) e `own`
+(conversa consigo mesmo); recibos reemitem `Chats` para atualizar os ticks.
 
 - `evolution::client`: adaptador REST. `AdminKey` e `InstanceToken` são tipos
   distintos; respostas não-2xx viram `EvoError` antes de abrir
