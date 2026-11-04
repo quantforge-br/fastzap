@@ -74,7 +74,8 @@ habilitada, `webview::manager` cria um child webview com `Window::add_child`
   chegam por `on_new_window` e vão para o navegador. Popups
   para hosts permitidos abrem numa janela `popup-<n>` relacionada, com a mesma
   allowlist e sem acesso a comandos;
-- `on_download` encaminhando para `downloads`;
+- `on_download` encaminhando para `downloads` (no Linux só o destino; a
+  conclusão vem de `downloads::linux`);
 - `proxy_url` quando o proxy global está ativo.
 
 O handler de drag-and-drop do Tauri fica desativado nas contas `wa-*`, para
@@ -197,9 +198,15 @@ histórico (`downloads.recent`, 100 entradas) e abre sozinho se
 Os comandos de abrir, revelar e excluir só aceitam caminhos do histórico.
 
 No Linux o Tauri mantém o contexto WebKit de cada conta pela vida do app, e
-o wry registra os sinais de download de novo a cada webview recriada; a
-mesma conclusão chega uma vez por registro. Só um download ainda em
-recebimento casa com a conclusão, então as repetições são ignoradas.
+o wry conecta seus sinais de download de novo a cada webview recriada: a
+mesma conclusão chegava uma vez por registro, e cada registro guarda um
+único indicador de falha que nunca volta a falso, então depois de um
+download falho ou cancelado (inclusive bloqueado) todos os seguintes da
+conta eram dados como falhos e descartados. Por isso, no Linux, o
+`on_download` só decide o destino (`Requested`); a conclusão do wry é
+ignorada e `downloads::linux` observa o contexto uma vez por conta, com
+estado de falha por download, e reporta a conclusão pelo caminho de
+staging. Só um download ainda em recebimento casa com uma conclusão.
 
 Mídias do chat Evolution Go (`evo_save_media`, clique no documento ou
 "Download" no menu da mensagem) entram pelo mesmo fluxo com

@@ -271,6 +271,8 @@ impl WebviewManager {
         crate::permissions::install(&webview, account.id);
         #[cfg(target_os = "linux")]
         crate::spellcheck::install_context_menu(&webview);
+        #[cfg(target_os = "linux")]
+        crate::downloads::linux::install(&webview, account.id);
         Ok(webview)
     }
 

@@ -6,6 +6,8 @@
 //! Only then does the file reach the downloads folder, the history and the
 //! auto-open check.
 
+#[cfg(target_os = "linux")]
+pub mod linux;
 pub mod naming;
 pub mod sniff;
 
@@ -92,7 +94,8 @@ pub enum DownloadDecision {
 
 struct Live {
     account_id: i64,
-    /// Matches completions that carry no path (failed WebKitGTK downloads).
+    /// Matches completions that carry no path (failed downloads, as wry
+    /// reports them outside Linux).
     url: String,
     name: String,
     staged: PathBuf,
@@ -121,10 +124,8 @@ struct Inner {
 
 impl Inner {
     /// The live download an engine completion belongs to, if exactly one
-    /// matches. Only downloads still being received match: WebKitGTK reports
-    /// a completion once per handler registration, and an account's web
-    /// context outlives its webview on Linux, so every recreated webview
-    /// registers again and repeats the completion. An ambiguous pathless
+    /// matches. Only downloads still being received match, so a repeated
+    /// completion never resolves a download twice. An ambiguous pathless
     /// completion is left alone rather than failing another transfer.
     fn completed_seq(&self, account_id: i64, url: &str, path: Option<&Path>) -> Option<u64> {
         let mut found = self.live.iter().filter_map(|(seq, live)| {
@@ -280,7 +281,8 @@ fn emit_changed<R: Runtime>(app: &AppHandle<R>) {
     let _ = app.emit(DOWNLOADS_CHANGED, ());
 }
 
-/// `on_download` hook of the account webviews.
+/// `on_download` hook of the account webviews. On Linux the engine's
+/// completion report is ignored: `linux` observes each download instead.
 pub fn handle_event<R: Runtime>(
     app: &AppHandle<R>,
     account_id: i64,
@@ -337,28 +339,41 @@ pub fn handle_event<R: Runtime>(
             emit_changed(app);
             true
         }
+        #[cfg(not(target_os = "linux"))]
         DownloadEvent::Finished { url, path, success } => {
-            let mut inner = downloads.inner.lock().unwrap();
-            let Some(seq) = inner.completed_seq(account_id, url.as_str(), path.as_deref()) else {
-                return true;
-            };
-            if !success {
-                let live = inner.live.remove(&seq).expect("found above");
-                Downloads::record(&mut inner, seq, live.name, None, DownloadStatus::Failed);
-                drop(inner);
-                discard_staging(&live.staged);
-                emit_changed(app);
-                return true;
-            }
-            inner.live.get_mut(&seq).expect("found above").status = DownloadStatus::Pending;
-            drop(inner);
-            emit_changed(app);
-            let app = app.clone();
-            tauri::async_runtime::spawn(async move { resolve(app, seq).await });
+            finished(app, account_id, url.as_str(), path.as_deref(), success);
             true
         }
         _ => true,
     }
+}
+
+/// The engine finished a download of `url`, successfully or not.
+fn finished<R: Runtime>(
+    app: &AppHandle<R>,
+    account_id: i64,
+    url: &str,
+    path: Option<&Path>,
+    success: bool,
+) {
+    let state = app.state::<AppState>();
+    let mut inner = state.downloads.inner.lock().unwrap();
+    let Some(seq) = inner.completed_seq(account_id, url, path) else {
+        return;
+    };
+    if !success {
+        let live = inner.live.remove(&seq).expect("found above");
+        Downloads::record(&mut inner, seq, live.name, None, DownloadStatus::Failed);
+        drop(inner);
+        discard_staging(&live.staged);
+        emit_changed(app);
+        return;
+    }
+    inner.live.get_mut(&seq).expect("found above").status = DownloadStatus::Pending;
+    drop(inner);
+    emit_changed(app);
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move { resolve(app, seq).await });
 }
 
 /// Download a file the app already holds (an Evolution Go media message):

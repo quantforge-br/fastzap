@@ -198,6 +198,10 @@
   webview is recreated, when the engine reports the same completion twice.
 - Download history rows show the saved file name, including the ` (N)`
   suffix added when the name was taken, instead of the original name.
+- On Linux, WhatsApp Web downloads that follow a failed or cancelled one
+  (blocked, for example) are no longer reported as interrupted and deleted
+  until a restart: completions are observed per download instead of through
+  wry's report, which kept one failure flag per account forever.
 - Account updates and creation are atomic, a JSON `null` icon clears the
   avatar, partial reorders append the omitted accounts and imported accounts
   never replace existing ones.
