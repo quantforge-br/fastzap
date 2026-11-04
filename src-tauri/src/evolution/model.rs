@@ -465,11 +465,13 @@ fn parse_live_message(data: &Value) -> Option<Change> {
 const ON_DEMAND_SYNC: i64 = 6;
 
 pub fn is_lid(jid: &str) -> bool {
-    jid.len() > 4 && jid.ends_with("@lid")
+    jid.strip_suffix("@lid")
+        .is_some_and(|user| !user.is_empty())
 }
 
 pub fn is_phone(jid: &str) -> bool {
-    jid.len() > 15 && jid.ends_with("@s.whatsapp.net")
+    jid.strip_suffix("@s.whatsapp.net")
+        .is_some_and(|number| !number.is_empty())
 }
 
 /// One `WebMessageInfo` of a HistorySync conversation.
@@ -563,7 +565,9 @@ fn parse_history(data: &Value) -> History {
             lid_map.push((lid.to_owned(), pn.to_owned()));
         }
     }
-    lid_map.retain(|(lid, pn)| is_lid(lid) && is_phone(pn));
+    // One pair per LID; the explicit mappings come first and win.
+    let mut seen = std::collections::HashSet::new();
+    lid_map.retain(|(lid, pn)| is_lid(lid) && is_phone(pn) && seen.insert(lid.clone()));
     History {
         chats,
         push_names,
@@ -786,7 +790,8 @@ mod tests {
             "syncType": 6,
             "phoneNumberToLidMappings": [
                 {"lidJID": "77@lid", "pnJID": "5511999990000@s.whatsapp.net"},
-                {"lidJID": "", "pnJID": "5511999990001@s.whatsapp.net"}],
+                {"lidJID": "", "pnJID": "5511999990001@s.whatsapp.net"},
+                {"lidJID": "88@lid", "pnJID": "5511999990004@s.whatsapp.net"}],
             "conversations": [
                 {"ID": "88@lid", "pnJID": "5511999990002@s.whatsapp.net", "messages": []},
                 {"ID": "5511999990003@s.whatsapp.net", "lidJID": "99@lid", "messages": []},
@@ -800,7 +805,7 @@ mod tests {
             history.lid_map,
             vec![
                 ("77@lid".into(), "5511999990000@s.whatsapp.net".into()),
-                ("88@lid".into(), "5511999990002@s.whatsapp.net".into()),
+                ("88@lid".into(), "5511999990004@s.whatsapp.net".into()),
                 ("99@lid".into(), "5511999990003@s.whatsapp.net".into()),
             ]
         );

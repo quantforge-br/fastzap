@@ -363,6 +363,9 @@
   showing as a second contact; stores with LID chats read the server journal
   again once to merge them, and on-demand history no longer resets unread
   counts.
+- Evolution Go: typing indicators name group senders by phone number, and a
+  LID listed twice in one history sync keeps the phone number from the
+  explicit mapping.
 
 ### Changed
 

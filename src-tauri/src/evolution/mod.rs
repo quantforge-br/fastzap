@@ -610,6 +610,15 @@ async fn catch_up(app: &AppHandle, session: &Session) {
     spawn_catch_up(app, session.account_id, JOURNAL_PAUSE);
 }
 
+/// The phone JID of a known LID; typing is best effort, so a store error
+/// keeps `jid` as is.
+fn canonical(session: &Session, jid: String) -> String {
+    session.store.canonical(&jid).unwrap_or_else(|e| {
+        log::warn!("evolution store read failed: {e}");
+        jid
+    })
+}
+
 fn spawn_catch_up(app: &AppHandle, account_id: i64, delay: Duration) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
@@ -657,8 +666,8 @@ fn handle(app: &AppHandle, session: &Session, payload: &serde_json::Value, live:
             app,
             UiEvent::Typing {
                 account_id,
-                chat: session.store.canonical(&chat).unwrap_or(chat),
-                sender,
+                chat: canonical(session, chat),
+                sender: canonical(session, sender),
                 state,
             },
         ),
