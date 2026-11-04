@@ -32,15 +32,23 @@ on:
         required: false
         type: boolean
         default: false
+    secrets:
+      SNAPCRAFT_STORE_CREDENTIALS:
+        required: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-24.04
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Release assets must come from the tagged source.
+          ref: ${{ inputs.release_tag || github.ref }}
+          persist-credentials: false
 
       - name: Validate release tag
         if: ${{ inputs.release_upload && inputs.release_tag == '' }}
@@ -54,7 +62,7 @@ jobs:
           packaging/common/build-info.sh "Snap"
           packaging/snap/prepare.sh
 
-      - uses: snapcore/action-build@v1
+      - uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
         id: snap
 
       - name: Upload artifact
@@ -64,18 +72,37 @@ jobs:
           path: ${{ steps.snap.outputs.snap }}
           if-no-files-found: error
 
-      - name: Upload to GitHub release
-        if: ${{ inputs.release_upload }}
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.release_tag }}
-          files: ${{ steps.snap.outputs.snap }}
-
+      # A store release cannot be undone: only tagged releases publish.
       - name: Publish to the Snap Store
-        if: ${{ inputs.publish_snap }}
-        uses: snapcore/action-publish@v1
+        if: ${{ inputs.publish_snap && startsWith(github.ref, 'refs/tags/') }}
+        uses: snapcore/action-publish@214b86e5ca036ead1668c79afb81e550e6c54d40 # v1.2.0
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
         with:
           snap: ${{ steps.snap.outputs.snap }}
           release: stable
+
+  publish:
+    needs: build
+    if: ${{ inputs.release_upload }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: fastzap-snap
+          path: dist
+
+      - name: Upload to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: packaging/common/release-upload.sh "${RELEASE_TAG}" dist/*

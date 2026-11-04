@@ -25,17 +25,21 @@ on:
         default: ""
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-24.04
+    timeout-minutes: 120
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
       options: --privileged
     steps:
       - uses: actions/checkout@v4
         with:
+          # Release assets must come from the tagged source.
+          ref: ${{ inputs.release_tag || github.ref }}
+          persist-credentials: false
           submodules: true
 
       - name: Validate release tag
@@ -45,16 +49,41 @@ jobs:
           echo "release_tag is required when release_upload=true"
           exit 1
 
-      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6.8
         with:
           bundle: fastzap.flatpak
           manifest-path: packaging/flatpak/io.github.quantmind_br.fastzap.yml
           cache-key: flatpak-builder-${{ github.sha }}
-          upload-artifact: true
+          upload-artifact: false
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastzap-flatpak
+          path: fastzap.flatpak
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: ${{ inputs.release_upload }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: fastzap-flatpak
+          path: dist
 
       - name: Upload to GitHub release
-        if: ${{ inputs.release_upload }}
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.release_tag }}
-          files: fastzap.flatpak
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: packaging/common/release-upload.sh "${RELEASE_TAG}" dist/*

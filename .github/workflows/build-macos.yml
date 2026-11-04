@@ -25,13 +25,18 @@ on:
         default: ""
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Release assets must come from the tagged source.
+          ref: ${{ inputs.release_tag || github.ref }}
+          persist-credentials: false
 
       - name: Validate release tag
         if: ${{ inputs.release_upload && inputs.release_tag == '' }}
@@ -58,9 +63,27 @@ jobs:
           path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
           if-no-files-found: error
 
-      - name: Upload to GitHub release
-        if: ${{ inputs.release_upload }}
-        uses: softprops/action-gh-release@v2
+  publish:
+    needs: build
+    if: ${{ inputs.release_upload }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
         with:
-          tag_name: ${{ inputs.release_tag }}
-          files: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          ref: ${{ inputs.release_tag }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: fastzap-macos
+          path: dist
+
+      - name: Upload to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: packaging/common/release-upload.sh "${RELEASE_TAG}" dist/*

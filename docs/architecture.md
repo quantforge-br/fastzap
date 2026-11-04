@@ -441,4 +441,8 @@ conversa), que conversa com o backend pelos comandos `evo_*` e pelo evento
 - Workflows: `build-{deb,rpm,appimage,flatpak,snap,windows,macos}.yml`
   (manuais ou chamados), `release-candidate.yml` (tag `X.Y.Z-rc.N` e
   pre-release) e `release-deploy.yml` (release publicada). O setup comum está
-  em `.github/actions/setup-build/`.
+  em `.github/actions/setup-build/`. O job `build` roda com `contents: read`
+  e sem credencial persistida; só o job `publish` tem escrita e anexa os
+  artefatos com `release-upload.sh`, que exige release existente e tag igual
+  à versão (`v` e `-rc.N` opcionais). Actions de terceiros ficam fixadas por
+  SHA.

@@ -346,3 +346,9 @@
 - Documentation covers packaging: identifiers, bundle formats, the Flatpak and
   snap recipes, local build and validation commands, the release process and
   the installation section of the README.
+- Build workflows check out the release tag, build with a read-only token and
+  no persisted credential, have timeouts and pinned runner images, and attach
+  assets from a separate `publish` job through `release-upload.sh`, which
+  requires an existing release whose tag matches the app version; third-party
+  actions are pinned by SHA, the deb job checks that its `Depends` really
+  resolve, and the snap only reaches the store from a tag.
