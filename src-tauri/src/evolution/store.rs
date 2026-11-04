@@ -108,8 +108,12 @@ pub struct ChatSummary {
     pub preview: String,
     pub preview_kind: MessageKind,
     pub preview_from_me: bool,
+    /// Delivery state of the newest message when it is ours.
+    pub preview_status: Option<Status>,
     pub is_group: bool,
     pub archived: bool,
+    /// The chat with yourself (notes to yourself).
+    pub own: bool,
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -490,8 +494,15 @@ impl ChatStore {
                 ))
             })?
             .collect::<StoreResult<Vec<_>>>()?;
+        let own_jid = own_chat(&conn)?;
         rows.into_iter()
             .map(|(jid, unread, ts, preview, kind, from_me, archived)| {
+                let own = own_jid.as_deref() == Some(jid.as_str());
+                let preview_status = if from_me {
+                    newest_status(&conn, &jid, own)?
+                } else {
+                    None
+                };
                 Ok(ChatSummary {
                     name: display_name(&conn, &jid)?,
                     is_group: is_group(&jid),
@@ -501,7 +512,9 @@ impl ChatStore {
                     preview,
                     preview_kind: MessageKind::parse(&kind),
                     preview_from_me: from_me,
+                    preview_status,
                     archived,
+                    own,
                 })
             })
             .collect()
@@ -526,11 +539,8 @@ impl ChatStore {
         list.reverse();
         let own = own_chat(&conn)?.is_some_and(|own| own == chat);
         for message in &mut list {
-            // WhatsApp sends no usable receipt for notes to yourself; they
-            // count as read once sent, as the phone shows them.
-            if own && message.from_me && matches!(message.status, Status::Sent | Status::Delivered)
-            {
-                message.status = Status::Read;
+            if message.from_me {
+                message.status = shown_status(message.status, own);
             }
             if !message.from_me {
                 message.sender_name = display_name(&conn, &message.sender)?;
@@ -684,6 +694,29 @@ fn own_chat(conn: &Connection) -> StoreResult<Option<String>> {
         })
         .optional()?;
     Ok(owner.map(|o| format!("{o}@s.whatsapp.net")))
+}
+
+// WhatsApp sends no usable receipt for notes to yourself; they count as read
+// once sent, as the phone shows them.
+fn shown_status(status: Status, own: bool) -> Status {
+    if own && matches!(status, Status::Sent | Status::Delivered) {
+        Status::Read
+    } else {
+        status
+    }
+}
+
+/// Status of the newest message in `chat`, which the caller knows is ours.
+fn newest_status(conn: &Connection, chat: &str, own: bool) -> StoreResult<Option<Status>> {
+    let rank: Option<i64> = conn
+        .query_row(
+            "SELECT status FROM messages WHERE chat = ?1 AND from_me = 1
+             ORDER BY ts DESC, seq DESC LIMIT 1",
+            [chat],
+            |r| r.get(0),
+        )
+        .optional()?;
+    Ok(rank.map(|rank| shown_status(rank_status(rank), own)))
 }
 
 fn upsert_push_name(conn: &Connection, jid: &str, name: &str) -> StoreResult<()> {
@@ -1031,6 +1064,29 @@ mod tests {
             store.messages(CHAT, None, 10).unwrap()[0].status,
             Status::Sent
         );
+    }
+
+    #[test]
+    fn chat_list_carries_the_status_of_our_newest_message() {
+        let store = ChatStore::in_memory().unwrap();
+        store.bind(BIND_OWNER, "5511", &[]).unwrap();
+        let mut sent = message("S", 10, true, "note");
+        sent.status = Status::Delivered;
+        store.apply(&[Change::New(sent)], true, None).unwrap();
+        let chat = &store.chats().unwrap()[0];
+        assert!(chat.own);
+        assert_eq!(chat.preview_status, Some(Status::Read));
+        store
+            .apply(&[Change::New(message("R", 11, false, "oi"))], true, None)
+            .unwrap();
+        assert_eq!(store.chats().unwrap()[0].preview_status, None);
+        store.bind(BIND_OWNER, "5599", &[]).unwrap();
+        let mut ours = message("O", 12, true, "hi");
+        ours.status = Status::Delivered;
+        store.apply(&[Change::New(ours)], true, None).unwrap();
+        let chat = &store.chats().unwrap()[0];
+        assert!(!chat.own);
+        assert_eq!(chat.preview_status, Some(Status::Delivered));
     }
 
     #[test]

@@ -174,6 +174,8 @@
 - Evolution Go chats archived on the phone are shown in an Archived folder
   (read from GET /chat/settings every 5 minutes and on reconnect) and no
   longer count as unread.
+- Evolution Go chat summaries carry the delivery status of our newest message
+  and flag the chat with yourself; receipts refresh the chat list.
 
 ### Fixed
 

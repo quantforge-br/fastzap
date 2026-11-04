@@ -48,6 +48,8 @@
       preview_from_me: false,
       is_group: jid.endsWith("@g.us"),
       archived: false,
+      preview_status: null,
+      own: false,
     };
   }
 
