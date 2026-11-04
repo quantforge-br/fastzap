@@ -84,7 +84,8 @@ pub fn run() {
         )
         .plugin(
             tauri_plugin_window_state::Builder::new()
-                .with_state_flags(StateFlags::all() - StateFlags::VISIBLE)
+                // Decorations follow the appearance settings, not the last session.
+                .with_state_flags(StateFlags::all() - StateFlags::VISIBLE - StateFlags::DECORATIONS)
                 .with_filter(|label| label == app::window::MAIN_WINDOW)
                 .build(),
         )

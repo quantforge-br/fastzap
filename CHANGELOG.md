@@ -356,6 +356,8 @@
 - The Evolution Go composer text lines up with its buttons.
 - Evolution Go chat list ticks update when a send fails, times out or is
   retried.
+- Window decorations follow the appearance settings instead of being restored
+  from the last session.
 
 ### Changed
 
