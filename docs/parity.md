@@ -22,6 +22,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Deep links `whatsapp:` / wa.me | `deeplink.py` | `webview::deeplink` | |
 | Chat por número (`Ctrl+M`) | `open_chat.py`, `send_message_to_number_dialog.py` | `webview::deeplink` + `src/lib/chat/` | |
 | Colar como texto e tabelas de planilha | `clipboard_table.py`, `web_view.py` | `webview::clipboard` | |
+| Anexar arquivos por arraste | `web_view.py` | drag-and-drop HTML no WhatsApp Web; eventos Tauri + `Conversation.svelte` no Evolution Go | Evolution: vários arquivos, remoção antes de confirmar, legenda opcional e limite de 100 MB por arquivo; sem reenvio automático |
 | Menu de contexto | `web_view.py` | `spellcheck::linux` (sinal `context-menu` do WebKitGTK) | Linux; remove navegação/abrir link/inspecionar e acrescenta "Verificar ortografia" e "Idiomas…"; rótulos padrão vêm do WebKit no idioma do sistema |
 | CSS/JS personalizados | `features/customizations` | `customizations` + página Customizações avançadas | mesma árvore de arquivos; CSS é reaplicado nas páginas abertas ao salvar |
 | Corretor ortográfico | `features/dictionaries` (`.bdic`) | `spellcheck` + `src/lib/spellcheck/` | **formato Hunspell** (`.dic/.aff`) do `wooorm/dictionaries` em commit fixo; `.bdic` não é importado; Linux |

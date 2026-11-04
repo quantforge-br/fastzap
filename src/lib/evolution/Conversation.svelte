@@ -1,6 +1,7 @@
 <script lang="ts">
   import { openUrl } from "@tauri-apps/plugin-opener";
-  import { tick } from "svelte";
+  import { getCurrentWebview } from "@tauri-apps/api/webview";
+  import { onMount, tick } from "svelte";
 
   import { t, uiLocale } from "$lib/i18n/index.svelte";
   import { evolution, type ChatMessage, type ChatSummary } from "$lib/ipc";
@@ -66,6 +67,35 @@
   let failure = $state("");
   let requestedOlder = $state(false);
   let atBottom = $state(true);
+  let conversation: HTMLElement;
+  let dragging = $state(false);
+  let attachments = $state<string[]>([]);
+  let sendingFiles = $state(false);
+  let disposed = false;
+
+  onMount(() => {
+    const unlisten = getCurrentWebview().onDragDropEvent(({ payload }) => {
+      if (disposed) return;
+      if (payload.type === "leave") {
+        dragging = false;
+        return;
+      }
+      const x = payload.position.x / window.devicePixelRatio;
+      const y = payload.position.y / window.devicePixelRatio;
+      const hit = document.elementFromPoint(x, y);
+      const accepted = online && !editing && !sendingFiles && !!hit && conversation.contains(hit);
+      dragging = accepted && payload.type !== "drop";
+      if (accepted && payload.type === "drop") {
+        attachments = [...new Set([...attachments, ...payload.paths])];
+        composer?.focus();
+      }
+    });
+    unlisten.catch((e) => { if (!disposed) failure = errorMessage(e); });
+    return () => {
+      disposed = true;
+      unlisten.then((stop) => stop()).catch(() => {});
+    };
+  });
   let list: HTMLElement;
   let composer: HTMLTextAreaElement;
   let typingTimer: ReturnType<typeof setTimeout> | undefined;
@@ -92,6 +122,9 @@
     replyTo = null;
     editing = null;
     draft = "";
+    attachments = [];
+    dragging = false;
+    failure = "";
     requestedOlder = false;
     menu = null;
     chatMenu = false;
@@ -189,6 +222,11 @@
   }
 
   async function submit() {
+    if (!online || sendingFiles) return;
+    if (attachments.length && !editing) {
+      await sendAttachments();
+      return;
+    }
     const text = draft.trim();
     if (!text) return;
     failure = "";
@@ -212,16 +250,48 @@
     }
   }
 
-  async function attach() {
+  async function sendAttachments() {
+    const to = target;
+    const files = [...attachments];
+    const caption = draft.trim();
+    const quote = replyTo?.id ?? null;
+    sendingFiles = true;
     failure = "";
+    stopTyping();
     try {
-      const quote = replyTo?.id ?? null;
-      if (await evolution.sendFile(target, draft.trim(), quote)) {
+      for (const path of files) {
+        if (disposed || to !== target || !online) break;
+        // An attempted upload may have reached the server: never queue it again.
+        attachments = attachments.filter((file) => file !== path);
+        await evolution.sendFile(to, caption, quote, path);
+      }
+      if (!disposed && to === target && attachments.length === 0) {
         draft = "";
         replyTo = null;
       }
     } catch (e) {
-      failure = errorMessage(e);
+      if (!disposed && to === target) failure = errorMessage(e);
+    } finally {
+      sendingFiles = false;
+    }
+  }
+
+  async function attach() {
+    if (!online || editing || sendingFiles) return;
+    const to = target;
+    const caption = draft.trim();
+    const quote = replyTo?.id ?? null;
+    sendingFiles = true;
+    failure = "";
+    try {
+      if (await evolution.sendFile(to, caption, quote, null) && to === target) {
+        draft = "";
+        replyTo = null;
+      }
+    } catch (e) {
+      if (to === target) failure = errorMessage(e);
+    } finally {
+      sendingFiles = false;
     }
   }
 
@@ -269,6 +339,7 @@
   }
 
   function startReply(m: ChatMessage) {
+    if (sendingFiles) return;
     menu = null;
     editing = null;
     replyTo = m;
@@ -276,6 +347,8 @@
   }
 
   function startEdit(m: ChatMessage) {
+    if (sendingFiles) return;
+    attachments = [];
     menu = null;
     replyTo = null;
     editing = m;
@@ -339,7 +412,10 @@
   </span>
 {/snippet}
 
-<section class="conversation">
+<section class="conversation" bind:this={conversation}>
+  {#if dragging}
+    <div class="drop-zone" role="status">{t("Drop files to attach")}</div>
+  {/if}
   <header>
     <Avatar url={avatar} group={chat.is_group} size={40} />
     <div class="title">
@@ -510,24 +586,38 @@
         </div>
       {/if}
       <div class="bar">
+        {#if attachments.length}
+          <ul class="attachments" aria-label={t("Attachments")}>
+            {#each attachments as path (path)}
+              <li>
+                <span>{path.split(/[\\/]/).pop()}</span>
+                <button class="icon" aria-label={t("Remove attachment: {name}", { name: path.split(/[\\/]/).pop() ?? path })}
+                  disabled={sendingFiles} onclick={() => (attachments = attachments.filter((file) => file !== path))}>
+                  <Icon name="close" />
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+        {#if sendingFiles}<p role="status">{t("Sending attachment…")}</p>{/if}
         {#if replyTo || editing}
           <div class="context">
             <div class="quote">
               <strong>{editing ? t("Editing message") : replyTo?.from_me ? t("You") : replyTo?.sender_name || chat.name}</strong>
               <span>{previewText((editing ?? replyTo)!.kind, (editing ?? replyTo)!.body, t)}</span>
             </div>
-            <button class="icon" aria-label={t("Cancel")} onclick={cancelContext}><Icon name="close" /></button>
+            <button class="icon" aria-label={t("Cancel")} disabled={sendingFiles} onclick={cancelContext}><Icon name="close" /></button>
           </div>
         {/if}
         <div class="compose">
-          <button class="icon" title={t("Attach file")} aria-label={t("Attach file")} disabled={!online || !!editing} onclick={attach}>
+          <button class="icon" title={t("Attach file")} aria-label={t("Attach file")} disabled={!online || !!editing || sendingFiles || attachments.length > 0} onclick={attach}>
             <Icon name="attach" />
           </button>
           <button
             class="icon emoji-btn"
             aria-label={t("Emoji")}
             aria-expanded={emojiPicker}
-            disabled={!online}
+            disabled={!online || sendingFiles}
             onclick={() => (emojiPicker = !emojiPicker)}
           >
             <Icon name="emoji" />
@@ -536,16 +626,16 @@
             bind:this={composer}
             rows="1"
             placeholder={online ? t("Type a message") : t("Offline: messages cannot be sent now")}
-            disabled={!online}
+            disabled={!online || sendingFiles}
             bind:value={draft}
             oninput={onInput}
             onkeydown={onKeydown}
           ></textarea>
           <button
             class="icon send"
-            class:ready={!!draft.trim()}
+            class:ready={!!draft.trim() || attachments.length > 0}
             aria-label={editing ? t("Save") : t("Send")}
-            disabled={!online || !draft.trim()}
+            disabled={!online || sendingFiles || (!draft.trim() && !attachments.length)}
             onclick={submit}
           >
             <Icon name={editing ? "check" : "send"} />
@@ -558,12 +648,49 @@
 
 <style>
   .conversation {
+    position: relative;
     display: flex;
     flex-direction: column;
     min-width: 0;
     min-height: 0;
     height: 100%;
     background: var(--wa-chat-bg);
+  }
+  .drop-zone {
+    position: absolute;
+    inset: 8px;
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    border: 3px dashed var(--accent);
+    border-radius: 12px;
+    background: var(--wa-panel);
+    color: var(--wa-text);
+    font-size: 20px;
+    pointer-events: none;
+  }
+  .attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 140px;
+    overflow: auto;
+    list-style: none;
+    margin: 0;
+    padding: 8px;
+  }
+  .attachments li {
+    display: flex;
+    align-items: center;
+    max-width: 100%;
+    border: 1px solid var(--wa-border);
+    border-radius: 8px;
+    padding-left: 12px;
+  }
+  .attachments span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   header {
     display: flex;

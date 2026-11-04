@@ -157,8 +157,8 @@ export const evolution = {
   typing: (t: Target, composing: boolean) => invoke<void>("evo_typing", { ...t, composing }),
   sendText: (t: Target, text: string, quote: string | null) =>
     invoke<void>("evo_send_text", { ...t, text, quote }),
-  sendFile: (t: Target, caption: string, quote: string | null) =>
-    invoke<boolean>("evo_send_file", { ...t, caption, quote }),
+  sendFile: (t: Target, caption: string, quote: string | null, path: string | null) =>
+    invoke<boolean>("evo_send_file", { ...t, caption, quote, path }),
   retry: (t: Target, id: string) => invoke<void>("evo_retry", { ...t, id }),
   react: (t: Target, id: string, emoji: string) => invoke<void>("evo_react", { ...t, id, emoji }),
   edit: (t: Target, id: string, text: string) => invoke<void>("evo_edit", { ...t, id, text }),

@@ -195,6 +195,9 @@ impl WebviewManager {
             .initialization_script(scripts::document_start(&settings))
             .zoom_hotkeys_enabled(false)
             .devtools(true)
+            // Without this Tauri swallows OS file drops for its own drag-drop
+            // event; WhatsApp Web needs the native HTML5 drop to attach files.
+            .disable_drag_drop_handler()
             // As in ZapZap, other hosts are only blocked: WhatsApp also loads
             // background frames (e.g. flows.whatsapp.net cache management)
             // that must not reach the browser. Links the user opens arrive

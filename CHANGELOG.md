@@ -4,6 +4,10 @@
 
 ### Added
 
+- Drag files into Evolution Go conversations to stage multiple attachments,
+  remove individual files and confirm sending with an optional caption.
+  Uploads reject non-regular files and files larger than 100 MB.
+- WhatsApp Web receives native file drops directly for its attachment preview.
 - `make install` builds the current working tree and updates the local Arch
   Linux installation through pacman, with a timestamped local package and
   unprivileged compilation, without publishing commits or touching user data.

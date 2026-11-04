@@ -65,3 +65,21 @@ tema e grade.
 Para o Evolution Go, use primeiro o probe somente leitura da skill
 `evolutiongo-integration`. Pareamento e envio reais só com conta e destinatário
 de teste autorizados.
+
+### Anexos por arraste
+
+- WhatsApp Web: solte arquivos do gerenciador na conversa; confira a prévia
+  da página, sem navegação para o arquivo, inclusive com duas contas em grade.
+- Evolution Go: arraste vários arquivos sobre a conversa; confira o destaque,
+  nomes e remoção individual. Soltar não envia: Enviar confirma, com legenda
+  opcional. Repetir o mesmo caminho não duplica o anexo.
+- Soltar sobre a lista de chats, configurações ou fora da conversa não anexa;
+  offline, edição e envio em andamento também não aceitam novos anexos.
+- Confira escala da interface e HiDPI, saída do arraste sem soltar, pastas,
+  arquivo ausente, arquivo vazio e limite de 100 MB. Testes Rust de
+  `commands::evolution::upload_tests` cobrem os limites de leitura.
+- Com servidor mock, provoque falha no primeiro de vários arquivos: os
+  seguintes permanecem pendentes e o tentado não é reenviado automaticamente.
+  Troque/feche a conversa durante o envio: os próximos arquivos não saem e
+  a conclusão não apaga o rascunho da nova conversa. Fechar/reabrir não pode
+  acumular listeners. Nenhum envio real sem destinatário autorizado.

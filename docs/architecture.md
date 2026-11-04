@@ -77,6 +77,10 @@ habilitada, `webview::manager` cria um child webview com `Window::add_child`
 - `on_download` encaminhando para `downloads`;
 - `proxy_url` quando o proxy global está ativo.
 
+O handler de drag-and-drop do Tauri fica desativado nas contas `wa-*`, para
+que o WhatsApp Web receba os arquivos pelo mecanismo HTML nativo. A webview
+`ui` mantém os eventos Tauri para anexos do chat Evolution Go.
+
 O frontend informa a área livre (à direita da sidebar) via
 `layout_set_bounds`; o manager posiciona a conta ativa nessa área e oculta as
 demais. No modo grade, as contas visíveis são distribuídas em `grid_cols`
@@ -391,6 +395,16 @@ atualizar os ticks.
   entra apenas por `evo_instances`/`evo_setup`; nenhum comando a devolve.
 - `GET /instance/qr` reinicia um cliente logado para gerar QR novo, então
   QR e código por telefone só são pedidos com `LoggedIn` falso.
+- Anexos por arraste: `Conversation.svelte` escuta `onDragDropEvent` na
+  webview `ui`, converte as coordenadas físicas e aceita a soltura apenas
+  sobre a conversa visível, online e fora de edição/envio. Os caminhos ficam
+  numa fila local removível até confirmar em Enviar; trocar de conversa
+  descarta a fila. `evo_send_file` recebe `path` opcional (nulo abre o seletor
+  existente), valida arquivo regular e limite de 100 MB com leitura limitada
+  no Rust, e reutiliza cache, outbox e envio de mídia. Os arquivos são enviados
+  em sequência, com a mesma legenda e resposta; falha interrompe o lote e não
+  recoloca o arquivo tentado na fila, pois o servidor pode tê-lo recebido.
+  Sair da conversa interrompe os próximos envios, não o upload já iniciado.
 
 ## Inicialização e encerramento
 
