@@ -50,5 +50,5 @@
         window.webkitRTCPeerConnection = patchedRTCPeerConnection;
     } catch(e) {}
 
-    console.log("ZapZap WebRTC Shield activated.");
+    console.log("FastZap WebRTC Shield activated.");
 })();

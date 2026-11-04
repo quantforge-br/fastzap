@@ -117,7 +117,7 @@ pub fn apply_theme(dark: bool) -> String {
     if (!c || typeof c.is_ready !== "function" || c.has_failed() || !c.is_ready()) return;
     c.currentColorScheme = "{scheme}";
     c.applyZapZapColorSchemeToWAWeb();
-  }} catch (e) {{ console.error("[ZapZap WAWeb Theme Controller]", e); }}
+  }} catch (e) {{ console.error("[FastZap WAWeb Theme Controller]", e); }}
 }})();"#
     )
 }

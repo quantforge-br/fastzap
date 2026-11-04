@@ -1,7 +1,7 @@
 // QWebChannel is provided by bridge.js in FastZap.
 
 (() => {
-    const LOG_PREFIX = "[ZapZap WAWeb Theme Controller]";
+    const LOG_PREFIX = "[FastZap WAWeb Theme Controller]";
 
     const THEME_CONTEXT_PENDING_TIMEOUT = 60000; // 60 seconds
     const THEME_CONTEXT_SEARCH_DELAY = 100; // milliseconds
@@ -572,7 +572,7 @@
                 });
             } catch (_) {
                 console.warn(
-                    LOG_PREFIX, "QWebChannel failed to initialize. ZapZap may still be " +
+                    LOG_PREFIX, "QWebChannel failed to initialize. FastZap may still be " +
                         "able to change the WhatsApp Web theme, but won't monitor its changes."
                 );
             }

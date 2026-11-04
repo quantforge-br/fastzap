@@ -428,3 +428,5 @@
 - The donation page, the startup support reminder, the Support FastZap tray,
   settings and About entries, the `donation_open*` commands and the
   `notifications.donation_message_hidden` setting.
+- ZapZap mentions in the About credits, the AppStream metainfo and the
+  console messages of the injected WhatsApp Web scripts.

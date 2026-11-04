@@ -108,9 +108,7 @@
         <button
           class="btn"
           onclick={() =>
-            (notice = t(
-              "FastZap is a Rust and Tauri rewrite of ZapZap, created and maintained by Rafael Tosta. Thanks to everyone who contributes translations, code, testing, and feedback.",
-            ))}>ⓘ</button
+            (notice = t("Thanks to everyone who contributes translations, code, testing, and feedback."))}>ⓘ</button
         >
       {/snippet}
     </Row>

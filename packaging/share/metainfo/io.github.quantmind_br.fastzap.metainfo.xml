@@ -48,12 +48,6 @@
       As contas também podem usar o WhatsApp pelo seu próprio servidor
       Evolution Go, com uma janela de conversa nativa em vez do WhatsApp Web.
     </p>
-    <p>
-      On first start, settings and accounts from ZapZap are imported.
-    </p>
-    <p xml:lang="pt_BR">
-      Na primeira execução, as configurações e contas do ZapZap são importadas.
-    </p>
   </description>
 
   <provides>
@@ -81,7 +75,7 @@
   <releases>
     <release version="0.1.0" date="2026-11-03" type="development">
       <description>
-        <p>First development version: a Rust and Tauri rewrite of ZapZap with Evolution Go accounts.</p>
+        <p>First development version: WhatsApp Web and Evolution Go accounts.</p>
       </description>
     </release>
   </releases>
