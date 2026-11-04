@@ -391,7 +391,12 @@
               <span class="sender" style:color={senderColor(m.sender)}>{m.sender_name}</span>
             {/if}
             {#if m.quote}
-              <div class="quote">{m.quote.text || t("Quoted message")}</div>
+              {@const q = m.quote}
+              {@const color = q.from_me ? null : senderColor(q.sender)}
+              <div class="quote" style:border-left-color={color}>
+                <strong style:color>{q.from_me ? t("You") : q.sender_name}</strong>
+                <span>{previewText(q.kind, q.text, t) || t("Quoted message")}</span>
+              </div>
             {/if}
             {#if m.revoked}
               <p class="text deleted"><em>{t("This message was deleted")}</em>{@render meta(m)}</p>
@@ -781,6 +786,24 @@
     background: var(--wa-quote-bg);
     color: var(--wa-secondary);
     font-size: 13px;
+  }
+  .bubble .quote {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .bubble .quote strong {
+    color: var(--wa-green);
+    font-weight: 600;
+  }
+  .bubble .quote span {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
   .text {
     /* Holds the floated time, which sits on the last line when it fits. */

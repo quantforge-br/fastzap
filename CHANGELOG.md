@@ -366,6 +366,11 @@
 - Evolution Go: typing indicators name group senders by phone number, and a
   LID listed twice in one history sync keeps the phone number from the
   explicit mapping.
+- Evolution Go replies show the quoted message with its author ("You" or the
+  contact) and content instead of a bare "Quoted message": replies sent from
+  FastZap, quoted media without a caption (by kind, documents by name) and
+  edited quotes; stores migrate to schema 4 (`messages.quote_kind`) and fill
+  the kind and text of stored quotes.
 
 ### Changed
 

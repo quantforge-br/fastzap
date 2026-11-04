@@ -113,13 +113,14 @@ impl Status {
     }
 }
 
-/// The message a reply quotes.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, TS)]
-#[ts(export)]
+/// The message a reply quotes, as the reply carried it.
+#[derive(Debug, Clone, PartialEq)]
 pub struct QuoteRef {
     pub id: String,
     pub participant: String,
-    /// Preview text when the event carried the quoted message.
+    /// Kind of the quoted message (`Text` when the reply did not carry it).
+    pub kind: MessageKind,
+    /// Text, caption or document name of the quoted message, when carried.
     pub text: String,
 }
 
@@ -319,6 +320,83 @@ pub fn preview_text(message: &Value) -> String {
     String::new()
 }
 
+/// Kind of an unwrapped message proto and the field holding its content.
+fn kind_of(message: &Value) -> (MessageKind, &Value) {
+    [
+        ("imageMessage", MessageKind::Image),
+        ("videoMessage", MessageKind::Video),
+        ("audioMessage", MessageKind::Audio),
+        ("documentMessage", MessageKind::Document),
+        ("stickerMessage", MessageKind::Sticker),
+        ("locationMessage", MessageKind::Location),
+        ("liveLocationMessage", MessageKind::Location),
+        ("contactMessage", MessageKind::Contact),
+        ("contactsArrayMessage", MessageKind::Contact),
+        ("extendedTextMessage", MessageKind::Text),
+    ]
+    .into_iter()
+    .find_map(|(field, kind)| message.get(field).map(|inner| (kind, inner)))
+    .unwrap_or_else(|| {
+        if message.get("conversation").is_some() {
+            (MessageKind::Text, &Value::Null)
+        } else {
+            (MessageKind::Unsupported, &Value::Null)
+        }
+    })
+}
+
+/// Text, caption, place or contact name of an unwrapped message proto.
+fn body_of(kind: MessageKind, inner: &Value, message: &Value) -> String {
+    match kind {
+        MessageKind::Location => {
+            let name = str_at(inner, "name");
+            if name.is_empty() {
+                format!(
+                    "{}, {}",
+                    inner.get("degreesLatitude").unwrap_or(&Value::Null),
+                    inner.get("degreesLongitude").unwrap_or(&Value::Null)
+                )
+            } else {
+                name.to_owned()
+            }
+        }
+        MessageKind::Contact => str_at(inner, "displayName").to_owned(),
+        _ => preview_text(message),
+    }
+}
+
+/// The quote of a message, from the `contextInfo` of its content field.
+fn quote_in(inner: &Value) -> Option<QuoteRef> {
+    let ctx = inner
+        .get("contextInfo")
+        .filter(|ctx| !str_at(ctx, "stanzaID").is_empty())?;
+    let (kind, text) = match ctx.get("quotedMessage") {
+        Some(quoted) => {
+            let quoted = unwrap(quoted);
+            let (kind, inner) = kind_of(quoted);
+            let text = match body_of(kind, inner, quoted) {
+                text if text.is_empty() && kind == MessageKind::Document => {
+                    str_at(inner, "fileName").to_owned()
+                }
+                text => text,
+            };
+            (kind, text)
+        }
+        None => (MessageKind::Text, String::new()),
+    };
+    Some(QuoteRef {
+        id: str_at(ctx, "stanzaID").to_owned(),
+        participant: str_at(ctx, "participant").to_owned(),
+        kind,
+        text,
+    })
+}
+
+/// The quote of a stored message proto (`Message::raw`).
+pub fn quote_of_raw(raw: &Value) -> Option<QuoteRef> {
+    quote_in(kind_of(unwrap(raw)).1)
+}
+
 struct Envelope<'a> {
     id: &'a str,
     chat: &'a str,
@@ -370,55 +448,9 @@ fn parse_body(env: Envelope<'_>, message: &Value) -> Option<Change> {
         return None;
     }
 
-    let (kind, inner) = [
-        ("imageMessage", MessageKind::Image),
-        ("videoMessage", MessageKind::Video),
-        ("audioMessage", MessageKind::Audio),
-        ("documentMessage", MessageKind::Document),
-        ("stickerMessage", MessageKind::Sticker),
-        ("locationMessage", MessageKind::Location),
-        ("liveLocationMessage", MessageKind::Location),
-        ("contactMessage", MessageKind::Contact),
-        ("contactsArrayMessage", MessageKind::Contact),
-        ("extendedTextMessage", MessageKind::Text),
-    ]
-    .into_iter()
-    .find_map(|(field, kind)| message.get(field).map(|inner| (kind, inner)))
-    .unwrap_or_else(|| {
-        if message.get("conversation").is_some() {
-            (MessageKind::Text, &Value::Null)
-        } else {
-            (MessageKind::Unsupported, &Value::Null)
-        }
-    });
-
-    let body = match kind {
-        MessageKind::Location => {
-            let name = str_at(inner, "name");
-            if name.is_empty() {
-                format!(
-                    "{}, {}",
-                    inner.get("degreesLatitude").unwrap_or(&Value::Null),
-                    inner.get("degreesLongitude").unwrap_or(&Value::Null)
-                )
-            } else {
-                name.to_owned()
-            }
-        }
-        MessageKind::Contact => str_at(inner, "displayName").to_owned(),
-        _ => preview_text(message),
-    };
-    let quote = inner
-        .get("contextInfo")
-        .filter(|ctx| !str_at(ctx, "stanzaID").is_empty())
-        .map(|ctx| QuoteRef {
-            id: str_at(ctx, "stanzaID").to_owned(),
-            participant: str_at(ctx, "participant").to_owned(),
-            text: ctx
-                .get("quotedMessage")
-                .map(preview_text)
-                .unwrap_or_default(),
-        });
+    let (kind, inner) = kind_of(message);
+    let body = body_of(kind, inner, message);
+    let quote = quote_in(inner);
     let mut raw = message.clone();
     strip_heavy(&mut raw);
     Some(Change::New(Message {
@@ -693,9 +725,37 @@ mod tests {
             Some(QuoteRef {
                 id: "Q1".into(),
                 participant: "552@s.whatsapp.net".into(),
+                kind: MessageKind::Text,
                 text: "question".into()
             })
         );
+
+        // Media without a caption is quoted by kind; a document by its name.
+        for (quoted, kind, text) in [
+            (
+                json!({"imageMessage": {"mimetype": "image/jpeg"}}),
+                MessageKind::Image,
+                "",
+            ),
+            (
+                json!({"documentWithCaptionMessage": {"message": {"documentMessage":
+                    {"fileName": "a.pdf"}}}}),
+                MessageKind::Document,
+                "a.pdf",
+            ),
+            (json!({"stickerMessage": {}}), MessageKind::Sticker, ""),
+        ] {
+            let reply = live(
+                json!({"extendedTextMessage": {"text": "yes", "contextInfo": {
+                "stanzaID": "Q2", "quotedMessage": quoted}}}),
+            );
+            let Change::New(m) = single(parse(&reply)) else {
+                panic!()
+            };
+            let quote = m.quote.unwrap();
+            assert_eq!((quote.kind, quote.text.as_str()), (kind, text));
+            assert_eq!(quote_of_raw(&m.raw).unwrap(), quote);
+        }
     }
 
     #[test]

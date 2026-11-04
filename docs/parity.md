@@ -102,7 +102,9 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
   arquivar, desarquivar e silenciar chats pelo FastZap (a pasta "Arquivadas"
   só espelha o telefone, com até 5 min de atraso), status, chamadas, enquetes, figurinhas
   enviadas, menções, encaminhamento e criação de grupos não existem. Respostas
-  a mensagens que o FastZap não guardou chegam sem texto citado; só as
+  a mensagens que o FastZap não guardou mostram só a cópia que o servidor
+  entregou (sem miniatura; enquetes e álbuns como mensagem não suportada);
+  só as
   próprias mensagens podem ser apagadas ou editadas; envios de mídia que
   falham não têm "enviar de novo"; mídia antiga que expirou no CDN do
   WhatsApp não é recuperável (o servidor não tem *media retry*). Histórico antigo depende do sync inicial
