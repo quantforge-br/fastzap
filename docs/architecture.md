@@ -443,6 +443,10 @@ atualizar os ticks.
   ad-hoc e sem notarização. O `.desktop` de deb/rpm vem de
   `packaging/linux/fastzap.desktop.hbs` (`FastZap.desktop`, ícone `fastzap`,
   esquemas `whatsapp:` e `fastzap:`).
+- `make install` usa `packaging/arch/install.sh` e `packaging/arch/PKGBUILD`
+  para compilar a árvore local, converter o DEB em `dsr-fastzap-git` e
+  instalar via pacman. Só a transação de instalação usa sudo; o pacote
+  normaliza o lançador para `fastzap.desktop` e permanece separado do Flatpak.
 - `packaging/share/`: `.desktop`, metainfo AppStream e ícone SVG nomeados
   pelo App ID, usados por Flatpak e snap; os ícones de `src-tauri/icons/`
   são gerados a partir desse SVG com `pnpm tauri icon`.

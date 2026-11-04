@@ -48,6 +48,11 @@ i18n, validação, `src/lib/evolution/format.ts`).
 metadados, scripts e workflows (os quatro primeiros também no job
 `packaging` de `quality.yml`). Os pacotes em si só são verificados
 construindo-os; veja [manutenção](maintenance.md#empacotamento).
+O instalador Arch é validado com `shellcheck packaging/arch/install.sh` e
+`bash -n packaging/arch/PKGBUILD`. Seu smoke é `make install` em Arch Linux:
+confira a versão local com `pacman -Q dsr-fastzap-git`, a propriedade de
+`/usr/bin/fastzap` e a existência de apenas `fastzap.desktop` no pacote.
+`sudo make install` deve ser recusado antes de compilar ou instalar.
 
 ## Verificações manuais
 

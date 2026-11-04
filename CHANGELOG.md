@@ -4,6 +4,9 @@
 
 ### Added
 
+- `make install` builds the current working tree and updates the local Arch
+  Linux installation through pacman, with a timestamped local package and
+  unprivileged compilation, without publishing commits or touching user data.
 - Tauri v2 + SvelteKit project scaffold, GPL-3.0 license, maintenance guide,
   commit convention, architecture, parity and testing documentation.
 - Quality workflow running Rust formatting, clippy, tests, `svelte-check` and

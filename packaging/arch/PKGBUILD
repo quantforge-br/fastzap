@@ -1,0 +1,41 @@
+# Package the DEB built from the local working tree, without fetching Git.
+pkgname=dsr-fastzap-git
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Multi-account WhatsApp desktop client with Evolution Go accounts (local source build)'
+arch=('x86_64' 'aarch64')
+url='https://github.com/quantforge-br/fastzap'
+license=('GPL-3.0-or-later')
+depends=('webkit2gtk-4.1' 'gtk3' 'glib2' 'cairo' 'gdk-pixbuf2' 'libsoup3' 'dbus' 'glibc' 'libgcc'
+         'libayatana-appindicator' 'hicolor-icon-theme')
+optdepends=('gnome-keyring: Secret Service provider for proxy and Evolution Go credentials'
+            'kwallet: alternative Secret Service provider'
+            'gst-plugins-good: audio and video playback in WhatsApp Web'
+            'gst-plugins-bad: more media codecs in WhatsApp Web'
+            'gst-libav: more media codecs in WhatsApp Web'
+            'xdg-desktop-portal: notifications, theme and background portals')
+provides=('fastzap')
+conflicts=('fastzap' 'fastzap-bin' 'fastzap-git' 'dsr-fastzap' 'dsr-fastzap-bin')
+options=('!lto' '!debug')
+source=('FastZap.deb' 'LICENSE')
+sha256sums=('SKIP' 'SKIP')
+
+pkgver() {
+  printf '%s\n' "${FASTZAP_LOCAL_VERSION:?Run make install from the source checkout}"
+}
+
+package() {
+  bsdtar -xOf "$srcdir/FastZap.deb" 'data.tar.*' | bsdtar -xf - -C "$pkgdir"
+  local entry=("$pkgdir"/usr/share/applications/*.desktop)
+  if [[ ${#entry[@]} != 1 || ! -f ${entry[0]} ]]; then
+    printf '%s\n' 'Expected exactly one desktop entry in the DEB.' >&2
+    return 1
+  fi
+  if [[ ${entry[0]} != "$pkgdir/usr/share/applications/fastzap.desktop" ]]; then
+    mv "${entry[0]}" "$pkgdir/usr/share/applications/fastzap.desktop"
+  fi
+  if [[ -d $pkgdir/usr/share/icons/hicolor/256x256@2 ]]; then
+    mv "$pkgdir/usr/share/icons/hicolor/256x256@2" "$pkgdir/usr/share/icons/hicolor/256x256"
+  fi
+  install -Dm644 "$srcdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

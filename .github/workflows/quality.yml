@@ -94,7 +94,7 @@ jobs:
               packaging/linux/fastzap.desktop.hbs > "${RUNNER_TEMP}/fastzap.desktop"
           desktop-file-validate "${RUNNER_TEMP}/fastzap.desktop"
       - run: appstreamcli validate --no-net packaging/share/metainfo/*.xml
-      - run: shellcheck packaging/common/*.sh packaging/snap/prepare.sh
+      - run: shellcheck packaging/common/*.sh packaging/arch/install.sh packaging/snap/prepare.sh
       - name: Lint workflows
         run: |
           bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7

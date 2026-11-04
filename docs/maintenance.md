@@ -42,6 +42,41 @@ flatpak-builder --user --install --force-clean --state-dir=.flatpak-builder \
 packaging/snap/prepare.sh && snapcraft pack
 ```
 
+### Atualizar a instalação local no Arch Linux
+
+Na raiz do checkout, como usuário normal:
+
+```bash
+make install
+```
+
+O comando instala as dependências JS pelo lockfile, recompila frontend e
+backend com Tauri e converte o DEB resultante em um pacote Arch
+`dsr-fastzap-git`, instalado por `sudo pacman -U`. Requer `make`, `pnpm`,
+Node, Cargo, Git, `makepkg` (base-devel), `bsdtar`, `flock`, `sudo` e as
+dependências nativas de compilação. Não execute `sudo make install`.
+
+O build usa a árvore atual, inclusive alterações não commitadas; não faz
+commit, push nem busca código no GitHub. A versão local contém a versão do
+app, data UTC e revisão Git. Futuros pacotes do repositório podem ter versão
+inferior à local; nesse caso, instale-os explicitamente com `pacman -U`.
+O artefato fica em `src-tauri/target/local-install/`, e o binário permanece
+gerenciado pelo pacman em `/usr/bin/fastzap`. O canal é local/não oficial.
+O nome do pacote é o mesmo do dsr-aur: a transação substitui essa instalação,
+inclusive `/usr/bin/fastzap`, ícones e lançador, sem instalar uma segunda cópia.
+
+Contas, histórico, preferências e keyring não são alterados pelo instalador.
+Ele não fecha nem abre o app: se estiver rodando, use Sair e abra novamente
+após a instalação. O suporte deste comando é específico para Arch Linux;
+as demais plataformas continuam usando seus empacotadores acima.
+
+O Flatpak é uma instalação independente: se ele e o pacote nativo estiverem
+instalados, o lançador mostrará dois itens FastZap. `make install` não atualiza,
+oculta nem remove o Flatpak. O atalho nativo é `fastzap.desktop`; o Flatpak
+exporta `io.github.quantmind_br.fastzap.desktop`.
+
+### Validação e publicação
+
 Validadores: `packaging/common/version.sh --check`,
 `desktop-file-validate packaging/share/applications/*.desktop`,
 `appstreamcli validate --no-net packaging/share/metainfo/*.xml` e
