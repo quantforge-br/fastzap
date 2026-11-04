@@ -109,9 +109,14 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
   WhatsApp não é recuperável (o servidor não tem *media retry*). Histórico antigo depende do sync inicial
   do pareamento ou de um pedido ao telefone ("carregar mensagens antigas");
   o sync inicial só chega uma vez, e uma conversa sem atividade desde então
-  só aparece depois de pareamento novo da instância.
-  Sem `PRIVATE_CHAT_HISTORY` no servidor, eventos perdidos com o WebSocket
-  fora não voltam. A grade (`Ctrl+G`), o zoom, customizações, corretor e o
+  só aparece depois de pareamento novo da instância. O FastZap só recebe
+  esse sync se, no pareamento, o servidor já gravava o journal
+  (`PRIVATE_CHAT_HISTORY`) ou o socket do FastZap estava aberto com
+  `HISTORY_SYNC`; uma instância pareada antes disso precisa ser pareada de
+  novo para trazer as conversas antigas. Sem `PRIVATE_CHAT_HISTORY` no servidor, eventos perdidos com o
+  WebSocket fora não voltam, e um socket que o servidor deixou de abastecer
+  só é trocado no próximo erro de conexão; com o journal, mensagens perdidas
+  aparecem em até 30 s. A grade (`Ctrl+G`), o zoom, customizações, corretor e o
   seletor de contas integrado valem só para contas WhatsApp Web; "enviar
   mensagem para número" abre o WhatsApp Web, enquanto o chat nativo tem o
   próprio campo de número. A chave admin do servidor fica no keyring local,

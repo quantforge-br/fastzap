@@ -28,13 +28,16 @@ cobre:
   sanitizados, timeout de envio → resultado ambíguo, journal com e sem
   cursor, reconnect); WebSocket
   contra um servidor `tokio-tungstenite` local (decodificação dupla, remoção
-  de `instanceToken`, filtro de instância, frame de 20 MiB, reconexão);
+  de `instanceToken`, filtro de instância, frame de 20 MiB, reconexão,
+  renovação que só reconecta depois que o servidor encerrou o socket antigo);
   parser de eventos (texto, resposta, mídia desembrulhada, reação, edição,
   revogação, recibos, HistorySync); store SQLite (deduplicação, outbox,
   recibos que só avançam, falha tardia que não rebaixa mensagem confirmada,
-  página do journal aplicada em ordem com o cursor, troca de origem que
+  página do journal aplicada em ordem com o cursor, contagem de mensagens
+  que só o journal trouxe, troca de origem que
   limpa o banco, páginas, âncora do history-sync, nomes). O prazo de 65 s
-  sem frames do WebSocket não tem teste automatizado.
+  sem frames do WebSocket e a leitura periódica do journal na sessão não têm
+  teste automatizado.
 - **customizations**, **downloads**, **reporting**: regras puras de arquivos,
   histórico e sanitização.
 

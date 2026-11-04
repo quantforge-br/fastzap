@@ -1,14 +1,19 @@
 //! Live events over `GET /ws?token=<admin key>&instanceId=<id>`.
 //!
 //! The server keeps one socket per instance and has no replay, so the caller
-//! catches up through the journal after each `Up`. The URL carries the admin
-//! key: it is never logged, and connection errors are reduced to generic text.
+//! catches up through the journal after each `Up`. It can also stop routing
+//! events to a socket that stays open (an older socket's late cleanup
+//! unregisters the instance), so the caller may ask for a fresh socket
+//! through `renew`. The URL carries the admin key: it is never logged, and
+//! connection errors are reduced to generic text.
 
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use futures_util::{SinkExt, StreamExt};
 use serde_json::Value;
-use tokio::sync::{mpsc, watch};
+use tokio::sync::futures::Notified;
+use tokio::sync::{Notify, mpsc, watch};
 use tokio_tungstenite::tungstenite::Message as Frame;
 use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
 use url::Url;
@@ -64,12 +69,14 @@ fn next_backoff(current: Duration) -> Duration {
     (current * 2).min(BACKOFF_MAX)
 }
 
-/// Keep a socket open until `stop` turns true or `signals` is dropped.
+/// Keep a socket open until `stop` turns true or `signals` is dropped. A
+/// `renew` notification replaces the open socket without a `Down`.
 pub async fn run(
     url: Url,
     instance_id: String,
     signals: mpsc::UnboundedSender<Signal>,
     mut stop: watch::Receiver<bool>,
+    renew: Arc<Notify>,
 ) {
     let mut backoff = BACKOFF_MIN;
     while !*stop.borrow() {
@@ -81,10 +88,13 @@ pub async fn run(
         let reason = match tokio::time::timeout(CONNECT_TIMEOUT, connect).await {
             Ok(Ok((socket, _))) => {
                 backoff = BACKOFF_MIN;
+                // Registered before `Up`: a renewal asked for once the caller
+                // sees this socket must reach it.
+                let renewed = renew.notified();
                 if signals.send(Signal::Up).is_err() {
                     return;
                 }
-                session(socket, &instance_id, &signals, &mut stop).await
+                session(socket, &instance_id, &signals, &mut stop, renewed).await
             }
             Ok(Err(tokio_tungstenite::tungstenite::Error::Http(response)))
                 if matches!(response.status().as_u16(), 401 | 403) =>
@@ -94,6 +104,9 @@ pub async fn run(
             Ok(Err(_)) => "unreachable",
             Err(_) => "timeout",
         };
+        if reason == "renewed" {
+            continue;
+        }
         if *stop.borrow() || signals.send(Signal::Down(reason)).is_err() {
             return;
         }
@@ -110,6 +123,7 @@ async fn session<S>(
     instance_id: &str,
     signals: &mpsc::UnboundedSender<Signal>,
     stop: &mut watch::Receiver<bool>,
+    renewed: Notified<'_>,
 ) -> &'static str
 where
     S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
@@ -118,9 +132,15 @@ where
     let mut ping = tokio::time::interval(PING_EVERY);
     ping.tick().await;
     let mut last_seen = Instant::now();
+    let forward = |text: &str| match decode_frame(text, instance_id) {
+        Some(event) => signals.send(Signal::Event(event)).is_ok(),
+        None => true,
+    };
+    tokio::pin!(renewed);
     let reason = loop {
         tokio::select! {
             _ = stop.changed() => break "stopped",
+            () = &mut renewed => break "renewed",
             _ = ping.tick() => {
                 // Writes only fill local buffers on a silently dead network.
                 if last_seen.elapsed() > SILENCE_LIMIT {
@@ -137,9 +157,7 @@ where
             frame = stream.next() => match frame {
                 Some(Ok(Frame::Text(text))) => {
                     last_seen = Instant::now();
-                    if let Some(event) = decode_frame(&text, instance_id)
-                        && signals.send(Signal::Event(event)).is_err()
-                    {
+                    if !forward(&text) {
                         break "stopped";
                     }
                 }
@@ -153,6 +171,18 @@ where
     // the old one's cleanup runs late.
     let close = async {
         let _ = sink.send(Frame::Close(None)).await;
+        // A renewal reconnects at once, so wait until the server ends the
+        // connection: it unregisters the instance just before. Events it
+        // sent meanwhile are still delivered.
+        if reason == "renewed" {
+            while let Some(Ok(frame)) = stream.next().await {
+                if let Frame::Text(text) = frame
+                    && !forward(&text)
+                {
+                    break;
+                }
+            }
+        }
         let _ = sink.close().await;
     };
     let _ = tokio::time::timeout(WRITE_TIMEOUT, close).await;
@@ -164,6 +194,7 @@ mod tests {
     use super::*;
     use crate::secrets::Secret;
     use serde_json::json;
+    use std::sync::atomic::{AtomicBool, Ordering};
     use tokio::net::TcpListener;
 
     #[test]
@@ -214,7 +245,7 @@ mod tests {
         let url = ws_url(&base, &AdminKey(Secret::new("k")), "u1");
         let (tx, mut rx) = mpsc::unbounded_channel();
         let (stop_tx, stop_rx) = watch::channel(false);
-        let task = tokio::spawn(run(url, "u1".into(), tx, stop_rx));
+        let task = tokio::spawn(run(url, "u1".into(), tx, stop_rx, Arc::new(Notify::new())));
 
         let mut rounds = Vec::new();
         while rounds.len() < 2 {
@@ -236,5 +267,68 @@ mod tests {
             .await
             .unwrap()
             .unwrap();
+    }
+
+    async fn recv(rx: &mut mpsc::UnboundedReceiver<Signal>) -> Signal {
+        tokio::time::timeout(Duration::from_secs(10), rx.recv())
+            .await
+            .unwrap()
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn renewal_reconnects_once_the_old_socket_has_ended() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let released = Arc::new(AtomicBool::new(false));
+        let server = tokio::spawn({
+            let released = released.clone();
+            async move {
+                let (tcp, _) = listener.accept().await.unwrap();
+                let mut old = tokio_tungstenite::accept_async(tcp).await.unwrap();
+                // The server's cleanup of the old socket runs late.
+                let cleanup = tokio::spawn({
+                    let released = released.clone();
+                    async move {
+                        while let Some(Ok(frame)) = old.next().await {
+                            if frame.is_close() {
+                                tokio::time::sleep(Duration::from_millis(300)).await;
+                                released.store(true, Ordering::SeqCst);
+                            }
+                        }
+                    }
+                });
+                let (tcp, _) = listener.accept().await.unwrap();
+                let after_cleanup = released.load(Ordering::SeqCst);
+                let mut new = tokio_tungstenite::accept_async(tcp).await.unwrap();
+                let payload = json!({"event": "Message", "instanceId": "u1", "data": {}});
+                let frame = json!({"queue": "q", "payload": payload.to_string()}).to_string();
+                new.send(Frame::Text(frame.into())).await.unwrap();
+                cleanup.await.unwrap();
+                while let Some(Ok(_)) = new.next().await {}
+                after_cleanup
+            }
+        });
+        let base = Url::parse(&format!("http://{addr}")).unwrap();
+        let url = ws_url(&base, &AdminKey(Secret::new("k")), "u1");
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        let (stop_tx, stop_rx) = watch::channel(false);
+        let renew = Arc::new(Notify::new());
+        let task = tokio::spawn(run(url, "u1".into(), tx, stop_rx, renew.clone()));
+
+        assert!(matches!(recv(&mut rx).await, Signal::Up));
+        renew.notify_waiters();
+        // A renewal is not an outage: no `Down` between the two sockets.
+        assert!(matches!(recv(&mut rx).await, Signal::Up));
+        assert!(matches!(recv(&mut rx).await, Signal::Event(_)));
+        stop_tx.send(true).unwrap();
+        tokio::time::timeout(Duration::from_secs(5), task)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            server.await.unwrap(),
+            "the new socket connected before the server dropped the old one"
+        );
     }
 }

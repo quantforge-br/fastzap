@@ -371,6 +371,12 @@
 - Evolution Go: typing indicators name group senders by phone number, and a
   LID listed twice in one history sync keeps the phone number from the
   explicit mapping.
+- Evolution Go: new messages no longer wait for a restart when the server
+  stops routing events to an open WebSocket (its cleanup of an older socket
+  unregisters the newer one). The journal is read every 30 s while the socket
+  is up, missed messages appear and notify, and a socket that missed them is
+  replaced; a replaced socket reconnects only after the server dropped the
+  old one.
 
 ### Changed
 

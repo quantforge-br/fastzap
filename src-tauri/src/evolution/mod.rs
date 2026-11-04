@@ -4,9 +4,11 @@
 //! Each enabled account runs one session: make sure the instance is connected
 //! with the WebSocket on, keep the socket open, and after every (re)connect
 //! read the server's private journal from the saved cursor so events missed
-//! while offline are recovered. Changes land in the account's `ChatStore`;
-//! unread counts and notifications go through the same pipeline as WhatsApp
-//! Web pages.
+//! while offline are recovered. The journal is also read on a timer: the
+//! server can stop routing events to a socket that stays open, and messages
+//! found there but never carried by the socket renew it. Changes land in the
+//! account's `ChatStore`; unread counts and notifications go through the same
+//! pipeline as WhatsApp Web pages.
 
 pub mod client;
 pub mod model;
@@ -21,7 +23,8 @@ use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{Notify, mpsc, watch};
+use tokio::time::MissedTickBehavior;
 use ts_rs::TS;
 
 use crate::accounts::{Account, AccountKind};
@@ -43,6 +46,8 @@ const RECONNECT_DELAY: Duration = Duration::from_secs(10);
 const AVATAR_TTL: Duration = Duration::from_secs(6 * 3600);
 const ARCHIVED_REFRESH: Duration = Duration::from_secs(5 * 60);
 const JOURNAL_MAX_PAGES: usize = 200;
+/// How often the journal is read while the socket is up.
+const JOURNAL_POLL: Duration = Duration::from_secs(30);
 /// Store meta keys tying local data to its source.
 const BIND_SERVER: &str = "bind:server";
 const JOURNAL_PAUSE: Duration = Duration::from_secs(1);
@@ -350,33 +355,76 @@ fn start(app: &AppHandle, account: &Account) {
     tauri::async_runtime::spawn(run(app.clone(), session, stop_rx));
 }
 
+enum Wake {
+    Signal(ws::Signal),
+    Archived,
+    Poll,
+}
+
 async fn run(app: AppHandle, session: Arc<Session>, mut stop: watch::Receiver<bool>) {
     let url = ws::ws_url(session.client.base(), &session.admin, &session.instance_id);
     let (tx, mut rx) = mpsc::unbounded_channel();
-    tauri::async_runtime::spawn(ws::run(url, session.instance_id.clone(), tx, stop.clone()));
+    let renew = Arc::new(Notify::new());
+    tauri::async_runtime::spawn(ws::run(
+        url,
+        session.instance_id.clone(),
+        tx,
+        stop.clone(),
+        renew.clone(),
+    ));
     // Archiving happens on the phone and arrives through no event.
     let mut archived = tokio::time::interval(ARCHIVED_REFRESH);
+    let mut poll = tokio::time::interval(JOURNAL_POLL);
+    poll.set_missed_tick_behavior(MissedTickBehavior::Delay);
+    // Whether the socket is up, and whether it carried an event since the
+    // last poll.
+    let (mut up, mut delivered) = (false, false);
     // Stopping cancels the work in flight too: a deleted or reconfigured
     // account must not connect the instance or write its store afterwards.
     loop {
-        let signal = tokio::select! {
-            signal = rx.recv() => signal.map(Some),
-            _ = archived.tick() => Some(None),
-            _ = stop.wait_for(|s| *s) => None,
+        // Queued socket events first, so a poll never counts them as missed.
+        let wake = tokio::select! {
+            biased;
+            _ = stop.wait_for(|s| *s) => break,
+            signal = rx.recv() => match signal {
+                Some(signal) => Wake::Signal(signal),
+                None => break,
+            },
+            _ = archived.tick() => Wake::Archived,
+            _ = poll.tick() => Wake::Poll,
         };
-        let Some(signal) = signal else {
-            break;
-        };
-        let Some(signal) = signal else {
-            tokio::select! {
+        match wake {
+            Wake::Signal(signal) => {
+                match &signal {
+                    ws::Signal::Up => up = true,
+                    ws::Signal::Down(_) => up = false,
+                    ws::Signal::Event(_) => delivered = true,
+                }
+                tokio::select! {
+                    () = on_signal(&app, &session, signal) => {}
+                    _ = stop.wait_for(|s| *s) => break,
+                }
+            }
+            Wake::Archived => tokio::select! {
                 () = load_archived(&app, &session) => {}
                 _ = stop.wait_for(|s| *s) => break,
+            },
+            Wake::Poll if up => {
+                let fresh = tokio::select! {
+                    fresh = poll_journal(&app, &session) => fresh,
+                    _ = stop.wait_for(|s| *s) => break,
+                };
+                // The server unregisters the instance when an older socket's
+                // cleanup runs late; this socket stays open and silent.
+                if fresh > 0 && !delivered && rx.is_empty() {
+                    log::info!(
+                        "evolution socket missed {fresh} journal message(s); opening a new one"
+                    );
+                    renew.notify_waiters();
+                }
+                delivered = false;
             }
-            continue;
-        };
-        tokio::select! {
-            () = on_signal(&app, &session, signal) => {}
-            _ = stop.wait_for(|s| *s) => break,
+            Wake::Poll => {}
         }
     }
 }
@@ -523,17 +571,38 @@ pub async fn load_archived(app: &AppHandle, session: &Session) {
     }
 }
 
-/// Read the journal from the saved cursor. The cursor is stored with each
-/// page's messages, so an interrupted catch-up resumes where it stopped.
+/// Read the journal from the saved cursor after a (re)connect, retrying
+/// failures and long backlogs later. The cursor is stored with each page's
+/// messages, so an interrupted catch-up resumes where it stopped.
 async fn catch_up(app: &AppHandle, session: &Session) {
     if !session.journal.load(Ordering::SeqCst) {
         return;
     }
     // One reader at a time: socket reconnects and continuations overlap.
     let _reading = session.journal_reader.lock().await;
+    read_journal(app, session, true).await;
+}
+
+/// The periodic read: skipped while another read runs, and a failure waits
+/// for the next tick. Returns how many live messages it stored.
+async fn poll_journal(app: &AppHandle, session: &Session) -> usize {
+    if !session.journal.load(Ordering::SeqCst) {
+        return 0;
+    }
+    let Ok(_reading) = session.journal_reader.try_lock() else {
+        return 0;
+    };
+    read_journal(app, session, false).await
+}
+
+/// Apply journal pages from the saved cursor; `reschedule` retries failures
+/// and continues long backlogs in the background. Returns how many live
+/// messages were stored rather than already held.
+async fn read_journal(app: &AppHandle, session: &Session, reschedule: bool) -> usize {
+    let mut fresh = 0;
     for _ in 0..JOURNAL_MAX_PAGES {
         let Ok(cursor) = session.store.cursor() else {
-            return;
+            return fresh;
         };
         let page = match session.client.chat_events(&session.token, &cursor).await {
             Ok(page) => {
@@ -543,7 +612,12 @@ async fn catch_up(app: &AppHandle, session: &Session) {
             Err(EvoError::NotFound) => {
                 // The server predates the journal.
                 session.journal.store(false, Ordering::SeqCst);
-                return;
+                return fresh;
+            }
+            // The next tick tries again.
+            Err(e) if !reschedule => {
+                log::debug!("evolution journal poll failed: {e}");
+                return fresh;
             }
             // 503 is both "PRIVATE_CHAT_HISTORY off" and a storage outage.
             Err(
@@ -555,11 +629,11 @@ async fn catch_up(app: &AppHandle, session: &Session) {
                     .min(JOURNAL_RETRY_MAX);
                 log::warn!("evolution journal read failed, retrying in {delay:?}: {e}");
                 spawn_catch_up(app, session.account_id, delay);
-                return;
+                return fresh;
             }
             Err(e) => {
                 log::warn!("evolution journal read failed: {e}");
-                return;
+                return fresh;
             }
         };
         // Pairing and presence events are stale by now.
@@ -586,6 +660,7 @@ async fn catch_up(app: &AppHandle, session: &Session) {
         let next = (!page.next_cursor.is_empty()).then_some(page.next_cursor.as_str());
         match session.store.apply_journal(&events, next) {
             Ok(applied) => {
+                fresh += applied.fresh;
                 // Push names change the list without touching a chat.
                 if applied.chats.is_empty() && !events.is_empty() {
                     emit(
@@ -599,15 +674,18 @@ async fn catch_up(app: &AppHandle, session: &Session) {
             }
             Err(e) => {
                 log::warn!("evolution store write failed: {e}");
-                return;
+                return fresh;
             }
         }
         if !page.has_more || next.is_none_or(|n| n == cursor) {
-            return;
+            return fresh;
         }
     }
     // A long backlog: keep going from the saved cursor after a pause.
-    spawn_catch_up(app, session.account_id, JOURNAL_PAUSE);
+    if reschedule {
+        spawn_catch_up(app, session.account_id, JOURNAL_PAUSE);
+    }
+    fresh
 }
 
 /// The phone JID of a known LID; typing is best effort, so a store error

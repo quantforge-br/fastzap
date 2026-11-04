@@ -353,7 +353,9 @@ atualizar os ticks.
   escritas e fechamento têm prazo de 10 s), backoff de 1 s a 60 s, frames
   sem limite de tamanho,
   decodificação dupla `{queue, payload}` e remoção de `instanceToken`. A URL
-  carrega a chave admin e nunca é registrada.
+  carrega a chave admin e nunca é registrada. Um pedido de renovação
+  (`Notify`) fecha o socket, espera o servidor encerrar a conexão (ele
+  desregistra a instância logo antes) e reconecta sem `Down` nem backoff.
 - `evolution::model`: converte eventos whatsmeow (mensagens, histórico,
   recibos, presença, conexão) em `Change`/`Event`, desembrulhando
   `ephemeralMessage`/`viewOnce`/`editedMessage` e removendo miniaturas.
@@ -384,7 +386,14 @@ atualizar os ticks.
   `GET /chat/events` a partir do cursor salvo (o journal privado cobre os
   eventos perdidos com o socket fora); só um leitor por vez, 404 desliga o
   journal, 503/rede/timeout tentam de novo com backoff de 30 s a 30 min, e
-  um backlog maior que 200 páginas continua em seguida. `LoggedIn` com
+  um backlog maior que 200 páginas continua em seguida. Com o socket de pé,
+  o journal também é lido a cada 30 s (pulado se outra leitura está em
+  curso; falhas esperam o próximo ciclo): o servidor guarda um socket por
+  instância e, quando a limpeza atrasada de um socket antigo remove o
+  registro do novo, o socket continua aberto (pongs chegam) sem receber
+  eventos. Se a leitura grava mensagens que o socket não entregou e nenhum
+  evento chegou desde a leitura anterior, a sessão pede um socket novo.
+  `LoggedIn` com
   `Connected` falso aparece como offline, e "Tentar de novo" chama
   `POST /instance/reconnect`. Não lidas entram no `UnreadRegistry`
   (chats com não lidas, como o título do WhatsApp Web) e mensagens novas

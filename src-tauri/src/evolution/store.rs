@@ -166,6 +166,9 @@ pub struct Applied {
     pub chats: Vec<String>,
     /// New incoming messages (not from history, not ours).
     pub incoming: Vec<Message>,
+    /// Live messages stored now rather than already held: a journal read
+    /// that finds some recovered what the socket never carried.
+    pub fresh: usize,
 }
 
 impl Applied {
@@ -952,6 +955,7 @@ fn apply_change(
                 upsert_push_name(conn, &m.sender, &m.push_name)?;
             }
             if live {
+                out.fresh += 1;
                 if m.from_me {
                     // Answered from another device.
                     conn.execute("UPDATE chats SET unread = 0 WHERE jid = ?", [&m.chat])?;
@@ -1093,6 +1097,37 @@ mod tests {
         );
         assert_eq!(store.unread_chats().unwrap(), 0);
         assert_eq!(store.cursor().unwrap(), "9");
+    }
+
+    #[test]
+    fn journal_reads_count_only_messages_the_socket_missed() {
+        let store = ChatStore::in_memory().unwrap();
+        let live = store
+            .apply(&[Change::New(message("A", 10, false, "oi"))], true, None)
+            .unwrap();
+        assert_eq!(live.fresh, 1);
+        let mut ours = message("B", 11, true, "from the phone");
+        ours.status = Status::Sent;
+        let history = History {
+            chats: vec![HistoryChat {
+                jid: CHAT.into(),
+                name: String::new(),
+                unread: 0,
+                ts: 5,
+                messages: vec![Change::New(message("H", 5, false, "old"))],
+            }],
+            ..Default::default()
+        };
+        let events = [
+            Event::Changes(vec![Change::New(message("A", 10, false, "oi"))]),
+            Event::Changes(vec![Change::New(ours)]),
+            Event::History(history),
+            Event::Changes(vec![Change::New(message("C", 12, false, "missed"))]),
+        ];
+        let applied = store.apply_journal(&events, Some("4")).unwrap();
+        assert_eq!(applied.fresh, 2);
+        let replay = store.apply_journal(&events, Some("4")).unwrap();
+        assert_eq!(replay.fresh, 0);
     }
 
     #[test]
