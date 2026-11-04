@@ -12,7 +12,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Geometria, fechar para bandeja, confirmação | `app/window_lifecycle.py` | `app::lifecycle` + `tauri-plugin-window-state` | `SIGINT` também encerra normalmente |
 | Barra de título própria (CSR) | `ui/components/client_side_window*` | `src/lib/components/TitleBar.svelte` | mesmas opções `csr_*`, aplicadas sem reiniciar; moldura opaca de 4 px em vez da margem translúcida com cantos arredondados; novo `appearance.title_bar` ("Show title bar") esconde qualquer barra, nativa ou própria |
 | Contas, limite, ativação, avatar, UA, DND, zoom | `features/accounts` | `accounts` + página Contas | tipo de conta novo: Evolution Go |
-| Sidebar, grade, bloqueio, doação, atualização | `features/browser/shell` | `src/routes/+page.svelte` | |
+| Sidebar, grade, bloqueio, atualização | `features/browser/shell` | `src/routes/+page.svelte` | |
 | Barra de menus e escala da interface | `ui/main_window`, `appearance.scale` | `MenuBar.svelte` (menus nativos) + zoom das webviews | |
 | Páginas de configurações | `features/settings` | `src/lib/settings/` | mesma ordem e textos |
 | Painel flutuante de monitoramento | `ui/components/floating_monitoring_panel.py` | `app::panel` + rota `/panel` (janela `panel`) | posição e travamento só fora do Wayland, como no ZapZap |
@@ -40,7 +40,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Idioma da interface | gettext `po/` | `i18n` (catálogos JSON gerados dos `.po`) | |
 | Verificação de atualizações | `core/update_checker.py` | `update` | mesma política por empacotamento; diálogo em vez de popover; download pela página de releases |
 | Relatórios de problemas | `core/reporting`, `features/reporting` | `reporting` + `src/lib/reporting/` | sem `faulthandler`/zip de crash: logs são os avisos da sessão atual; ver lacunas |
-| Doação e lembrete | `features/donation` | `donation` + `src/lib/donation/` | as doações vão para o autor do ZapZap; lembrete é um diálogo e esconde as webviews enquanto aberto |
+| Doação e lembrete | `features/donation` | — | removido: o FastZap não pede doações |
 | Onboarding | `features/initial_setup` | `src/lib/onboarding/` | o idioma é aplicado ao concluir; seção Flatpak mostra o comando `flatpak override` sem link para o Flatseal |
 | Desempenho | `core/config/settings/performance.py` | `settings::performance` | ver lacunas |
 | Empacotamento | `.github/packaging`, `tools/com.rtosta.zapzap.yaml`, `share/` | `packaging/`, `.github/workflows/build-*.yml` | deb, rpm, AppImage, Flatpak (GNOME 50), snap, Windows NSIS/MSI (x86_64; arm64 só NSIS) e dmg universal; sem COPR, sem Flathub (manifesto baixa dependências pela rede) e macOS sem notarização |

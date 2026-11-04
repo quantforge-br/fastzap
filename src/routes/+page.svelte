@@ -14,8 +14,6 @@
   import ReportDialog from "$lib/reporting/ReportDialog.svelte";
   import UpdateDialog from "$lib/update/UpdateDialog.svelte";
   import OpenChatDialog from "$lib/chat/OpenChatDialog.svelte";
-  import DonationReminder from "$lib/donation/DonationReminder.svelte";
-  import DonationView from "$lib/donation/DonationView.svelte";
   import Onboarding from "$lib/onboarding/Onboarding.svelte";
   import ShortcutsDialog from "$lib/shortcuts/ShortcutsDialog.svelte";
   import ChatView from "$lib/evolution/ChatView.svelte";
@@ -56,8 +54,8 @@
   let chatAccount = $state<number | null>(null);
   // A notification click asked an Evolution Go account to open a chat.
   let evolutionOpen = $state<{ account: number; chat: string } | null>(null);
-  // First-run setup, then the support reminder, decided once per launch.
-  let startup = $state<"pending" | "onboarding" | "donation" | "done">("pending");
+  // First-run setup, decided once per launch.
+  let startup = $state<"pending" | "onboarding" | "done">("pending");
   // Close confirmation (ZapZap's "Close ZapZap" question); `quit` also
   // covers Quit from the tray or Ctrl+Q.
   let confirm = $state<{ quit: boolean } | null>(null);
@@ -128,12 +126,11 @@
   let removing = $state<Account | null>(null);
   const editTarget = $derived(editing ? (accounts.find((a) => a.id === editing!.id) ?? null) : null);
 
-  const overlay = $derived(panel !== null || confirm !== null || editTarget !== null || removing !== null || prompts.length > 0 || permissionPrompts.length > 0 || reportDialog.open || pendingReport !== null || showUpdate || startup === "onboarding" || startup === "donation");
+  const overlay = $derived(panel !== null || confirm !== null || editTarget !== null || removing !== null || prompts.length > 0 || permissionPrompts.length > 0 || reportDialog.open || pendingReport !== null || showUpdate || startup === "onboarding");
   $effect(() => {
     const s = store.settings;
     if (!s || startup !== "pending") return;
-    if (!s.onboarding.completed) startup = "onboarding";
-    else startup = s.notifications.donation_message_hidden ? "done" : "donation";
+    startup = s.onboarding.completed ? "done" : "onboarding";
   });
   $effect(() => {
     layoutApi.setOverlay(overlay);
@@ -311,7 +308,7 @@
 
   <main class="content" bind:this={content}>
     {#if panel === "settings"}
-      <SettingsView bind:page={settingsPage} onclose={() => openPanel(null)} ondonate={() => openPanel("donate")} />
+      <SettingsView bind:page={settingsPage} onclose={() => openPanel(null)} />
     {:else if panel === "downloads"}
       <DownloadsView
         onclose={() => openPanel(null)}
@@ -320,8 +317,6 @@
           openPanel("settings");
         }}
       />
-    {:else if panel === "donate"}
-      <DonationView onclose={() => openPanel(null)} />
     {:else if confirm}
       <!-- Shown in place of the hidden webviews. -->
     {:else if active?.kind === "evolution_go" && !layout.grid}
@@ -451,14 +446,6 @@
 
 {#if startup === "onboarding" && store.settings}
   <Onboarding settings={store.settings} onclose={() => (startup = "done")} />
-{:else if startup === "donation" && !panel}
-  <DonationReminder
-    onsupport={() => {
-      startup = "done";
-      openPanel("donate");
-    }}
-    onclose={() => (startup = "done")}
-  />
 {/if}
 
 <style>

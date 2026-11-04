@@ -273,7 +273,6 @@ fn apply_settings(ini: &QSettingsIni, s: &mut Settings) {
     set_bool!("notification/show_name", n.show_name);
     set_bool!("notification/show_msg", n.show_message);
     set_bool!("notification/sound", n.sound);
-    set_bool!("notification/donation_message", n.donation_message_hidden);
 
     // Downloads, including the legacy `auto_open_media` split.
     let d = &mut s.downloads;
@@ -559,7 +558,6 @@ whatsapp_multiple_download_permission=allow
 
 [notification]
 show_msg=false
-donation_message=true
 
 [permissions]
 auto_grant\camera=true
@@ -638,7 +636,6 @@ disable_pinch=true
         assert_eq!(settings.system.max_accounts, 8);
         assert_eq!(settings.system.extra_engine_flags, "--enable-foo");
         assert!(!settings.notifications.show_message);
-        assert!(settings.notifications.donation_message_hidden);
         // Explicit key wins over the legacy `auto_open_media`.
         assert!(!settings.downloads.auto_open_pdf);
         assert!(settings.downloads.auto_open_images);

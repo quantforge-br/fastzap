@@ -28,7 +28,6 @@ const UI_OWNED: &[&str] = &[
     "add_account",
     "open_chat_by_number",
     "show_shortcuts",
-    "donate",
     "report_problem",
     "spellcheck_languages",
 ];

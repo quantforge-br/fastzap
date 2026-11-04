@@ -119,8 +119,6 @@
 - Send message to number dialog (Ctrl+M) with country code picker, live
   validation matching the backend rules and an optional message.
 - Keyboard shortcuts dialog listing the WhatsApp Web and FastZap shortcuts.
-- Donation page and startup support reminder; the methods are ZapZap's
-  (FastZap is a port) and the backend opens only their fixed URLs.
 - First-run setup with six steps (basics, notifications, background, files,
   permissions, finish); Skip only marks it completed and Finish saves every
   choice, forcing Quit on close without a tray icon.
@@ -377,9 +375,9 @@
   removed.
 - About's Report a problem row opens the report dialog instead of the issue
   list.
-- The main window shows the onboarding on first run, then the support
-  reminder, and opens the send message, shortcuts and donation panels instead
-  of placeholders; architecture and parity docs cover them.
+- The main window shows the onboarding on first run and opens the send
+  message and shortcuts panels instead of placeholders; architecture and
+  parity docs cover them.
 - Architecture, parity and testing documentation describe the Evolution Go
   account mode, its secrets handling and its known gaps.
 - Docs: architecture and testing notes describe the Evolution Go journal
@@ -424,3 +422,9 @@
   ts-rs writes when cargo runs from the repository root) and testing.
 - Evolution Go chat list reads the status of our newest messages in one
   indexed query.
+
+### Removed
+
+- The donation page, the startup support reminder, the Support FastZap tray,
+  settings and About entries, the `donation_open*` commands and the
+  `notifications.donation_message_hidden` setting.

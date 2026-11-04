@@ -116,7 +116,7 @@ packaging/common/version.sh --check  # versões + <release> do metainfo
 - **Evolution Go real** (criar instância, conectar, parear, enviar) só com
   autorização explícita do usuário; testes usam servidores mock.
 - IDs persistidos separados de rótulos traduzidos (`settings/pages.ts`,
-  valores de `<select>`, ids de `donation/methods.ts` ↔ `donation.rs`).
+  valores de `<select>`).
 - Mudança estrutural exige atualizar `docs/architecture.md` e
   `docs/parity.md`.
 - Toda mudança (código, docs, testes, deps, empacotamento, workflows) entra

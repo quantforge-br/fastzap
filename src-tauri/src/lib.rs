@@ -4,7 +4,6 @@ pub mod autostart;
 pub mod build_info;
 pub mod commands;
 pub mod customizations;
-pub mod donation;
 pub mod downloads;
 pub mod evolution;
 pub mod i18n;
@@ -228,8 +227,6 @@ pub fn run() {
             report::report_clear,
             report::report_open_folder,
             appcmd::update_info,
-            appcmd::donation_open,
-            appcmd::donation_open_website,
             report::report_copied,
             evocmd::evo_instances,
             evocmd::evo_setup,

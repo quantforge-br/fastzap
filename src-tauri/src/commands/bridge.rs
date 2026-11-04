@@ -111,7 +111,7 @@ mod tests {
         assert!(!remote_action_allowed("account_10"));
         assert!(!remote_action_allowed("paste_plain_text"));
         assert!(!remote_action_allowed("toggle_mute"));
-        assert!(!remote_action_allowed("donate"));
+        assert!(!remote_action_allowed("report_problem"));
     }
 }
 

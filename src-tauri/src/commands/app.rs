@@ -131,18 +131,3 @@ pub fn update_info(
 ) -> Option<crate::update::UpdateInfo> {
     state.get()
 }
-
-/// Open a donation method's official page (ids from `donation::url`).
-#[tauri::command]
-pub fn donation_open(method: String) -> CommandResult<()> {
-    let url = crate::donation::url(&method)
-        .ok_or_else(|| super::CommandError::from(format!("unknown donation method {method}")))?;
-    tauri_plugin_opener::open_url(url, None::<&str>)?;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn donation_open_website() -> CommandResult<()> {
-    tauri_plugin_opener::open_url(crate::donation::WEBSITE, None::<&str>)?;
-    Ok(())
-}

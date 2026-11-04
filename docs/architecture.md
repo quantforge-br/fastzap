@@ -277,17 +277,14 @@ numericamente e o link de notas só é aceito sob
 o botão ⬆ na barra lateral, que abre um diálogo (um popover ficaria sob os
 webviews das contas), e uma linha na página Sobre.
 
-## Onboarding, doação e diálogos auxiliares
+## Onboarding e diálogos auxiliares
 
 Ao carregar as preferências, `+page.svelte` decide uma vez por execução:
 `onboarding.completed` falso abre `src/lib/onboarding/Onboarding.svelte`
 (seis passos do `InitialSetupDialog` do ZapZap sobre um rascunho local,
 `draft.ts`); "Pular" só marca `completed` e "Concluir" grava tudo num
 `settings_patch`, forçando "Sair" ao fechar quando a bandeja fica
-desligada. Com o onboarding concluído e `donation_message_hidden` falso,
-aparece o lembrete `DonationReminder`. A página `DonationView` (painel
-`donate`) lista os métodos do ZapZap; a UI só envia o id e
-`donation_open` resolve a URL fixa em `donation.rs`. As ações
+desligada. O FastZap não exibe pedido de doação. As ações
 `open_chat_by_number` (`src/lib/chat/`, validação espelhando
 `webview::deeplink`) e `show_shortcuts` (`src/lib/shortcuts/`) abrem
 diálogos. Todos contam como sobreposição, porque as webviews nativas

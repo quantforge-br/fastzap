@@ -70,8 +70,6 @@ const UI_COMMANDS: &[&str] = &[
     "report_clear",
     "report_open_folder",
     "update_info",
-    "donation_open",
-    "donation_open_website",
     "report_copied",
     "evo_instances",
     "evo_setup",

@@ -5,11 +5,7 @@
 
   import { DEFAULT_PAGE, PAGES } from "./pages";
 
-  let {
-    page = $bindable(DEFAULT_PAGE),
-    onclose,
-    ondonate,
-  }: { page?: string; onclose: () => void; ondonate: () => void } = $props();
+  let { page = $bindable(DEFAULT_PAGE), onclose }: { page?: string; onclose: () => void } = $props();
 
   const current = $derived(PAGES.find((p) => p.id === page) ?? PAGES[0]);
   // Avoid a double click on the gear landing on Quit (ZapZap does the same).
@@ -41,7 +37,6 @@
       {/each}
     </nav>
     <footer>
-      <button class="btn primary" disabled={!armed} onclick={ondonate}>{t("Support FastZap")}</button>
       <button class="btn danger" disabled={!armed} onclick={() => app.action("quit")}>{t("Quit")}</button>
     </footer>
   </aside>

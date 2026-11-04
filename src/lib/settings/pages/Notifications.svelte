@@ -23,7 +23,7 @@
   }
 </script>
 
-<Page title={t("Notifications")} description={t("Configure notifications, privacy, and FastZap messages.")}>
+<Page title={t("Notifications")} description={t("Configure notifications and privacy.")}>
   <Section title={t("Notifications")} description={t("Choose which information may appear in notifications.")}>
     {#snippet actions()}
       <div class="presets">
@@ -82,17 +82,6 @@
       description={t("Let the desktop play its alert sound for new messages.")}
       checked={n.sound}
       onchange={(sound) => set({ sound })}
-    />
-  </Section>
-  <Section
-    title={t("FastZap messages")}
-    description={t("Control occasional messages shown by the application itself.")}
-  >
-    <SwitchRow
-      title={t("Support reminders")}
-      description={t("Occasionally show messages supporting FastZap's development.")}
-      checked={!n.donation_message_hidden}
-      onchange={(v) => set({ donation_message_hidden: !v })}
     />
   </Section>
 </Page>

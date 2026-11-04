@@ -60,7 +60,6 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .item(&panel)
         .text("toggle_mute", mute_label)
         .text("settings", tr("Settings"))
-        .text("donate", tr("Support FastZap"))
         .separator()
         .text("quit", tr("Quit"))
         .build()

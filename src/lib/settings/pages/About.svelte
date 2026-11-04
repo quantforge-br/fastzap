@@ -74,11 +74,6 @@
         <button class="btn" onclick={() => openReport()}>↗</button>
       {/snippet}
     </Row>
-    <Row title={t("Support FastZap")} description={t("Learn how to contribute to the project's development.")}>
-      {#snippet control()}
-        <button class="btn" onclick={() => app.action("donate")}>♥</button>
-      {/snippet}
-    </Row>
   </Section>
 
   <Section title={t("Information")}>

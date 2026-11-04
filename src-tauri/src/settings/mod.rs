@@ -238,8 +238,6 @@ pub struct NotificationSettings {
     pub show_name: bool,
     pub show_message: bool,
     pub sound: bool,
-    /// `true` hides the support reminder (`notification/donation_message`).
-    pub donation_message_hidden: bool,
 }
 
 impl Default for NotificationSettings {
@@ -250,7 +248,6 @@ impl Default for NotificationSettings {
             show_name: true,
             show_message: true,
             sound: true,
-            donation_message_hidden: false,
         }
     }
 }
