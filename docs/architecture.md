@@ -68,7 +68,10 @@ habilitada, `webview::manager` cria um child webview com `Window::add_child`
   User-Agent escolhido por conta;
 - `initialization_script` com a ponte (`webview/scripts/bridge.js`) e os
   scripts opcionais portados do ZapZap;
-- `on_navigation`/`on_new_window` aplicando a allowlist de hosts; popups
+- `on_navigation`/`on_new_window` aplicando a allowlist de hosts. Como no
+  ZapZap, `on_navigation` só bloqueia hosts de fora (o WhatsApp carrega
+  frames de fundo, como `flows.whatsapp.net`); links abertos pelo usuário
+  chegam por `on_new_window` e vão para o navegador. Popups
   para hosts permitidos abrem numa janela `popup-<n>` relacionada, com a mesma
   allowlist e sem acesso a comandos;
 - `on_download` encaminhando para `downloads`;

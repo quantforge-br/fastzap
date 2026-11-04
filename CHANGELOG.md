@@ -346,6 +346,9 @@
   another-device clears those chats' unread count too.
 - Evolution Go notes to yourself show as read once sent, as on the phone; the
   server drops the receipts WhatsApp sends for them.
+- WhatsApp Web background frames on other hosts (e.g. flows.whatsapp.net cache
+  management) are blocked instead of opening in the browser at every start, as
+  in ZapZap.
 
 ### Changed
 

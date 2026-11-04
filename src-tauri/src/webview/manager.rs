@@ -189,20 +189,17 @@ impl WebviewManager {
         let settings = state.settings.get();
         let url = Url::parse(navigation::WHATSAPP_URL)?;
 
-        let nav_app = app.clone();
         let popup_app = app.clone();
         let mut builder = WebviewBuilder::new(label(account.id), WebviewUrl::External(url))
             .user_agent(user_agent::resolve(&account.user_agent))
             .initialization_script(scripts::document_start(&settings))
             .zoom_hotkeys_enabled(false)
             .devtools(true)
-            .on_navigation(move |url| {
-                if navigation::is_internal(url) {
-                    return true;
-                }
-                open_external(&nav_app, url);
-                false
-            })
+            // As in ZapZap, other hosts are only blocked: WhatsApp also loads
+            // background frames (e.g. flows.whatsapp.net cache management)
+            // that must not reach the browser. Links the user opens arrive
+            // through on_new_window.
+            .on_navigation(navigation::is_internal)
             .on_new_window(move |url, features| {
                 if navigation::is_internal(&url) && url.scheme() != "about" {
                     return match open_internal_popup(&popup_app, features) {
