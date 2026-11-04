@@ -48,8 +48,15 @@ Validadores: `packaging/common/version.sh --check`,
 `shellcheck packaging/common/*.sh packaging/snap/prepare.sh` (também no job
 `packaging` de `quality.yml`).
 
-Publicação: `Release Candidate` (entrada `rc`) cria a tag
-`<versão>-rc.<n>` como pre-release e anexa todos os pacotes; publicar uma
-release estável dispara `Release Deploy`, que anexa os pacotes e publica o
-snap no canal `stable` (segredo `SNAPCRAFT_STORE_CREDENTIALS`). Ao alterar a
-versão, atualize também a entrada `<release>` do metainfo.
+Publicação: `Release Candidate` (entrada `rc`, inteiro positivo, só a partir
+de `main`) cria a tag `<versão>-rc.<n>` no commit atual como pre-release e
+anexa todos os pacotes; repetir o mesmo `rc` só reenvia os pacotes se a tag
+apontar para o mesmo commit. Os binários de um RC trazem a versão base
+(`X.Y.Z`), não o sufixo `-rc.N`. Publicar uma release estável, ou promover
+uma pre-release, dispara `Release Deploy`: ele confere que a tag (com `v`
+opcional) é a versão do app, anexa os pacotes e publica o snap no canal
+`stable` (segredo `SNAPCRAFT_STORE_CREDENTIALS`). A release fica pública
+antes de os pacotes chegarem, então o aviso de atualização pode apontar para
+uma página ainda sem instaladores durante o build. Ao alterar a versão,
+atualize também a entrada `<release>` do metainfo: `version.sh --check`
+recusa a divergência. Os instaladores Windows não são assinados.

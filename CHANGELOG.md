@@ -315,6 +315,11 @@
   `quantmind-br/fastzap`; forks and local runs record channel `Unknown`.
 - The deb/rpm desktop entry sets `StartupWMClass=fastzap` directly instead of
   reusing the bundler's `Exec` value.
+- `Release Deploy` runs on `released`, so promoting a pre-release also builds
+  the packages; it checks the tag against the app version first, serializes
+  runs per tag and passes only the snap store secret. `Release Candidate` runs
+  from `main` only, validates `rc` and the base version, refuses an existing
+  tag on another commit and no longer rewrites release notes on re-runs.
 
 ### Changed
 

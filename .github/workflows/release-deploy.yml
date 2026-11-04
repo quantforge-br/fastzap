@@ -2,65 +2,87 @@ name: Release Deploy
 
 on:
   release:
-    types: [published]
+    # `released` covers a release published as stable and a pre-release
+    # promoted to stable; `published` misses the promotion.
+    types: [released]
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-deploy-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
 jobs:
-  deb:
+  verify:
     if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check the tag against the app version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="$(packaging/common/version.sh --check)"
+          if [ "${TAG#v}" != "${VERSION}" ]; then
+            echo "release tag ${TAG} does not match app version ${VERSION}"
+            exit 1
+          fi
+
+  deb:
+    needs: verify
     uses: ./.github/workflows/build-deb.yml
     with:
       release_upload: true
       release_tag: ${{ github.event.release.tag_name }}
-    secrets: inherit
 
   rpm:
-    if: ${{ !github.event.release.prerelease }}
+    needs: verify
     uses: ./.github/workflows/build-rpm.yml
     with:
       release_upload: true
       release_tag: ${{ github.event.release.tag_name }}
-    secrets: inherit
 
   appimage:
-    if: ${{ !github.event.release.prerelease }}
+    needs: verify
     uses: ./.github/workflows/build-appimage.yml
     with:
       release_upload: true
       release_tag: ${{ github.event.release.tag_name }}
-    secrets: inherit
 
   flatpak:
-    if: ${{ !github.event.release.prerelease }}
+    needs: verify
     uses: ./.github/workflows/build-flatpak.yml
     with:
       release_upload: true
       release_tag: ${{ github.event.release.tag_name }}
-    secrets: inherit
 
   snap:
-    if: ${{ !github.event.release.prerelease }}
+    needs: verify
     uses: ./.github/workflows/build-snap.yml
     with:
       release_upload: true
       release_tag: ${{ github.event.release.tag_name }}
       publish_snap: true
-    secrets: inherit
+    secrets:
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
 
   windows:
-    if: ${{ !github.event.release.prerelease }}
+    needs: verify
     uses: ./.github/workflows/build-windows.yml
     with:
       release_upload: true
       release_tag: ${{ github.event.release.tag_name }}
-    secrets: inherit
 
   macos:
-    if: ${{ !github.event.release.prerelease }}
+    needs: verify
     uses: ./.github/workflows/build-macos.yml
     with:
       release_upload: true
       release_tag: ${{ github.event.release.tag_name }}
-    secrets: inherit
