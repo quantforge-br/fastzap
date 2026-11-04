@@ -329,6 +329,9 @@
   the rustup snap crash on the SDK's glibc.
 - The snap build installs the `packageManager` pnpm with npm, because the node
   snap ships no corepack.
+- Release uploads send every file under the downloaded artifacts, so the
+  Windows x64 installers in `nsis/` and `msi/` subdirectories reach the
+  release.
 
 ### Changed
 

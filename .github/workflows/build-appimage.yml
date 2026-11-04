@@ -84,4 +84,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ inputs.release_tag }}
-        run: packaging/common/release-upload.sh "${RELEASE_TAG}" dist/*
+        shell: bash
+        run: |
+          # Artifacts keep their subdirectories (e.g. nsis/ and msi/).
+          mapfile -t FILES < <(find dist -type f)
+          packaging/common/release-upload.sh "${RELEASE_TAG}" "${FILES[@]}"
