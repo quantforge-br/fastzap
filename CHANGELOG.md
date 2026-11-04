@@ -357,3 +357,6 @@
   requires an existing release whose tag matches the app version; third-party
   actions are pinned by SHA, the deb job checks that its `Depends` really
   resolve, and the snap only reaches the store from a tag.
+- The quality workflow pins third-party actions by SHA, bounds the packaging
+  job, validates the rendered deb/rpm desktop template and lints the workflows
+  with actionlint.
