@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS messages (
     UNIQUE (chat, id)
 );
 CREATE INDEX IF NOT EXISTS messages_by_time ON messages (chat, ts, seq);
+-- The chat list reads the status of our newest message per chat.
+CREATE INDEX IF NOT EXISTS own_messages_by_time ON messages (chat, from_me, ts, seq);
 CREATE TABLE IF NOT EXISTS reactions (
     chat TEXT NOT NULL,
     target TEXT NOT NULL,
@@ -478,8 +480,11 @@ impl ChatStore {
     pub fn chats(&self) -> StoreResult<Vec<ChatSummary>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT jid, unread, ts, preview, preview_kind, preview_from_me, archived FROM chats
-             WHERE ts > 0 OR archived = 1 ORDER BY ts DESC",
+            "SELECT jid, unread, ts, preview, preview_kind, preview_from_me, archived,
+                CASE WHEN preview_from_me THEN (SELECT status FROM messages
+                    WHERE chat = chats.jid AND from_me = 1 ORDER BY ts DESC, seq DESC LIMIT 1)
+                END
+             FROM chats WHERE ts > 0 OR archived = 1 ORDER BY ts DESC",
         )?;
         let rows = stmt
             .query_map([], |r| {
@@ -491,32 +496,31 @@ impl ChatStore {
                     r.get::<_, String>(4)?,
                     r.get(5)?,
                     r.get(6)?,
+                    r.get::<_, Option<i64>>(7)?,
                 ))
             })?
             .collect::<StoreResult<Vec<_>>>()?;
         let own_jid = own_chat(&conn)?;
         rows.into_iter()
-            .map(|(jid, unread, ts, preview, kind, from_me, archived)| {
-                let own = own_jid.as_deref() == Some(jid.as_str());
-                let preview_status = if from_me {
-                    newest_status(&conn, &jid, own)?
-                } else {
-                    None
-                };
-                Ok(ChatSummary {
-                    name: display_name(&conn, &jid)?,
-                    is_group: is_group(&jid),
-                    jid,
-                    ts,
-                    unread,
-                    preview,
-                    preview_kind: MessageKind::parse(&kind),
-                    preview_from_me: from_me,
-                    preview_status,
-                    archived,
-                    own,
-                })
-            })
+            .map(
+                |(jid, unread, ts, preview, kind, from_me, archived, status)| {
+                    let own = own_jid.as_deref() == Some(jid.as_str());
+                    let preview_status = status.map(|rank| shown_status(rank_status(rank), own));
+                    Ok(ChatSummary {
+                        name: display_name(&conn, &jid)?,
+                        is_group: is_group(&jid),
+                        jid,
+                        ts,
+                        unread,
+                        preview,
+                        preview_kind: MessageKind::parse(&kind),
+                        preview_from_me: from_me,
+                        preview_status,
+                        archived,
+                        own,
+                    })
+                },
+            )
             .collect()
     }
 
@@ -704,19 +708,6 @@ fn shown_status(status: Status, own: bool) -> Status {
     } else {
         status
     }
-}
-
-/// Status of the newest message in `chat`, which the caller knows is ours.
-fn newest_status(conn: &Connection, chat: &str, own: bool) -> StoreResult<Option<Status>> {
-    let rank: Option<i64> = conn
-        .query_row(
-            "SELECT status FROM messages WHERE chat = ?1 AND from_me = 1
-             ORDER BY ts DESC, seq DESC LIMIT 1",
-            [chat],
-            |r| r.get(0),
-        )
-        .optional()?;
-    Ok(rank.map(|rank| shown_status(rank_status(rank), own)))
 }
 
 fn upsert_push_name(conn: &Connection, jid: &str, name: &str) -> StoreResult<()> {

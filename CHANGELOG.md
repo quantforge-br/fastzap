@@ -404,3 +404,9 @@
   conversation with wallpaper, day pills, tailed bubbles with in-bubble ticks,
   reaction pills, link opening, scroll-to-bottom and a rounded composer with
   emoji picker.
+- AGENTS.md becomes the repository guidelines for coding assistants:
+  architecture and data flow, key directories, commands, the IPC command
+  checklist, Rust and Svelte conventions, generated files (including where
+  ts-rs writes when cargo runs from the repository root) and testing.
+- Evolution Go chat list reads the status of our newest messages in one
+  indexed query.
