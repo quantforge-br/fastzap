@@ -97,6 +97,11 @@ No Linux o Tauri empilha child webviews num `GtkBox` vertical e ignora
 `ui` é o filho principal (ocupa a janela inteira) e cada conta é um filho de
 overlay posicionado por margens e `size_request`.
 
+Se o processo web de uma conta termina sem ter sido pedido (travamento ou
+limite de memória), o sinal `web-process-terminated` recarrega a página
+depois de 1 s, como o `_on_render_crash` do ZapZap; sem isso a conta ficava
+em branco até a webview ser recriada. Só no Linux.
+
 ### Ponte remota
 
 `build.rs` declara todos os comandos do app em um `AppManifest`, então o ACL

@@ -18,6 +18,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Painel flutuante de monitoramento | `ui/components/floating_monitoring_panel.py` | `app::panel` + rota `/panel` (janela `panel`) | posição e travamento só fora do Wayland, como no ZapZap |
 | Seletor de contas integrado | `theme_controller.js` (QuickAccounts) | `webview/scripts/quick_accounts.js` | |
 | Contador de não lidas pelo título | `web_view.py::_on_title_changed` | `webview/scripts/bridge.js` | |
+| Recarregar após travamento do processo da página | `web_view.py::_on_render_crash` | `webview::manager` (`web-process-terminated`) | Linux; recarrega após 1 s, salvo término pedido pela API |
 | Allowlist de navegação e popups | `PopupRoutingPage` | `webview::navigation` | |
 | Deep links `whatsapp:` / wa.me | `deeplink.py` | `webview::deeplink` | |
 | Chat por número (`Ctrl+M`) | `open_chat.py`, `send_message_to_number_dialog.py` | `webview::deeplink` + `src/lib/chat/` | |

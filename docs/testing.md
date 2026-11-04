@@ -65,9 +65,14 @@ duas contas WhatsApp Web isoladas, contador de não lidas, clique em notificaç�
 tray, segunda instância com `xdg-open "whatsapp://send?phone=..."`, downloads
 (WhatsApp Web e documento do chat Evolution Go no histórico, também depois de
 desativar e reativar a conta WhatsApp Web e depois de bloquear um download na
-pergunta de vários downloads e redefinir a permissão), tema e grade (cartões
-de todas as contas, inclusive desativadas e Evolution Go; o cartão abre a
-conta).
+pergunta de vários downloads e redefinir a permissão), página recarregada
+depois de `kill -9` no `WebKitWebProcess` da conta, tema e grade (cartões de
+todas as contas, inclusive desativadas e Evolution Go; o cartão abre a conta).
+
+Sem servidor PipeWire (sessão D-Bus/runtime isolada de testes), o plugin
+`pipewire-alsa` trava o processo web quando o WhatsApp abre a saída de áudio
+e a página fica em branco; nesses ambientes aponte `ALSA_CONFIG_PATH` para
+um arquivo com `pcm.!default { type null }`.
 
 Para o Evolution Go, use primeiro o probe somente leitura da skill
 `evolutiongo-integration`. Pareamento e envio reais só com conta e destinatário

@@ -202,6 +202,9 @@
   (blocked, for example) are no longer reported as interrupted and deleted
   until a restart: completions are observed per download instead of through
   wry's report, which kept one failure flag per account forever.
+- On Linux, a WhatsApp Web page whose web process crashes or hits the memory
+  limit reloads after a second, as in ZapZap, instead of staying blank until
+  the account's webview is recreated.
 - Account updates and creation are atomic, a JSON `null` icon clears the
   avatar, partial reorders append the omitted accounts and imported accounts
   never replace existing ones.
@@ -416,6 +419,9 @@
   account mode, its secrets handling and its known gaps.
 - Docs: architecture and testing notes describe the Evolution Go journal
   retries, store binding, lifecycle lock and WebSocket deadlines.
+- Testing notes explain the blank WhatsApp Web page in sessions without a
+  PipeWire server (pipewire-alsa deadlocks the web process when the page
+  opens an audio sink) and how to route ALSA to a null sink there.
 - App icons (Linux PNGs, Windows .ico, macOS .icns, Store logos) are generated
   from the FastZap SVG in packaging/share/icons instead of the Tauri template.
 - Tauri's bundle identifier is io.github.quantmind-br.fastzap, because bundle

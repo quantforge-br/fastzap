@@ -273,6 +273,8 @@ impl WebviewManager {
         crate::spellcheck::install_context_menu(&webview);
         #[cfg(target_os = "linux")]
         crate::downloads::linux::install(&webview, account.id);
+        #[cfg(target_os = "linux")]
+        reload_after_crash(&webview, account.id);
         Ok(webview)
     }
 
@@ -444,6 +446,31 @@ fn apply_engine_options<R: Runtime>(webview: &Webview<R>, settings: &Settings) {
             web_settings.set_hardware_acceleration_policy(HardwareAccelerationPolicy::Never);
         }
         web_settings.set_enable_smooth_scrolling(options.smooth_scrolling);
+    });
+}
+
+/// Reload the page after its web process dies (crash or memory limit), as
+/// ZapZap does after a renderer crash; the account would otherwise stay
+/// blank until its webview is recreated.
+#[cfg(target_os = "linux")]
+fn reload_after_crash<R: Runtime>(webview: &Webview<R>, account_id: i64) {
+    let _ = webview.with_webview(move |platform| {
+        use gtk::glib::{self, prelude::ObjectExt};
+        use webkit2gtk::{WebProcessTerminationReason, WebViewExt};
+        platform
+            .inner()
+            .connect_web_process_terminated(move |view, reason| {
+                if reason == WebProcessTerminationReason::TerminatedByApi {
+                    return;
+                }
+                log::warn!("account {account_id} web process ended ({reason:?}), reloading");
+                let view = view.downgrade();
+                glib::timeout_add_local_once(std::time::Duration::from_secs(1), move || {
+                    if let Some(view) = view.upgrade() {
+                        view.reload();
+                    }
+                });
+            });
     });
 }
 
