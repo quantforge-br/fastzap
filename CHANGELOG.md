@@ -313,6 +313,8 @@
   newest AppStream release.
 - `build-info.sh` marks a build `Official` only on GitHub Actions runs of
   `quantmind-br/fastzap`; forks and local runs record channel `Unknown`.
+- The deb/rpm desktop entry sets `StartupWMClass=fastzap` directly instead of
+  reusing the bundler's `Exec` value.
 
 ### Changed
 
