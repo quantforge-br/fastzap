@@ -218,11 +218,15 @@
     composer?.focus();
   }
 
+  // Shown in the message itself: an expired file must not hide the chat.
+  let mediaErrors = $state<Record<string, string>>({});
+
   async function loadMedia(m: ChatMessage) {
     try {
       media = { ...media, [m.id]: await evolution.media(target, m.id) };
+      delete mediaErrors[m.id];
     } catch (e) {
-      failure = errorMessage(e);
+      mediaErrors = { ...mediaErrors, [m.id]: errorMessage(e) };
     }
   }
 
@@ -280,7 +284,10 @@
               {#if media[m.id]}
                 <img class:sticker={m.kind === "sticker"} src={media[m.id]} alt={kindLabel(m.kind, t)} />
               {:else}
-                <div class="placeholder" use:autoload={m}>{kindLabel(m.kind, t)}</div>
+                <div class="placeholder" use:autoload={m}>
+                  {kindLabel(m.kind, t)}
+                  {#if mediaErrors[m.id]}<span class="media-error">{mediaErrors[m.id]}</span>{/if}
+                </div>
               {/if}
             {:else if m.kind === "video" || m.kind === "audio"}
               {#if media[m.id]}
@@ -292,6 +299,7 @@
                 {/if}
               {:else}
                 <button class="btn" onclick={() => loadMedia(m)}>▶ {kindLabel(m.kind, t)}</button>
+                {#if mediaErrors[m.id]}<span class="media-error">{mediaErrors[m.id]}</span>{/if}
               {/if}
             {:else if m.kind === "document"}
               <button class="btn doc" onclick={() => act(() => evolution.saveMedia(target, m.id))}>
@@ -473,6 +481,12 @@
   .bubble img.sticker {
     max-width: 160px;
     background: none;
+  }
+  .media-error {
+    padding: 0 8px;
+    font-size: 12px;
+    opacity: 0.8;
+    text-align: center;
   }
   .placeholder {
     display: grid;

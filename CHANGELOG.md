@@ -339,6 +339,8 @@
   avatars, customizations, attachments, dictionaries) aborted the app.
 - Evolution Go conversations no longer grow past the window after older
   messages load, which hid the composer and blocked scrolling.
+- Expired Evolution Go media (WhatsApp CDN 403/404/410) shows a short notice
+  in the message instead of a raw server error over the chat.
 
 ### Changed
 

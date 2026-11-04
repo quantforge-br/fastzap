@@ -72,6 +72,9 @@ pub enum EvoError {
     Invalid(String),
     #[error("invalid server address: {0}")]
     BadUrl(String),
+    /// WhatsApp's CDN no longer has the file; only the phone can resend it.
+    #[error("this media is no longer on WhatsApp's servers; open it on your phone")]
+    MediaGone,
 }
 
 pub type EvoResult<T> = Result<T, EvoError>;
@@ -323,6 +326,22 @@ fn map_send_error(err: reqwest::Error) -> EvoError {
         EvoError::Network(sanitize_message(&err.to_string()))
     } else {
         EvoError::Ambiguous
+    }
+}
+
+/// The server reports an expired CDN download as a 500 naming the CDN status.
+fn media_error(err: EvoError) -> EvoError {
+    match err {
+        EvoError::Http {
+            status: 500,
+            message,
+        } if ["403", "404", "410"]
+            .iter()
+            .any(|code| message.contains(&format!("status code {code}"))) =>
+        {
+            EvoError::MediaGone
+        }
+        other => other,
     }
 }
 
@@ -668,7 +687,7 @@ impl Client {
             .send()
             .await
             .map_err(map_error)?;
-        let data = Self::finish(response).await?;
+        let data = Self::finish(response).await.map_err(media_error)?;
         data.get("base64")
             .and_then(Value::as_str)
             .map(str::to_owned)
@@ -896,6 +915,23 @@ mod tests {
             jids,
             [("1@lid", Some("55@s.whatsapp.net")), ("2@g.us", None)]
         );
+    }
+
+    #[tokio::test]
+    async fn expired_media_is_reported_as_gone() {
+        let server = MockServer::start().await;
+        Mock::given(path("/message/downloadmedia"))
+            .respond_with(ResponseTemplate::new(500).set_body_json(json!({
+                "error": "Failed to download image download failed with status code 403"
+            })))
+            .mount(&server)
+            .await;
+        let err = client(&server)
+            .await
+            .download_media(&token(), &json!({}))
+            .await
+            .unwrap_err();
+        assert!(matches!(err, EvoError::MediaGone));
     }
 
     #[tokio::test]

@@ -100,7 +100,8 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
   enviadas, menções, encaminhamento e criação de grupos não existem. Respostas
   a mensagens que o FastZap não guardou chegam sem texto citado; só as
   próprias mensagens podem ser apagadas ou editadas; envios de mídia que
-  falham não têm "enviar de novo". Histórico antigo depende do sync inicial
+  falham não têm "enviar de novo"; mídia antiga que expirou no CDN do
+  WhatsApp não é recuperável (o servidor não tem *media retry*). Histórico antigo depende do sync inicial
   do pareamento ou de um pedido ao telefone ("carregar mensagens antigas").
   Sem `PRIVATE_CHAT_HISTORY` no servidor, eventos perdidos com o WebSocket
   fora não voltam. A grade (`Ctrl+G`), o zoom, customizações, corretor e o
