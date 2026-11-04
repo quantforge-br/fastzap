@@ -375,3 +375,4 @@
   reports, About page, AppStream URLs, bundle homepage and `build-info.sh`);
   GitHub Actions is disabled on the `quantmind-br` account. The app ID
   `io.github.quantmind_br.fastzap` is unchanged.
+- The Flatpak workflow pins its privileged builder container by digest.
