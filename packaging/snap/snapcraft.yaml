@@ -56,6 +56,9 @@ parts:
       - usr/share/metainfo/io.github.quantmind_br.fastzap.metainfo.xml
     override-build: |
       set -eu
+      # The gnome extension points LD_LIBRARY_PATH at the SDK's glibc, which
+      # breaks the rustup and node snaps; linking goes through pkg-config.
+      unset LD_LIBRARY_PATH
       if [ -f packaging/common/build-info.env ]; then
         # KEY=value lines in GITHUB_ENV format: values may hold spaces, so
         # they are read literally instead of sourced as shell.
