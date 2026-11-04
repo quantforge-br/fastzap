@@ -43,6 +43,10 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    env:
+      # Secrets cannot appear in `if`; without credentials the store step is
+      # skipped instead of failing the release.
+      SNAP_STORE_READY: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -74,7 +78,7 @@ jobs:
 
       # A store release cannot be undone: only tagged releases publish.
       - name: Publish to the Snap Store
-        if: ${{ inputs.publish_snap && startsWith(github.ref, 'refs/tags/') }}
+        if: ${{ inputs.publish_snap && startsWith(github.ref, 'refs/tags/') && env.SNAP_STORE_READY == 'true' }}
         uses: snapcore/action-publish@214b86e5ca036ead1668c79afb81e550e6c54d40 # v1.2.0
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}

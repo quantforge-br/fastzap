@@ -320,6 +320,9 @@
   runs per tag and passes only the snap store secret. `Release Candidate` runs
   from `main` only, validates `rc` and the base version, refuses an existing
   tag on another commit and no longer rewrites release notes on re-runs.
+- The snap workflow skips the Snap Store step when
+  `SNAPCRAFT_STORE_CREDENTIALS` is not configured instead of failing the
+  release.
 
 ### Changed
 
