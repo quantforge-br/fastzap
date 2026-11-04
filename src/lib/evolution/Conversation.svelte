@@ -1084,8 +1084,11 @@
     padding: 6px 6px;
   }
   textarea {
+    /* The auto height comes from scrollHeight, which includes the padding. */
+    box-sizing: border-box;
     flex: 1;
-    min-height: 22px;
+    height: 40px;
+    min-height: 40px;
     margin: 0 6px;
     padding: 9px 0;
     border: 0;

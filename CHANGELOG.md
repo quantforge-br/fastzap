@@ -351,6 +351,7 @@
 - WhatsApp Web background frames on other hosts (e.g. flows.whatsapp.net cache
   management) are blocked instead of opening in the browser at every start, as
   in ZapZap.
+- The Evolution Go composer text lines up with its buttons.
 
 ### Changed
 
