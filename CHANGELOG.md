@@ -341,6 +341,9 @@
   messages load, which hid the composer and blocked scrolling.
 - Expired Evolution Go media (WhatsApp CDN 403/404/410) shows a short notice
   in the message instead of a raw server error over the chat.
+- Evolution Go delivery and read ticks now update for direct chats whose
+  receipts name the contact's LID instead of the phone number; read-on-
+  another-device clears those chats' unread count too.
 
 ### Changed
 

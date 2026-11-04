@@ -303,8 +303,8 @@ impl ChatStore {
                     }
                 }
                 Event::Receipt(receipt) => {
-                    if apply_receipt(&tx, receipt)? {
-                        applied.touch(&receipt.chat);
+                    if let Some(chat) = apply_receipt(&tx, receipt)? {
+                        applied.touch(&chat);
                     }
                 }
                 Event::History(history) => apply_history(&tx, history, &mut applied)?,
@@ -326,7 +326,8 @@ impl ChatStore {
     }
 
     /// Receipts move our messages forward; a read-self receipt clears unread.
-    pub fn apply_receipt(&self, receipt: &Receipt) -> StoreResult<bool> {
+    /// Returns the chat that changed.
+    pub fn apply_receipt(&self, receipt: &Receipt) -> StoreResult<Option<String>> {
         apply_receipt(&self.conn.lock().unwrap(), receipt)
     }
 
@@ -610,23 +611,59 @@ fn apply_history(conn: &Connection, history: &History, applied: &mut Applied) ->
     Ok(())
 }
 
-fn apply_receipt(conn: &Connection, receipt: &Receipt) -> StoreResult<bool> {
-    if receipt.read_self {
-        let n = conn.execute(
-            "UPDATE chats SET unread = 0 WHERE jid = ? AND unread <> 0",
-            [&receipt.chat],
-        )?;
-        return Ok(n > 0);
-    }
-    let mut changed = false;
+/// The stored chat a receipt is about. One-to-one receipts may name the
+/// contact's LID while the messages are stored under the phone JID, so an
+/// unknown direct chat is found through the message IDs.
+fn receipt_chat(conn: &Connection, receipt: &Receipt) -> StoreResult<Option<String>> {
     for id in &receipt.ids {
-        changed |= conn.execute(
-            "UPDATE messages SET status = ?3
-             WHERE chat = ?1 AND id = ?2 AND from_me = 1 AND status < ?3",
-            params![receipt.chat, id, status_rank(receipt.status)],
-        )? > 0;
+        let known: bool = conn.query_row(
+            "SELECT EXISTS (SELECT 1 FROM messages WHERE chat = ?1 AND id = ?2)",
+            params![receipt.chat, id],
+            |r| r.get(0),
+        )?;
+        if known {
+            return Ok(Some(receipt.chat.clone()));
+        }
     }
-    Ok(changed)
+    if is_group(&receipt.chat) {
+        return Ok(None);
+    }
+    for id in &receipt.ids {
+        let found: Option<String> = conn
+            .query_row(
+                "SELECT chat FROM messages WHERE id = ?1 AND chat NOT LIKE '%@g.us' LIMIT 1",
+                [id],
+                |r| r.get(0),
+            )
+            .optional()?;
+        if found.is_some() {
+            return Ok(found);
+        }
+    }
+    Ok(None)
+}
+
+fn apply_receipt(conn: &Connection, receipt: &Receipt) -> StoreResult<Option<String>> {
+    let Some(chat) = receipt_chat(conn, receipt)? else {
+        return Ok(None);
+    };
+    let changed = if receipt.read_self {
+        conn.execute(
+            "UPDATE chats SET unread = 0 WHERE jid = ? AND unread <> 0",
+            [&chat],
+        )? > 0
+    } else {
+        let mut changed = false;
+        for id in &receipt.ids {
+            changed |= conn.execute(
+                "UPDATE messages SET status = ?3
+                 WHERE chat = ?1 AND id = ?2 AND from_me = 1 AND status < ?3",
+                params![chat, id, status_rank(receipt.status)],
+            )? > 0;
+        }
+        changed
+    };
+    Ok(changed.then_some(chat))
 }
 
 fn upsert_push_name(conn: &Connection, jid: &str, name: &str) -> StoreResult<()> {
@@ -907,6 +944,45 @@ mod tests {
         );
         assert_eq!(store.unread_chats().unwrap(), 0);
         assert_eq!(store.cursor().unwrap(), "9");
+    }
+
+    #[test]
+    fn direct_receipts_naming_the_lid_reach_the_phone_chat() {
+        let store = ChatStore::in_memory().unwrap();
+        let mut ours = message("M", 10, true, "hi");
+        ours.status = Status::Sent;
+        store.apply(&[Change::New(ours)], true, None).unwrap();
+        store
+            .apply(&[Change::New(message("N", 11, false, "yo"))], true, None)
+            .unwrap();
+        let receipt = |ids: &[&str], read_self: bool, chat: &str| Receipt {
+            chat: chat.into(),
+            ids: ids.iter().map(|i| (*i).into()).collect(),
+            read_self,
+            status: Status::Delivered,
+        };
+        let changed = store
+            .apply_receipt(&receipt(&["M"], false, "77@lid"))
+            .unwrap();
+        assert_eq!(changed.as_deref(), Some(CHAT));
+        assert_eq!(
+            store.message(CHAT, "M").unwrap().unwrap().status,
+            Status::Delivered
+        );
+        // Read on another device, reported under the LID.
+        assert_eq!(store.unread_chats().unwrap(), 1);
+        let changed = store
+            .apply_receipt(&receipt(&["N"], true, "77@lid"))
+            .unwrap();
+        assert_eq!(changed.as_deref(), Some(CHAT));
+        assert_eq!(store.unread_chats().unwrap(), 0);
+        // Group receipts never match by ID alone.
+        assert_eq!(
+            store
+                .apply_receipt(&receipt(&["M"], false, "1@g.us"))
+                .unwrap(),
+            None
+        );
     }
 
     #[test]

@@ -629,14 +629,8 @@ fn handle(app: &AppHandle, session: &Session, payload: &serde_json::Value, live:
             Err(e) => log::warn!("evolution store write failed: {e}"),
         },
         Event::Receipt(receipt) => {
-            if let Ok(true) = session.store.apply_receipt(&receipt) {
-                emit(
-                    app,
-                    UiEvent::Messages {
-                        account_id,
-                        chat: receipt.chat.clone(),
-                    },
-                );
+            if let Ok(Some(chat)) = session.store.apply_receipt(&receipt) {
+                emit(app, UiEvent::Messages { account_id, chat });
                 if receipt.read_self {
                     emit(app, UiEvent::Chats { account_id });
                     refresh_unread(app, session);
