@@ -2,6 +2,7 @@
 //! `evolution` directory). The server keeps no browsable history, so this is
 //! the only place older messages can be read from.
 
+use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::Mutex;
 
@@ -10,6 +11,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use ts_rs::TS;
 
+use super::client::ArchivedChat;
 use super::model::{Change, Event, History, Message, MessageKind, QuoteRef, Receipt, Status};
 
 pub type StoreResult<T> = Result<T, rusqlite::Error>;
@@ -22,7 +24,8 @@ CREATE TABLE IF NOT EXISTS chats (
     unread INTEGER NOT NULL DEFAULT 0,
     preview TEXT NOT NULL DEFAULT '',
     preview_kind TEXT NOT NULL DEFAULT 'text',
-    preview_from_me INTEGER NOT NULL DEFAULT 0
+    preview_from_me INTEGER NOT NULL DEFAULT 0,
+    archived INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS messages (
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,6 +106,7 @@ pub struct ChatSummary {
     pub preview_kind: MessageKind,
     pub preview_from_me: bool,
     pub is_group: bool,
+    pub archived: bool,
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -184,7 +188,12 @@ impl ChatStore {
     fn with_connection(conn: Connection) -> StoreResult<Self> {
         conn.pragma_update(None, "journal_mode", "WAL")?;
         conn.execute_batch(SCHEMA)?;
-        conn.pragma_update(None, "user_version", 1)?;
+        let version: i64 = conn.pragma_query_value(None, "user_version", |r| r.get(0))?;
+        // Version 1 stores predate `chats.archived`.
+        if version == 1 {
+            conn.execute_batch("ALTER TABLE chats ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")?;
+        }
+        conn.pragma_update(None, "user_version", 2)?;
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -376,7 +385,7 @@ impl ChatStore {
     /// Chats with unread messages (the WhatsApp Web title count).
     pub fn unread_chats(&self) -> StoreResult<i64> {
         self.conn.lock().unwrap().query_row(
-            "SELECT COUNT(*) FROM chats WHERE unread > 0",
+            "SELECT COUNT(*) FROM chats WHERE unread > 0 AND archived = 0",
             [],
             |r| r.get(0),
         )
@@ -397,6 +406,46 @@ impl ChatStore {
 
     pub fn set_push_name(&self, jid: &str, name: &str) -> StoreResult<()> {
         upsert_push_name(&self.conn.lock().unwrap(), jid, name)
+    }
+
+    /// Replace the archived set. A LID chat is matched to its phone chat
+    /// when only that one is known here; archived chats without messages are
+    /// created so they can still be listed. Returns whether anything changed.
+    pub fn set_archived(&self, chats: &[ArchivedChat]) -> StoreResult<bool> {
+        let mut conn = self.conn.lock().unwrap();
+        let tx = conn.transaction()?;
+        let known = |jid: &str| -> StoreResult<bool> {
+            tx.query_row(
+                "SELECT EXISTS (SELECT 1 FROM chats WHERE jid = ?)",
+                [jid],
+                |r| r.get(0),
+            )
+        };
+        let mut after = BTreeSet::new();
+        for chat in chats {
+            let jid = match &chat.phone_jid {
+                Some(phone) if !known(&chat.jid)? && known(phone)? => phone,
+                _ => &chat.jid,
+            };
+            after.insert(jid.clone());
+        }
+        let before: BTreeSet<String> = tx
+            .prepare("SELECT jid FROM chats WHERE archived = 1")?
+            .query_map([], |r| r.get(0))?
+            .collect::<StoreResult<_>>()?;
+        if before == after {
+            return Ok(false);
+        }
+        tx.execute("UPDATE chats SET archived = 0 WHERE archived = 1", [])?;
+        for jid in &after {
+            tx.execute(
+                "INSERT INTO chats (jid, archived) VALUES (?, 1)
+                 ON CONFLICT (jid) DO UPDATE SET archived = 1",
+                [jid],
+            )?;
+        }
+        tx.commit()?;
+        Ok(true)
     }
 
     /// Group subjects only rename group chats.
@@ -421,8 +470,8 @@ impl ChatStore {
     pub fn chats(&self) -> StoreResult<Vec<ChatSummary>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT jid, unread, ts, preview, preview_kind, preview_from_me FROM chats
-             WHERE ts > 0 ORDER BY ts DESC",
+            "SELECT jid, unread, ts, preview, preview_kind, preview_from_me, archived FROM chats
+             WHERE ts > 0 OR archived = 1 ORDER BY ts DESC",
         )?;
         let rows = stmt
             .query_map([], |r| {
@@ -433,11 +482,12 @@ impl ChatStore {
                     r.get(3)?,
                     r.get::<_, String>(4)?,
                     r.get(5)?,
+                    r.get(6)?,
                 ))
             })?
             .collect::<StoreResult<Vec<_>>>()?;
         rows.into_iter()
-            .map(|(jid, unread, ts, preview, kind, from_me)| {
+            .map(|(jid, unread, ts, preview, kind, from_me, archived)| {
                 Ok(ChatSummary {
                     name: display_name(&conn, &jid)?,
                     is_group: is_group(&jid),
@@ -447,6 +497,7 @@ impl ChatStore {
                     preview,
                     preview_kind: MessageKind::parse(&kind),
                     preview_from_me: from_me,
+                    archived,
                 })
             })
             .collect()
@@ -924,6 +975,34 @@ mod tests {
             store.message(CHAT, "SERVER").unwrap().unwrap().status,
             Status::Read
         );
+    }
+
+    #[test]
+    fn archived_chats_are_listed_and_left_out_of_unread() {
+        let store = ChatStore::in_memory().unwrap();
+        store
+            .apply(&[Change::New(message("A", 10, false, "oi"))], true, None)
+            .unwrap();
+        assert_eq!(store.unread_chats().unwrap(), 1);
+        let archive = |jid: &str, phone: Option<&str>| ArchivedChat {
+            jid: jid.into(),
+            phone_jid: phone.map(Into::into),
+        };
+        // The LID resolves to the known phone chat; the group has no messages.
+        let set = [archive("9@lid", Some(CHAT)), archive("1@g.us", None)];
+        assert!(store.set_archived(&set).unwrap());
+        assert!(!store.set_archived(&set).unwrap());
+        assert_eq!(store.unread_chats().unwrap(), 0);
+        let chats = store.chats().unwrap();
+        let archived: Vec<_> = chats
+            .iter()
+            .filter(|c| c.archived)
+            .map(|c| c.jid.as_str())
+            .collect();
+        assert_eq!(archived, [CHAT, "1@g.us"]);
+        assert!(store.set_archived(&[]).unwrap());
+        assert_eq!(store.chats().unwrap().len(), 1);
+        assert_eq!(store.unread_chats().unwrap(), 1);
     }
 
     #[test]

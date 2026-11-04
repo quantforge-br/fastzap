@@ -350,6 +350,10 @@ conversa), que conversa com o backend pelos comandos `evo_*` e pelo evento
   (`bind:server` = servidor + instância, `bind:owner` = número pareado);
   quando ela muda, chats, mensagens, cursor e o cache de mídia são
   descartados. Mídia baixada fica em `<data>/evolution/<id>/media/`.
+  `chats.archived` (schema 2) espelha `GET /chat/settings`, lido a cada
+  conexão do socket e a cada 5 min; um chat LID arquivado vira o chat do
+  número quando só esse existe localmente. Chats arquivados ficam na pasta
+  "Arquivadas", mesmo sem mensagens, e não entram no contador de não lidas.
 - `evolution` (sessão): `sync` inicia/para sessões conforme as contas
   habilitadas, serializado por um lock de ciclo de vida; parar a sessão
   cancela o trabalho em andamento. Cada sessão confere a instância pela listagem admin e só chama

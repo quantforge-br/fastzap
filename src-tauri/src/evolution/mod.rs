@@ -41,6 +41,7 @@ const NOTIFY_MAX_BATCH: usize = 5;
 /// Retry connecting the instance after WhatsApp dropped it.
 const RECONNECT_DELAY: Duration = Duration::from_secs(10);
 const AVATAR_TTL: Duration = Duration::from_secs(6 * 3600);
+const ARCHIVED_REFRESH: Duration = Duration::from_secs(5 * 60);
 const JOURNAL_MAX_PAGES: usize = 200;
 /// Store meta keys tying local data to its source.
 const BIND_SERVER: &str = "bind:server";
@@ -354,15 +355,25 @@ async fn run(app: AppHandle, session: Arc<Session>, mut stop: watch::Receiver<bo
     let url = ws::ws_url(session.client.base(), &session.admin, &session.instance_id);
     let (tx, mut rx) = mpsc::unbounded_channel();
     tauri::async_runtime::spawn(ws::run(url, session.instance_id.clone(), tx, stop.clone()));
+    // Archiving happens on the phone and arrives through no event.
+    let mut archived = tokio::time::interval(ARCHIVED_REFRESH);
     // Stopping cancels the work in flight too: a deleted or reconfigured
     // account must not connect the instance or write its store afterwards.
     loop {
         let signal = tokio::select! {
-            signal = rx.recv() => signal,
+            signal = rx.recv() => signal.map(Some),
+            _ = archived.tick() => Some(None),
             _ = stop.wait_for(|s| *s) => None,
         };
         let Some(signal) = signal else {
             break;
+        };
+        let Some(signal) = signal else {
+            tokio::select! {
+                () = load_archived(&app, &session) => {}
+                _ = stop.wait_for(|s| *s) => break,
+            }
+            continue;
         };
         tokio::select! {
             () = on_signal(&app, &session, signal) => {}
@@ -376,6 +387,7 @@ async fn on_signal(app: &AppHandle, session: &Session, signal: ws::Signal) {
         ws::Signal::Up => {
             ensure_connected(app, session).await;
             catch_up(app, session).await;
+            load_archived(app, session).await;
         }
         ws::Signal::Down(why) => {
             let text = match why {
@@ -493,6 +505,23 @@ pub async fn load_contacts(app: &AppHandle, session: &Session) {
             account_id: session.account_id,
         },
     );
+}
+
+/// Archived chats (read-only); the list is left as is when the server
+/// cannot tell.
+pub async fn load_archived(app: &AppHandle, session: &Session) {
+    let Ok(chats) = session.client.archived_chats(&session.token).await else {
+        return;
+    };
+    if session.store.set_archived(&chats).unwrap_or(false) {
+        emit(
+            app,
+            UiEvent::Chats {
+                account_id: session.account_id,
+            },
+        );
+        refresh_unread(app, session);
+    }
 }
 
 /// Read the journal from the saved cursor. The cursor is stored with each

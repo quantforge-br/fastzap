@@ -15,6 +15,7 @@
   let chats = $state<ChatSummary[]>([]);
   let selected = $state<string | null>(null);
   let search = $state("");
+  let showArchived = $state(false);
   let qr = $state<QrCode | null>(null);
   let syncProgress = $state<number | null>(null);
   let versions = $state<Record<string, number>>({});
@@ -26,9 +27,12 @@
   const accountId = $derived(account.id);
   const online = $derived(connection.state === "online");
   const linked = $derived(connection.state === "online" || connection.state === "offline" || connection.state === "connecting");
+  const query = $derived(search.trim().toLowerCase());
+  // A search covers archived chats too, as in WhatsApp.
   const filtered = $derived(
-    search.trim() ? chats.filter((c) => c.name.toLowerCase().includes(search.trim().toLowerCase())) : chats,
+    query ? chats.filter((c) => c.name.toLowerCase().includes(query)) : chats.filter((c) => c.archived === showArchived),
   );
+  const archivedCount = $derived(chats.filter((c) => c.archived).length);
   const current = $derived(
     selected ? (chats.find((c) => c.jid === selected) ?? placeholderChat(selected)) : null,
   );
@@ -43,6 +47,7 @@
       preview_kind: "text",
       preview_from_me: false,
       is_group: jid.endsWith("@g.us"),
+      archived: false,
     };
   }
 
@@ -150,6 +155,22 @@
         <button class="btn" disabled={!jidForNumber(newChat)} onclick={startChat}>{t("Open")}</button>
       </div>
       <ul>
+        {#if !query && showArchived}
+          <li>
+            <button class="item folder" onclick={() => (showArchived = false)}>
+              <span class="avatar">←</span>
+              <span class="name">{t("Archived")}</span>
+            </button>
+          </li>
+        {:else if !query && archivedCount}
+          <li>
+            <button class="item folder" onclick={() => (showArchived = true)}>
+              <span class="avatar">🗄</span>
+              <span class="name">{t("Archived")}</span>
+              <span class="count muted">{archivedCount}</span>
+            </button>
+          </li>
+        {/if}
         {#each filtered as c (c.jid)}
           <li>
             <button class="item" class:active={c.jid === selected} onclick={() => select(c.jid)}>
@@ -172,7 +193,13 @@
           </li>
         {:else}
           <li class="empty muted">
-            {chats.length ? t("No chats match the search.") : t("Chats appear here as messages arrive or history syncs.")}
+            {#if query}
+              {t("No chats match the search.")}
+            {:else if showArchived}
+              {t("No archived chats.")}
+            {:else}
+              {t("Chats appear here as messages arrive or history syncs.")}
+            {/if}
           </li>
         {/each}
       </ul>
@@ -188,7 +215,7 @@
     {:else}
       <section class="idle muted">
         <p>{t("Select a chat to start messaging.")}</p>
-        <p class="small">{t("Pinned, archived and muted chats are not available through Evolution Go.")}</p>
+        <p class="small">{t("Archived chats follow the phone; pinning, archiving and muting are not available through Evolution Go.")}</p>
       </section>
     {/if}
   </div>
@@ -256,6 +283,15 @@
   }
   .item:hover {
     background: var(--csr-hover);
+  }
+  .folder {
+    align-items: center;
+  }
+  .folder .name {
+    flex: 1;
+  }
+  .count {
+    font-size: 12px;
   }
   .item.active {
     background: var(--sidebar-bg);

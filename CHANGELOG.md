@@ -171,6 +171,9 @@
   `release-deploy` builds every format and publishes the GitHub release.
 - The quality workflow validates packaging: version consistency, desktop
   entries, AppStream metadata and shell scripts.
+- Evolution Go chats archived on the phone are shown in an Archived folder
+  (read from GET /chat/settings every 5 minutes and on reconnect) and no
+  longer count as unread.
 
 ### Fixed
 

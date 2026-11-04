@@ -95,7 +95,8 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
   logo depois); uma saída sem limpeza só registra o marcador, sem sinal nem
   logs da sessão anterior. Diagnósticos de GPU/VAAPI/Vulkan não são coletados.
 - **Contas Evolution Go** não têm a interface do WhatsApp Web: fixar,
-  arquivar e silenciar chats, status, chamadas, enquetes, figurinhas
+  arquivar, desarquivar e silenciar chats pelo FastZap (a pasta "Arquivadas"
+  só espelha o telefone, com até 5 min de atraso), status, chamadas, enquetes, figurinhas
   enviadas, menções, encaminhamento e criação de grupos não existem. Respostas
   a mensagens que o FastZap não guardou chegam sem texto citado; só as
   próprias mensagens podem ser apagadas ou editadas; envios de mídia que

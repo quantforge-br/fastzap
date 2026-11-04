@@ -297,6 +297,11 @@ pub struct Contact {
     pub name: String,
 }
 
+pub struct ArchivedChat {
+    pub jid: String,
+    pub phone_jid: Option<String>,
+}
+
 pub struct Client {
     http: reqwest::Client,
     base: Url,
@@ -714,6 +719,27 @@ impl Client {
             .collect())
     }
 
+    /// Archived chats from the server's copy of the phone's app state
+    /// (read-only), each with its phone JID when the chat is a LID.
+    pub async fn archived_chats(&self, token: &InstanceToken) -> EvoResult<Vec<ArchivedChat>> {
+        let data = self
+            .call(Method::GET, "/chat/settings", &token.0, None)
+            .await?;
+        let rows = data.as_array().cloned().unwrap_or_default();
+        Ok(rows
+            .iter()
+            .filter(|row| row.get("archived").and_then(Value::as_bool) == Some(true))
+            .filter_map(|row| {
+                let text = |k: &str| row.get(k).and_then(Value::as_str).unwrap_or("").trim();
+                let phone = text("phoneJid");
+                (!text("chat").is_empty()).then(|| ArchivedChat {
+                    jid: text("chat").to_owned(),
+                    phone_jid: (!phone.is_empty()).then(|| phone.to_owned()),
+                })
+            })
+            .collect())
+    }
+
     pub async fn groups(&self, token: &InstanceToken) -> EvoResult<Vec<Contact>> {
         let data = self
             .call(Method::GET, "/group/list", &token.0, None)
@@ -839,6 +865,37 @@ mod tests {
         let status = c.status(&token()).await.unwrap();
         assert!(status.connected && !status.logged_in);
         assert_eq!(status.name, "Me");
+    }
+
+    #[tokio::test]
+    async fn archived_chats_keep_phone_jids() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/chat/settings"))
+            .and(header("apikey", "instance-token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "message": "success",
+                "data": [
+                    {"chat": "1@lid", "archived": true, "phoneJid": "55@s.whatsapp.net"},
+                    {"chat": "2@g.us", "archived": true},
+                    {"chat": "3@g.us", "archived": false}
+                ]
+            })))
+            .mount(&server)
+            .await;
+        let archived = client(&server)
+            .await
+            .archived_chats(&token())
+            .await
+            .unwrap();
+        let jids: Vec<_> = archived
+            .iter()
+            .map(|a| (a.jid.as_str(), a.phone_jid.as_deref()))
+            .collect();
+        assert_eq!(
+            jids,
+            [("1@lid", Some("55@s.whatsapp.net")), ("2@g.us", None)]
+        );
     }
 
     #[tokio::test]
