@@ -40,6 +40,7 @@
     type UnreadSnapshot,
   } from "$lib/ipc";
   import AccountEditDialog from "$lib/accounts/AccountEditDialog.svelte";
+  import AccountsOverview from "$lib/accounts/AccountsOverview.svelte";
   import { addAccount } from "$lib/accounts/actions";
   import { showAccountMenu } from "$lib/accounts/contextMenu";
   import { iconSrc } from "$lib/accounts/icon";
@@ -319,7 +320,15 @@
       />
     {:else if confirm}
       <!-- Shown in place of the hidden webviews. -->
-    {:else if active?.kind === "evolution_go" && !layout.grid}
+    {:else if layout.grid}
+      <AccountsOverview
+        {accounts}
+        {unread}
+        columns={appearance?.grid_cols ?? 2}
+        onedit={(account) => (editing = account)}
+        onremove={(account) => (removing = account)}
+      />
+    {:else if active?.kind === "evolution_go"}
       {#key active.id}
         <ChatView
           account={active}

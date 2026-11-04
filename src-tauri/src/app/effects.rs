@@ -75,9 +75,6 @@ pub fn on_settings_changed<R: Runtime>(app: &AppHandle<R>, old: &Settings, new: 
     if old.appearance.scale != new.appearance.scale {
         super::actions::apply_scale(app);
     }
-    if old.appearance.grid_cols != new.appearance.grid_cols {
-        webviews.apply_layout(app);
-    }
     let decorations = super::window::native_decorations(&new.appearance);
     if super::window::native_decorations(&old.appearance) != decorations
         && let Some(w) = super::window::main_window(app)

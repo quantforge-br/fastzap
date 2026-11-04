@@ -63,7 +63,8 @@ Child webviews, foco, tray, notificações e compositor não são verificáveis 
 testes automatizados. Antes de publicar, rode `pnpm tauri dev` e confira:
 duas contas WhatsApp Web isoladas, contador de não lidas, clique em notificação,
 tray, segunda instância com `xdg-open "whatsapp://send?phone=..."`, downloads,
-tema e grade.
+tema e grade (cartões de todas as contas, inclusive desativadas e Evolution
+Go; o cartão abre a conta).
 
 Para o Evolution Go, use primeiro o probe somente leitura da skill
 `evolutiongo-integration`. Pareamento e envio reais só com conta e destinatário
@@ -72,7 +73,7 @@ de teste autorizados.
 ### Anexos por arraste
 
 - WhatsApp Web: solte arquivos do gerenciador na conversa; confira a prévia
-  da página, sem navegação para o arquivo, inclusive com duas contas em grade.
+  da página, sem navegação para o arquivo, inclusive depois de trocar de conta.
 - Evolution Go: arraste vários arquivos sobre a conversa; confira o destaque,
   nomes e remoção individual. Soltar não envia: Enviar confirma, com legenda
   opcional. Repetir o mesmo caminho não duplica o anexo.

@@ -12,7 +12,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | Geometria, fechar para bandeja, confirmação | `app/window_lifecycle.py` | `app::lifecycle` + `tauri-plugin-window-state` | `SIGINT` também encerra normalmente |
 | Barra de título própria (CSR) | `ui/components/client_side_window*` | `src/lib/components/TitleBar.svelte` | mesmas opções `csr_*`, aplicadas sem reiniciar; moldura opaca de 4 px em vez da margem translúcida com cantos arredondados; novo `appearance.title_bar` ("Show title bar") esconde qualquer barra, nativa ou própria |
 | Contas, limite, ativação, avatar, UA, DND, zoom | `features/accounts` | `accounts` + página Contas | tipo de conta novo: Evolution Go |
-| Sidebar, grade, bloqueio, atualização | `features/browser/shell` | `src/routes/+page.svelte` | |
+| Sidebar, grade, bloqueio, atualização | `features/browser/shell` | `src/routes/+page.svelte` + `src/lib/accounts/AccountsOverview.svelte` | a grade é a visão geral de contas (cartões, sem webviews) e inclui contas Evolution Go |
 | Barra de menus e escala da interface | `ui/main_window`, `appearance.scale` | `MenuBar.svelte` (menus nativos) + zoom das webviews | |
 | Páginas de configurações | `features/settings` | `src/lib/settings/` | mesma ordem e textos |
 | Painel flutuante de monitoramento | `ui/components/floating_monitoring_panel.py` | `app::panel` + rota `/panel` (janela `panel`) | posição e travamento só fora do Wayland, como no ZapZap |
@@ -116,7 +116,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
   novo para trazer as conversas antigas. Sem `PRIVATE_CHAT_HISTORY` no servidor, eventos perdidos com o
   WebSocket fora não voltam, e um socket que o servidor deixou de abastecer
   só é trocado no próximo erro de conexão; com o journal, mensagens perdidas
-  aparecem em até 30 s. A grade (`Ctrl+G`), o zoom, customizações, corretor e o
+  aparecem em até 30 s. O zoom, customizações, corretor e o
   seletor de contas integrado valem só para contas WhatsApp Web; "enviar
   mensagem para número" abre o WhatsApp Web, enquanto o chat nativo tem o
   próprio campo de número. A chave admin do servidor fica no keyring local,

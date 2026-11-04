@@ -83,10 +83,13 @@ que o WhatsApp Web receba os arquivos pelo mecanismo HTML nativo. A webview
 
 O frontend informa a área livre (à direita da sidebar) via
 `layout_set_bounds`; o manager posiciona a conta ativa nessa área e oculta as
-demais. No modo grade, as contas visíveis são distribuídas em `grid_cols`
-colunas. Quando uma tela local precisa cobrir o conteúdo (configurações,
+demais. O modo grade é a visão geral de contas do ZapZap: todos os child
+webviews ficam ocultos e a UI local (`AccountsOverview.svelte`) mostra um
+cartão por conta, WhatsApp Web ou Evolution Go, inclusive desativada, em
+`grid_cols` colunas; o cartão ativa a conta (desativada pergunta antes de
+reativar). Quando uma tela local precisa cobrir o conteúdo (configurações,
 diálogos), o frontend chama `layout_set_overlay(true)` e os child webviews são
-ocultados.
+ocultados. Com grade ou overlay, o foco do teclado vai para o webview `ui`.
 
 No Linux o Tauri empilha child webviews num `GtkBox` vertical e ignora
 `set_position`. `webview::stage` insere um `GtkOverlay` na janela: o webview

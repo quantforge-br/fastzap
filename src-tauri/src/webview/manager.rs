@@ -1,6 +1,6 @@
 //! Child webviews hosting WhatsApp Web, one per enabled account.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -45,8 +45,8 @@ struct Layout {
     active: Option<i64>,
     grid: bool,
     overlay: bool,
-    /// Where each visible account webview was last placed.
-    placed: BTreeMap<i64, Rect>,
+    /// The visible account webview and where it was last placed.
+    placed: Option<(i64, Rect)>,
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -86,9 +86,12 @@ impl WebviewManager {
         self.layout.lock().unwrap().active
     }
 
-    /// Bounds of a visible account webview in window coordinates.
+    /// Bounds of the visible account webview in window coordinates.
     pub fn placed_rect(&self, account_id: i64) -> Option<Rect> {
-        self.layout.lock().unwrap().placed.get(&account_id).copied()
+        match self.layout.lock().unwrap().placed {
+            Some((id, rect)) if id == account_id => Some(rect),
+            _ => None,
+        }
     }
 
     pub fn set_bounds<R: Runtime>(&self, app: &AppHandle<R>, bounds: Rect) {
@@ -110,31 +113,36 @@ impl WebviewManager {
         }
     }
 
-    pub fn toggle_grid<R: Runtime>(&self, app: &AppHandle<R>) -> bool {
+    pub fn toggle_grid<R: Runtime>(&self, app: &AppHandle<R>) {
         let grid = !self.layout.lock().unwrap().grid;
         self.set_grid(app, grid);
-        grid
     }
 
+    /// Grid view is ZapZap's account overview, rendered by the local UI; the
+    /// account webviews are hidden meanwhile.
     pub fn set_grid<R: Runtime>(&self, app: &AppHandle<R>, grid: bool) {
         self.layout.lock().unwrap().grid = grid;
         self.apply_layout(app);
+        self.focus_visible(app);
     }
 
     pub fn set_overlay<R: Runtime>(&self, app: &AppHandle<R>, overlay: bool) {
-        let active = {
-            let mut l = self.layout.lock().unwrap();
-            l.overlay = overlay;
-            l.active
-        };
+        self.layout.lock().unwrap().overlay = overlay;
         self.apply_layout(app);
-        // Keyboard focus would otherwise stay in the hidden account webview.
-        let target = if overlay {
-            app.get_webview(UI_WEBVIEW)
-        } else {
-            active.and_then(|id| app.get_webview(&label(id)))
+        self.focus_visible(app);
+    }
+
+    /// Keyboard focus would otherwise stay in a hidden account webview.
+    fn focus_visible<R: Runtime>(&self, app: &AppHandle<R>) {
+        let target = {
+            let l = self.layout.lock().unwrap();
+            if l.overlay || l.grid { None } else { l.active }
         };
-        if let Some(webview) = target {
+        let webview = match target {
+            Some(id) => app.get_webview(&label(id)),
+            None => app.get_webview(UI_WEBVIEW),
+        };
+        if let Some(webview) = webview {
             let _ = webview.set_focus();
         }
     }
@@ -290,54 +298,17 @@ impl WebviewManager {
             let l = self.layout.lock().unwrap();
             (l.bounds, l.active, l.grid, l.overlay)
         };
-        let mut webviews: Vec<(i64, Webview<R>)> = app
-            .webviews()
-            .into_iter()
-            .filter_map(|(l, w)| account_id_from_label(&l).map(|id| (id, w)))
-            .collect();
-        let order = app
-            .state::<AppState>()
-            .accounts
-            .list()
-            .map(|list| list.into_iter().map(|a| a.id).collect::<Vec<_>>())
-            .unwrap_or_default();
-        webviews.sort_by_key(|(id, _)| order.iter().position(|o| o == id).unwrap_or(usize::MAX));
-
-        let mut placed = BTreeMap::new();
-        if overlay || bounds.width < 1.0 || bounds.height < 1.0 {
-            for (_, w) in &webviews {
+        let hidden = overlay || grid || bounds.width < 1.0 || bounds.height < 1.0;
+        let mut placed = None;
+        for (webview_label, w) in app.webviews() {
+            let Some(id) = account_id_from_label(&webview_label) else {
+                continue;
+            };
+            if !hidden && Some(id) == active {
+                place(&w, bounds);
+                placed = Some((id, bounds));
+            } else {
                 let _ = w.hide();
-            }
-        } else if grid && !webviews.is_empty() {
-            let cols = app
-                .state::<AppState>()
-                .settings
-                .get()
-                .appearance
-                .grid_cols
-                .clamp(1, webviews.len() as u32) as usize;
-            let rows = webviews.len().div_ceil(cols);
-            let cell_w = bounds.width / cols as f64;
-            let cell_h = bounds.height / rows as f64;
-            for (index, (id, w)) in webviews.iter().enumerate() {
-                let (col, row) = (index % cols, index / cols);
-                let rect = Rect {
-                    x: bounds.x + col as f64 * cell_w,
-                    y: bounds.y + row as f64 * cell_h,
-                    width: cell_w,
-                    height: cell_h,
-                };
-                place(w, rect);
-                placed.insert(*id, rect);
-            }
-        } else {
-            for (id, w) in &webviews {
-                if Some(*id) == active {
-                    place(w, bounds);
-                    placed.insert(*id, bounds);
-                } else {
-                    let _ = w.hide();
-                }
             }
         }
         self.layout.lock().unwrap().placed = placed;

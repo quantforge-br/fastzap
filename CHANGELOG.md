@@ -186,6 +186,11 @@
 
 ### Fixed
 
+- Grid view is ZapZap's account overview instead of tiled webviews: a card
+  per account, including Evolution Go and disabled accounts, with icon, name
+  and unread count, laid out in the configured columns. A card opens its
+  account; a disabled one offers to reactivate it. Grid view no longer shows
+  a blank screen when the active account is an Evolution Go account.
 - Account updates and creation are atomic, a JSON `null` icon clears the
   avatar, partial reorders append the omitted accounts and imported accounts
   never replace existing ones.
