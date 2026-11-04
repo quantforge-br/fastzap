@@ -8,4 +8,8 @@ export type AppearanceSettings = { sidebar: boolean, menubar: boolean,
 /**
  * Interface scale in percent (`system/scale`).
  */
-scale: number, tray_icon: boolean, notification_counter: boolean, csr: boolean, csr_button_theme: string, csr_show_minimize_button: boolean, csr_show_maximize_button: boolean, csr_buttons_direction: ButtonsDirection, theme: ThemeMode, tray_theme: TrayTheme, grid_cols: number, floating_panel: FloatingPanelSettings, integrated_account_selector_enabled: boolean, resizable_chat_list_enabled: boolean, };
+scale: number, tray_icon: boolean, notification_counter: boolean, 
+/**
+ * Off: no title bar at all, native or drawn by FastZap (tiling WMs).
+ */
+title_bar: boolean, csr: boolean, csr_button_theme: string, csr_show_minimize_button: boolean, csr_show_maximize_button: boolean, csr_buttons_direction: ButtonsDirection, theme: ThemeMode, tray_theme: TrayTheme, grid_cols: number, floating_panel: FloatingPanelSettings, integrated_account_selector_enabled: boolean, resizable_chat_list_enabled: boolean, };

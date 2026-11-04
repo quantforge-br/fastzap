@@ -253,7 +253,7 @@
 </script>
 
 <div class="window" class:framed={csr && !maximized}>
-{#if csr && appearance}
+{#if csr && appearance?.title_bar}
   <TitleBar {appearance} {desktop} {maximized} />
 {/if}
 {#if appearance?.menubar}

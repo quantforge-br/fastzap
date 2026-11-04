@@ -166,6 +166,22 @@ mod tests {
     }
 
     #[test]
+    fn older_files_keep_the_title_bar() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        std::fs::write(&path, r#"{"appearance": {"csr": true}}"#).unwrap();
+        let appearance = SettingsStore::load(&path).unwrap().get().appearance;
+        assert!(appearance.title_bar && appearance.csr);
+        assert!(!crate::app::window::native_decorations(&appearance));
+        let hidden = crate::settings::AppearanceSettings {
+            title_bar: false,
+            csr: false,
+            ..appearance
+        };
+        assert!(!crate::app::window::native_decorations(&hidden));
+    }
+
+    #[test]
     fn missing_file_yields_defaults() {
         let dir = tempfile::tempdir().unwrap();
         let store = SettingsStore::load(dir.path().join("settings.json")).unwrap();

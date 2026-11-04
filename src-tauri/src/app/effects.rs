@@ -78,10 +78,11 @@ pub fn on_settings_changed<R: Runtime>(app: &AppHandle<R>, old: &Settings, new: 
     if old.appearance.grid_cols != new.appearance.grid_cols {
         webviews.apply_layout(app);
     }
-    if old.appearance.csr != new.appearance.csr
+    let decorations = super::window::native_decorations(&new.appearance);
+    if super::window::native_decorations(&old.appearance) != decorations
         && let Some(w) = super::window::main_window(app)
     {
-        let _ = w.set_decorations(!new.appearance.csr);
+        let _ = w.set_decorations(decorations);
     }
     if old.customizations != new.customizations {
         crate::customizations::reapply_all(app);

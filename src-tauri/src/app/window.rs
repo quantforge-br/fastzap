@@ -10,13 +10,19 @@ pub const MAIN_WINDOW: &str = "main";
 pub const UI_WEBVIEW: &str = "ui";
 const DEFAULT_SIZE: (f64, f64) = (1000.0, 700.0);
 
+/// Native decorations show only when the title bar is on and FastZap does not
+/// draw its own.
+pub fn native_decorations(a: &crate::settings::AppearanceSettings) -> bool {
+    a.title_bar && !a.csr
+}
+
 pub fn create_main<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Window<R>> {
     let settings = app.state::<AppState>().settings.get();
     let window = WindowBuilder::new(app, MAIN_WINDOW)
         .title("FastZap")
         .inner_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1)
         .min_inner_size(480.0, 400.0)
-        .decorations(!settings.appearance.csr)
+        .decorations(native_decorations(&settings.appearance))
         .theme(super::theme::window_theme(&settings))
         .visible(false)
         .build()?;

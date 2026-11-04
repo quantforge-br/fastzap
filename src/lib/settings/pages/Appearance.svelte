@@ -206,8 +206,15 @@
 
   <Section title={t("Window decoration")} description={t("Customize the window controls drawn by FastZap.")}>
     <SwitchRow
+      title={t("Show title bar")}
+      description={t("Turn off to hide the bar with the minimize, maximize and close buttons, as on tiling window managers.")}
+      checked={a.title_bar}
+      onchange={(title_bar) => set({ title_bar })}
+    />
+    <SwitchRow
       title={t("Use custom decoration")}
       description={t("Use window controls drawn by FastZap.")}
+      disabled={!a.title_bar}
       checked={a.csr}
       onchange={(csr) => set({ csr })}
     />

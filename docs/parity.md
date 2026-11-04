@@ -10,7 +10,7 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
 | CLI `--setSettings`, `--wayland`, `--hideStart` | `app/startup_options.py` | `app::cli` | mesmos nomes |
 | `SIGTERM` → saída normal | `app/unix_signal_bridge.py` | `app::lifecycle` | |
 | Geometria, fechar para bandeja, confirmação | `app/window_lifecycle.py` | `app::lifecycle` + `tauri-plugin-window-state` | `SIGINT` também encerra normalmente |
-| Barra de título própria (CSR) | `ui/components/client_side_window*` | `src/lib/components/TitleBar.svelte` | mesmas opções `csr_*`, aplicadas sem reiniciar; moldura opaca de 4 px em vez da margem translúcida com cantos arredondados |
+| Barra de título própria (CSR) | `ui/components/client_side_window*` | `src/lib/components/TitleBar.svelte` | mesmas opções `csr_*`, aplicadas sem reiniciar; moldura opaca de 4 px em vez da margem translúcida com cantos arredondados; novo `appearance.title_bar` ("Show title bar") esconde qualquer barra, nativa ou própria |
 | Contas, limite, ativação, avatar, UA, DND, zoom | `features/accounts` | `accounts` + página Contas | tipo de conta novo: Evolution Go |
 | Sidebar, grade, bloqueio, doação, atualização | `features/browser/shell` | `src/routes/+page.svelte` | |
 | Barra de menus e escala da interface | `ui/main_window`, `appearance.scale` | `MenuBar.svelte` (menus nativos) + zoom das webviews | |

@@ -119,6 +119,8 @@ pub struct AppearanceSettings {
     pub scale: u32,
     pub tray_icon: bool,
     pub notification_counter: bool,
+    /// Off: no title bar at all, native or drawn by FastZap (tiling WMs).
+    pub title_bar: bool,
     pub csr: bool,
     pub csr_button_theme: String,
     pub csr_show_minimize_button: bool,
@@ -140,6 +142,7 @@ impl Default for AppearanceSettings {
             scale: 100,
             tray_icon: true,
             notification_counter: true,
+            title_bar: true,
             csr: false,
             csr_button_theme: "default".into(),
             csr_show_minimize_button: true,

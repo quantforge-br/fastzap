@@ -176,6 +176,8 @@
   longer count as unread.
 - Evolution Go chat summaries carry the delivery status of our newest message
   and flag the chat with yourself; receipts refresh the chat list.
+- Appearance option "Show title bar" hides the window title bar, native or
+  custom.
 
 ### Fixed
 

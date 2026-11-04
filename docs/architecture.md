@@ -126,6 +126,10 @@ cobre as webviews `ui` e `panel`.
 
 ### Decorações do cliente (CSR)
 
+Com `appearance.title_bar` desligado não há barra de título: nem decoração
+nativa nem `TitleBar.svelte` (`window::native_decorations`), útil em
+gerenciadores de janela lado a lado.
+
 Com `appearance.csr`, a janela perde as decorações nativas
 (`set_decorations`) e a UI desenha `TitleBar.svelte`: arrasto e duplo clique
 via `data-tauri-drag-region`, botões com os temas do ZapZap (o tema vazio ou
