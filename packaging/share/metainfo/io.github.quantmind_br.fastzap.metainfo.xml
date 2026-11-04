@@ -5,6 +5,7 @@
 
   <name>FastZap</name>
   <summary>Multi-account WhatsApp desktop client</summary>
+  <summary xml:lang="pt_BR">Cliente de desktop do WhatsApp com várias contas</summary>
 
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
@@ -34,12 +35,24 @@
       isolated accounts, system tray, native notifications, keyboard
       shortcuts, spell checking and per-account customizations.
     </p>
+    <p xml:lang="pt_BR">
+      O FastZap mantém o WhatsApp Web numa janela própria, com até cinco
+      contas isoladas, bandeja do sistema, notificações nativas, atalhos de
+      teclado, verificação ortográfica e personalizações por conta.
+    </p>
     <p>
       Accounts can also use WhatsApp through your own Evolution Go server,
       with a native chat window instead of WhatsApp Web.
     </p>
+    <p xml:lang="pt_BR">
+      As contas também podem usar o WhatsApp pelo seu próprio servidor
+      Evolution Go, com uma janela de conversa nativa em vez do WhatsApp Web.
+    </p>
     <p>
       On first start, settings and accounts from ZapZap are imported.
+    </p>
+    <p xml:lang="pt_BR">
+      Na primeira execução, as configurações e contas do ZapZap são importadas.
     </p>
   </description>
 
@@ -61,6 +74,8 @@
     <content_attribute id="social-chat">intense</content_attribute>
     <content_attribute id="social-audio">intense</content_attribute>
     <content_attribute id="social-contacts">intense</content_attribute>
+    <content_attribute id="social-info">moderate</content_attribute>
+    <content_attribute id="social-location">intense</content_attribute>
   </content_rating>
 
   <releases>

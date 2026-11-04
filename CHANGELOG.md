@@ -360,3 +360,5 @@
 - The quality workflow pins third-party actions by SHA, bounds the packaging
   job, validates the rendered deb/rpm desktop template and lints the workflows
   with actionlint.
+- AppStream metadata gains Brazilian Portuguese summary and description and
+  declares the `social-info` and `social-location` content ratings.
