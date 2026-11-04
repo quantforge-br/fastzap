@@ -323,6 +323,8 @@
 - The snap workflow skips the Snap Store step when
   `SNAPCRAFT_STORE_CREDENTIALS` is not configured instead of failing the
   release.
+- `@types/node` is a direct dev dependency, so `pnpm check` resolves
+  `node:process` in `vite.config.js` on a clean install.
 
 ### Changed
 
