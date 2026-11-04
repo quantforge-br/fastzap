@@ -186,6 +186,10 @@ pub struct HistoryChat {
 pub struct History {
     pub chats: Vec<HistoryChat>,
     pub push_names: Vec<(String, String)>,
+    /// `(LID, phone JID)` pairs: the phone names a chat by either.
+    pub lid_map: Vec<(String, String)>,
+    /// Older messages asked for by the user; the unread counts are stale.
+    pub on_demand: bool,
     pub progress: Option<i64>,
 }
 
@@ -457,6 +461,17 @@ fn parse_live_message(data: &Value) -> Option<Change> {
     )
 }
 
+/// `HistorySync.syncType` of a sync the user asked for.
+const ON_DEMAND_SYNC: i64 = 6;
+
+pub fn is_lid(jid: &str) -> bool {
+    jid.len() > 4 && jid.ends_with("@lid")
+}
+
+pub fn is_phone(jid: &str) -> bool {
+    jid.len() > 15 && jid.ends_with("@s.whatsapp.net")
+}
+
 /// One `WebMessageInfo` of a HistorySync conversation.
 fn parse_web_message(chat: &str, item: &Value) -> Option<Change> {
     let info = item.get("message")?;
@@ -525,9 +540,35 @@ fn parse_history(data: &Value) -> History {
                 .collect()
         })
         .unwrap_or_default();
+    let mut lid_map: Vec<(String, String)> = sync
+        .get("phoneNumberToLidMappings")
+        .and_then(Value::as_array)
+        .map(|list| {
+            list.iter()
+                .map(|m| {
+                    (
+                        str_at(m, "lidJID").to_owned(),
+                        str_at(m, "pnJID").to_owned(),
+                    )
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    if let Some(list) = sync.get("conversations").and_then(Value::as_array) {
+        for conv in list {
+            let (lid, pn) = match str_at(conv, "ID") {
+                id if id.ends_with("@lid") => (id, str_at(conv, "pnJID")),
+                id => (str_at(conv, "lidJID"), id),
+            };
+            lid_map.push((lid.to_owned(), pn.to_owned()));
+        }
+    }
+    lid_map.retain(|(lid, pn)| is_lid(lid) && is_phone(pn));
     History {
         chats,
         push_names,
+        lid_map,
+        on_demand: int_at(sync, "syncType") == ON_DEMAND_SYNC,
         progress: sync.get("progress").and_then(Value::as_i64),
     }
 }
@@ -736,6 +777,32 @@ mod tests {
         assert_eq!(
             history.push_names,
             vec![("552@s.whatsapp.net".into(), "Bia".into())]
+        );
+    }
+
+    #[test]
+    fn history_sync_maps_lids_to_phone_numbers() {
+        let event = json!({"event": "HistorySync", "data": {"Data": {
+            "syncType": 6,
+            "phoneNumberToLidMappings": [
+                {"lidJID": "77@lid", "pnJID": "5511999990000@s.whatsapp.net"},
+                {"lidJID": "", "pnJID": "5511999990001@s.whatsapp.net"}],
+            "conversations": [
+                {"ID": "88@lid", "pnJID": "5511999990002@s.whatsapp.net", "messages": []},
+                {"ID": "5511999990003@s.whatsapp.net", "lidJID": "99@lid", "messages": []},
+                {"ID": "120@g.us", "messages": []}]
+        }}});
+        let Event::History(history) = parse(&event) else {
+            panic!()
+        };
+        assert!(history.on_demand);
+        assert_eq!(
+            history.lid_map,
+            vec![
+                ("77@lid".into(), "5511999990000@s.whatsapp.net".into()),
+                ("88@lid".into(), "5511999990002@s.whatsapp.net".into()),
+                ("99@lid".into(), "5511999990003@s.whatsapp.net".into()),
+            ]
         );
     }
 

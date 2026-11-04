@@ -12,7 +12,9 @@ use serde_json::{Value, json};
 use ts_rs::TS;
 
 use super::client::ArchivedChat;
-use super::model::{Change, Event, History, Message, MessageKind, QuoteRef, Receipt, Status};
+use super::model::{
+    Change, Event, History, Message, MessageKind, QuoteRef, Receipt, Status, is_lid, is_phone,
+};
 
 pub type StoreResult<T> = Result<T, rusqlite::Error>;
 
@@ -63,6 +65,12 @@ CREATE TABLE IF NOT EXISTS contacts (
     jid TEXT PRIMARY KEY,
     name TEXT NOT NULL DEFAULT '',
     push_name TEXT NOT NULL DEFAULT ''
+);
+-- The phone names a one-to-one chat by its LID or its phone JID; chats,
+-- senders and receipts are stored under the phone JID once it is known.
+CREATE TABLE IF NOT EXISTS lid_map (
+    lid TEXT PRIMARY KEY,
+    pn TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
@@ -202,7 +210,16 @@ impl ChatStore {
         if version == 1 {
             conn.execute_batch("ALTER TABLE chats ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")?;
         }
-        conn.pragma_update(None, "user_version", 2)?;
+        // Version 2 stores kept LID chats apart from their phone chats; the
+        // journal is read again to learn the mappings and merge them.
+        if (1..3).contains(&version) {
+            conn.execute(
+                "DELETE FROM meta WHERE key = ?
+                 AND EXISTS (SELECT 1 FROM chats WHERE jid LIKE '%@lid')",
+                [CURSOR],
+            )?;
+        }
+        conn.pragma_update(None, "user_version", 3)?;
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -242,7 +259,8 @@ impl ChatStore {
         let cleared = current.is_some_and(|c| c != value);
         if cleared {
             tx.execute_batch(
-                "DELETE FROM reactions; DELETE FROM messages; DELETE FROM chats; DELETE FROM contacts;",
+                "DELETE FROM reactions; DELETE FROM messages; DELETE FROM chats;
+                 DELETE FROM contacts; DELETE FROM lid_map;",
             )?;
             let mut stmt = tx.prepare("SELECT key FROM meta")?;
             let keys: Vec<String> = stmt
@@ -418,44 +436,41 @@ impl ChatStore {
         upsert_push_name(&self.conn.lock().unwrap(), jid, name)
     }
 
-    /// Replace the archived set. A LID chat is matched to its phone chat
-    /// when only that one is known here; archived chats without messages are
-    /// created so they can still be listed. Returns whether anything changed.
+    /// Replace the archived set. A LID chat with a known phone JID is
+    /// archived under it; archived chats without messages are created so
+    /// they can still be listed. Returns whether anything changed.
     pub fn set_archived(&self, chats: &[ArchivedChat]) -> StoreResult<bool> {
         let mut conn = self.conn.lock().unwrap();
         let tx = conn.transaction()?;
-        let known = |jid: &str| -> StoreResult<bool> {
-            tx.query_row(
-                "SELECT EXISTS (SELECT 1 FROM chats WHERE jid = ?)",
-                [jid],
-                |r| r.get(0),
-            )
-        };
+        let mut merged = false;
         let mut after = BTreeSet::new();
         for chat in chats {
-            let jid = match &chat.phone_jid {
-                Some(phone) if !known(&chat.jid)? && known(phone)? => phone,
-                _ => &chat.jid,
-            };
-            after.insert(jid.clone());
+            if let Some(phone) = &chat.phone_jid {
+                merged |= learn_lid(&tx, &chat.jid, phone)?;
+            }
+            after.insert(canonical(&tx, &chat.jid)?);
         }
         let before: BTreeSet<String> = tx
             .prepare("SELECT jid FROM chats WHERE archived = 1")?
             .query_map([], |r| r.get(0))?
             .collect::<StoreResult<_>>()?;
-        if before == after {
-            return Ok(false);
-        }
-        tx.execute("UPDATE chats SET archived = 0 WHERE archived = 1", [])?;
-        for jid in &after {
-            tx.execute(
-                "INSERT INTO chats (jid, archived) VALUES (?, 1)
-                 ON CONFLICT (jid) DO UPDATE SET archived = 1",
-                [jid],
-            )?;
+        if before != after {
+            tx.execute("UPDATE chats SET archived = 0 WHERE archived = 1", [])?;
+            for jid in &after {
+                tx.execute(
+                    "INSERT INTO chats (jid, archived) VALUES (?, 1)
+                     ON CONFLICT (jid) DO UPDATE SET archived = 1",
+                    [jid],
+                )?;
+            }
         }
         tx.commit()?;
-        Ok(true)
+        Ok(merged || before != after)
+    }
+
+    /// The phone JID of a known LID, else `jid` itself.
+    pub fn canonical(&self, jid: &str) -> StoreResult<String> {
+        canonical(&self.conn.lock().unwrap(), jid)
     }
 
     /// Group subjects only rename group chats.
@@ -615,41 +630,114 @@ impl ChatStore {
 }
 
 fn apply_history(conn: &Connection, history: &History, applied: &mut Applied) -> StoreResult<()> {
+    for (lid, pn) in &history.lid_map {
+        if learn_lid(conn, lid, pn)? {
+            applied.touch(pn);
+        }
+    }
     for chat in &history.chats {
+        let jid = canonical(conn, &chat.jid)?;
+        // An on-demand sync carries the counts of when those messages were new.
+        let unread = (!history.on_demand).then_some(chat.unread);
         conn.execute(
-            "INSERT INTO chats (jid, name, ts, unread) VALUES (?1, ?2, ?3, ?4)
+            "INSERT INTO chats (jid, name, ts, unread) VALUES (?1, ?2, ?3, COALESCE(?4, 0))
              ON CONFLICT (jid) DO UPDATE SET
                 name = CASE WHEN excluded.name <> '' THEN excluded.name ELSE chats.name END,
                 ts = MAX(chats.ts, excluded.ts),
-                unread = excluded.unread",
-            params![chat.jid, chat.name, chat.ts, chat.unread],
+                unread = COALESCE(?4, chats.unread)",
+            params![jid, chat.name, chat.ts, unread],
         )?;
         for change in &chat.messages {
             apply_change(conn, change, false, applied)?;
         }
-        applied.touch(&chat.jid);
+        applied.touch(&jid);
     }
     for (jid, name) in &history.push_names {
-        upsert_push_name(conn, jid, name)?;
+        upsert_push_name(conn, &canonical(conn, jid)?, name)?;
     }
     Ok(())
+}
+
+/// The phone JID of a known LID, else `jid` itself.
+fn canonical(conn: &Connection, jid: &str) -> StoreResult<String> {
+    if !is_lid(jid) {
+        return Ok(jid.to_owned());
+    }
+    Ok(conn
+        .query_row("SELECT pn FROM lid_map WHERE lid = ?", [jid], |r| r.get(0))
+        .optional()?
+        .unwrap_or_else(|| jid.to_owned()))
+}
+
+/// Record that `lid` and `pn` name the same contact and move whatever was
+/// stored under the LID to the phone JID. Returns whether anything changed.
+fn learn_lid(conn: &Connection, lid: &str, pn: &str) -> StoreResult<bool> {
+    if !is_lid(lid) || !is_phone(pn) {
+        return Ok(false);
+    }
+    let learned = conn.execute(
+        "INSERT INTO lid_map (lid, pn) VALUES (?1, ?2)
+         ON CONFLICT (lid) DO UPDATE SET pn = excluded.pn WHERE lid_map.pn <> excluded.pn",
+        params![lid, pn],
+    )? > 0;
+    if !learned {
+        return Ok(false);
+    }
+    // A message both chats hold keeps the phone chat's copy.
+    for sql in [
+        "UPDATE OR IGNORE messages SET chat = ?2 WHERE chat = ?1",
+        "UPDATE messages SET sender = ?2 WHERE sender = ?1",
+        "UPDATE OR IGNORE reactions SET chat = ?2 WHERE chat = ?1",
+        "UPDATE OR IGNORE reactions SET sender = ?2 WHERE sender = ?1",
+    ] {
+        conn.execute(sql, params![lid, pn])?;
+    }
+    for sql in [
+        "DELETE FROM messages WHERE chat = ?",
+        "DELETE FROM reactions WHERE chat = ?1 OR sender = ?1",
+    ] {
+        conn.execute(sql, [lid])?;
+    }
+    let merged = conn.execute(
+        "INSERT INTO chats (jid, name, ts, unread, archived)
+         SELECT ?2, name, ts, unread, archived FROM chats WHERE jid = ?1
+         ON CONFLICT (jid) DO UPDATE SET
+            name = CASE WHEN chats.name = '' THEN excluded.name ELSE chats.name END,
+            ts = MAX(chats.ts, excluded.ts),
+            unread = MAX(chats.unread, excluded.unread),
+            archived = MAX(chats.archived, excluded.archived)",
+        params![lid, pn],
+    )? > 0;
+    conn.execute("DELETE FROM chats WHERE jid = ?", [lid])?;
+    conn.execute(
+        "INSERT INTO contacts (jid, push_name)
+         SELECT ?2, push_name FROM contacts WHERE jid = ?1 AND push_name <> ''
+         ON CONFLICT (jid) DO UPDATE SET push_name =
+            CASE WHEN contacts.push_name = '' THEN excluded.push_name ELSE contacts.push_name END",
+        params![lid, pn],
+    )?;
+    if merged {
+        refresh_preview(conn, pn)?;
+    }
+    Ok(true)
 }
 
 /// The stored chat a receipt is about. One-to-one receipts may name the
 /// contact's LID while the messages are stored under the phone JID, so an
 /// unknown direct chat is found through the message IDs.
 fn receipt_chat(conn: &Connection, receipt: &Receipt) -> StoreResult<Option<String>> {
+    let chat = canonical(conn, &receipt.chat)?;
     for id in &receipt.ids {
         let known: bool = conn.query_row(
             "SELECT EXISTS (SELECT 1 FROM messages WHERE chat = ?1 AND id = ?2)",
-            params![receipt.chat, id],
+            params![chat, id],
             |r| r.get(0),
         )?;
         if known {
-            return Ok(Some(receipt.chat.clone()));
+            return Ok(Some(chat));
         }
     }
-    if is_group(&receipt.chat) {
+    if is_group(&chat) {
         return Ok(None);
     }
     for id in &receipt.ids {
@@ -798,13 +886,30 @@ fn refresh_preview(conn: &Connection, chat: &str) -> StoreResult<()> {
     Ok(())
 }
 
+/// `change` with its chat and sender under their phone JIDs.
+fn canonical_change(conn: &Connection, change: &Change) -> StoreResult<Change> {
+    let mut change = change.clone();
+    match &mut change {
+        Change::New(m) => {
+            m.chat = canonical(conn, &m.chat)?;
+            m.sender = canonical(conn, &m.sender)?;
+        }
+        Change::Reaction { chat, sender, .. } => {
+            *chat = canonical(conn, chat)?;
+            *sender = canonical(conn, sender)?;
+        }
+        Change::Edit { chat, .. } | Change::Revoke { chat, .. } => *chat = canonical(conn, chat)?,
+    }
+    Ok(change)
+}
+
 fn apply_change(
     conn: &Connection,
     change: &Change,
     live: bool,
     out: &mut Applied,
 ) -> StoreResult<()> {
-    match change {
+    match &canonical_change(conn, change)? {
         Change::New(m) => {
             let quote = m.quote.clone().unwrap_or_default();
             let inserted = conn.execute(
@@ -1237,7 +1342,7 @@ mod tests {
                 })],
             }],
             push_names: vec![("552@s.whatsapp.net".into(), "Bia".into())],
-            progress: None,
+            ..Default::default()
         };
         let applied = store.apply_history(&history).unwrap();
         assert!(applied.incoming.is_empty());
@@ -1246,5 +1351,113 @@ mod tests {
         let list = store.messages("120@g.us", None, 10).unwrap();
         assert_eq!(list[0].sender_name, "Bia");
         assert_eq!(store.display_name("5599@s.whatsapp.net").unwrap(), "+5599");
+    }
+
+    #[test]
+    fn a_learned_lid_merges_its_chat_into_the_phone_chat() {
+        const LID: &str = "77@lid";
+        let store = ChatStore::in_memory().unwrap();
+        let on_lid = |id: &str, ts: i64| {
+            Change::New(Message {
+                chat: LID.into(),
+                sender: LID.into(),
+                ..message(id, ts, false, "older")
+            })
+        };
+        store
+            .apply(&[Change::New(message("A", 30, false, "new"))], true, None)
+            .unwrap();
+        // Older messages loaded from the phone, named by the LID: a second chat.
+        store
+            .apply(&[on_lid("B", 10), on_lid("A", 30)], false, None)
+            .unwrap();
+        assert_eq!(store.chats().unwrap().len(), 2);
+
+        let history = History {
+            chats: vec![HistoryChat {
+                jid: LID.into(),
+                unread: 5,
+                ts: 10,
+                messages: vec![on_lid("C", 5)],
+                ..Default::default()
+            }],
+            lid_map: vec![(LID.into(), CHAT.into())],
+            on_demand: true,
+            ..Default::default()
+        };
+        let applied = store.apply_history(&history).unwrap();
+        assert_eq!(applied.chats, [CHAT]);
+        let chats = store.chats().unwrap();
+        assert_eq!(chats.len(), 1);
+        assert_eq!((chats[0].jid.as_str(), chats[0].unread), (CHAT, 1));
+        assert_eq!(chats[0].preview, "new");
+        let ids: Vec<_> = store
+            .messages(CHAT, None, 10)
+            .unwrap()
+            .into_iter()
+            .map(|m| (m.id, m.sender))
+            .collect();
+        let sender = String::from(CHAT);
+        assert_eq!(
+            ids,
+            [
+                ("C".into(), sender.clone()),
+                ("B".into(), sender.clone()),
+                ("A".into(), sender)
+            ]
+        );
+
+        // Later events naming the LID reach the phone chat.
+        store.apply(&[on_lid("D", 40)], true, None).unwrap();
+        assert_eq!(store.chats().unwrap().len(), 1);
+        assert_eq!(store.canonical(LID).unwrap(), CHAT);
+        assert_eq!(store.canonical("88@lid").unwrap(), "88@lid");
+    }
+
+    #[test]
+    fn archived_lids_teach_their_phone_jid() {
+        const LID: &str = "9@lid";
+        let store = ChatStore::in_memory().unwrap();
+        store
+            .apply(
+                &[Change::New(Message {
+                    chat: LID.into(),
+                    sender: LID.into(),
+                    ..message("A", 10, false, "oi")
+                })],
+                false,
+                None,
+            )
+            .unwrap();
+        let set = [ArchivedChat {
+            jid: LID.into(),
+            phone_jid: Some(CHAT.into()),
+        }];
+        assert!(store.set_archived(&set).unwrap());
+        let chats = store.chats().unwrap();
+        assert_eq!(chats.len(), 1);
+        assert!(chats[0].archived);
+        assert_eq!(chats[0].jid, CHAT);
+    }
+
+    #[test]
+    fn older_stores_with_lid_chats_read_the_journal_again() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("chats.db");
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(SCHEMA).unwrap();
+            conn.execute_batch(
+                "INSERT INTO meta (key, value) VALUES ('journal_cursor', '996');
+                 INSERT INTO chats (jid, ts) VALUES ('77@lid', 1);
+                 PRAGMA user_version = 2;",
+            )
+            .unwrap();
+        }
+        let store = ChatStore::open(&path).unwrap();
+        assert_eq!(store.cursor().unwrap(), "");
+        store.set_meta(CURSOR, "997").unwrap();
+        drop(store);
+        assert_eq!(ChatStore::open(&path).unwrap().cursor().unwrap(), "997");
     }
 }

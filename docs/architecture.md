@@ -365,9 +365,15 @@ atualizar os ticks.
   quando ela muda, chats, mensagens, cursor e o cache de mídia são
   descartados. Mídia baixada fica em `<data>/evolution/<id>/media/`.
   `chats.archived` (schema 2) espelha `GET /chat/settings`, lido a cada
-  conexão do socket e a cada 5 min; um chat LID arquivado vira o chat do
-  número quando só esse existe localmente. Chats arquivados ficam na pasta
+  conexão do socket e a cada 5 min. Chats arquivados ficam na pasta
   "Arquivadas", mesmo sem mensagens, e não entram no contador de não lidas.
+  `lid_map` (schema 3) guarda pares LID → número aprendidos de
+  `phoneNumberToLidMappings` e `pnJID`/`lidJID` do HistorySync e do
+  `phoneJid` de `/chat/settings`; chats, remetentes, recibos e "digitando"
+  que citam um LID conhecido são gravados sob o número, e aprender um par
+  funde no chat do número o que estava sob o LID. Um HistorySync sob demanda
+  (`syncType` 6) não sobrescreve não lidas. Ao migrar do schema 2 com chats
+  LID, o cursor do journal é apagado para reler o journal e fundir os pares.
 - `evolution` (sessão): `sync` inicia/para sessões conforme as contas
   habilitadas, serializado por um lock de ciclo de vida; parar a sessão
   cancela o trabalho em andamento. Cada sessão confere a instância pela listagem admin e só chama

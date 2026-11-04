@@ -657,7 +657,7 @@ fn handle(app: &AppHandle, session: &Session, payload: &serde_json::Value, live:
             app,
             UiEvent::Typing {
                 account_id,
-                chat,
+                chat: session.store.canonical(&chat).unwrap_or(chat),
                 sender,
                 state,
             },

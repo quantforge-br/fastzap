@@ -358,6 +358,11 @@
   retried.
 - Window decorations follow the appearance settings instead of being restored
   from the last session.
+- Evolution Go: a chat the phone names by its LID (older messages loaded from
+  the phone, archived chats) merges into the phone-number chat instead of
+  showing as a second contact; stores with LID chats read the server journal
+  again once to merge them, and on-demand history no longer resets unread
+  counts.
 
 ### Changed
 

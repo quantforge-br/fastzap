@@ -106,7 +106,9 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
   próprias mensagens podem ser apagadas ou editadas; envios de mídia que
   falham não têm "enviar de novo"; mídia antiga que expirou no CDN do
   WhatsApp não é recuperável (o servidor não tem *media retry*). Histórico antigo depende do sync inicial
-  do pareamento ou de um pedido ao telefone ("carregar mensagens antigas").
+  do pareamento ou de um pedido ao telefone ("carregar mensagens antigas");
+  o sync inicial só chega uma vez, e uma conversa sem atividade desde então
+  só aparece depois de pareamento novo da instância.
   Sem `PRIVATE_CHAT_HISTORY` no servidor, eventos perdidos com o WebSocket
   fora não voltam. A grade (`Ctrl+G`), o zoom, customizações, corretor e o
   seletor de contas integrado valem só para contas WhatsApp Web; "enviar
