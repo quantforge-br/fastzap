@@ -84,7 +84,7 @@ export function previewText(view: ReportView): string {
   lines.push(
     "",
     t("Report destination"),
-    t("Official FastZap repository on GitHub: quantmind-br/fastzap"),
+    t("Official FastZap repository on GitHub: quantforge-br/fastzap"),
     t("FastZap will copy the report to the clipboard and open GitHub. Paste it into the issue description before publishing. A GitHub account is required."),
     "",
     t("Privacy"),

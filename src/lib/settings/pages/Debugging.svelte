@@ -81,7 +81,7 @@
           "Never sent: messages, contacts, phone numbers, cookies, WhatsApp session data, conversation content, passwords, or authentication tokens.",
         )}<br /><br />
         {t(
-          "FastZap does not send reports. After review, it copies the report and opens the official GitHub repository quantmind-br/fastzap. You need a GitHub account to publish the public issue.",
+          "FastZap does not send reports. After review, it copies the report and opens the official GitHub repository quantforge-br/fastzap. You need a GitHub account to publish the public issue.",
         )}
       </p>
     {/if}

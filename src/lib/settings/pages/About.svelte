@@ -9,7 +9,7 @@
 
   import Page from "../Page.svelte";
 
-  const REPOSITORY = "https://github.com/quantmind-br/fastzap";
+  const REPOSITORY = "https://github.com/quantforge-br/fastzap";
   let info = $state<AppInfo | null>(null);
   let update = $state<UpdateInfo | null>(null);
   let showDetails = $state(false);

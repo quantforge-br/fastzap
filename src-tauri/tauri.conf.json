@@ -34,7 +34,7 @@
     "copyright": "Copyright © 2026 quantmind-br. GPL-3.0-or-later.",
     "license": "GPL-3.0-or-later",
     "licenseFile": "../LICENSE",
-    "homepage": "https://github.com/quantmind-br/fastzap",
+    "homepage": "https://github.com/quantforge-br/fastzap",
     "category": "SocialNetworking",
     "shortDescription": "Multi-account WhatsApp desktop client",
     "longDescription": "FastZap hosts WhatsApp Web in isolated accounts with tray, notifications and shortcuts, and can also use WhatsApp through your own Evolution Go server with a native chat window.",

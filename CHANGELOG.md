@@ -312,7 +312,7 @@
   version from the `[package]` table only, and `--check` also compares the
   newest AppStream release.
 - `build-info.sh` marks a build `Official` only on GitHub Actions runs of
-  `quantmind-br/fastzap`; forks and local runs record channel `Unknown`.
+  `quantforge-br/fastzap`; forks and local runs record channel `Unknown`.
 - The deb/rpm desktop entry sets `StartupWMClass=fastzap` directly instead of
   reusing the bundler's `Exec` value.
 - `Release Deploy` runs on `released`, so promoting a pre-release also builds
@@ -365,3 +365,7 @@
   with actionlint.
 - AppStream metadata gains Brazilian Portuguese summary and description and
   declares the `social-info` and `social-location` content ratings.
+- The official repository is `quantforge-br/fastzap` (update check, problem
+  reports, About page, AppStream URLs, bundle homepage and `build-info.sh`);
+  GitHub Actions is disabled on the `quantmind-br` account. The app ID
+  `io.github.quantmind_br.fastzap` is unchanged.

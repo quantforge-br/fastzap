@@ -14,9 +14,9 @@
     <name>quantmind-br</name>
   </developer>
 
-  <url type="homepage">https://github.com/quantmind-br/fastzap</url>
-  <url type="bugtracker">https://github.com/quantmind-br/fastzap/issues</url>
-  <url type="vcs-browser">https://github.com/quantmind-br/fastzap</url>
+  <url type="homepage">https://github.com/quantforge-br/fastzap</url>
+  <url type="bugtracker">https://github.com/quantforge-br/fastzap/issues</url>
+  <url type="vcs-browser">https://github.com/quantforge-br/fastzap</url>
 
   <branding>
     <color type="primary" scheme_preference="light">#EAF4C8</color>

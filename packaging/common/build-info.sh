@@ -10,7 +10,7 @@ set -euo pipefail
 
 PACKAGING="${1:?usage: build-info.sh <DEB|RPM|AppImage|Flatpak|Snap|macOS|Windows x86_64|Windows arm64>}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OFFICIAL_REPOSITORY="quantmind-br/fastzap"
+OFFICIAL_REPOSITORY="quantforge-br/fastzap"
 REPOSITORY="${GITHUB_REPOSITORY:-unknown}"
 
 {

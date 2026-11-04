@@ -22,7 +22,7 @@ pub const REPOSITORY: &str = match option_env!("FASTZAP_BUILD_REPOSITORY") {
 };
 
 /// Official repository, used for releases and problem reports.
-pub const OFFICIAL_REPOSITORY: &str = "quantmind-br/fastzap";
+pub const OFFICIAL_REPOSITORY: &str = "quantforge-br/fastzap";
 
 #[derive(Debug, Clone, Serialize, TS)]
 #[ts(export)]

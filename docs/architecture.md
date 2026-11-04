@@ -245,7 +245,7 @@ revisão do usuário.
 - `document`: relatório manual (`manual_problem`), pânico
   (`automatic_crash`) e sessão anterior não encerrada
   (`unexpected_shutdown`); Markdown em inglês e URL
-  `github.com/quantmind-br/fastzap/issues/new?title=…` (só o título).
+  `github.com/quantforge-br/fastzap/issues/new?title=…` (só o título).
 - `store`: `<data>/reports/<id>.json`, no máximo 20 e 30 dias; status
   `pending`, `pending_review`, `copied`, `opened_on_github`.
 - `session`: `.session-active` com fases `startup`/`running`/`shutdown`
@@ -259,13 +259,13 @@ revisão do usuário.
 
 ## Verificação de atualizações
 
-`update` consulta `releases/latest` de `quantmind-br/fastzap` uma vez por
+`update` consulta `releases/latest` de `quantforge-br/fastzap` uma vez por
 processo (timeout de 5 s, falhas silenciosas) e só quando `build_info` indica
 build oficial do GitHub Actions do repositório oficial empacotado como DEB,
 macOS ou Windows exe; Flatpak, AppImage, RPM, Snap e builds locais nunca
 consultam. Rascunhos e pré-lançamentos são ignorados, versões são comparadas
 numericamente e o link de notas só é aceito sob
-`github.com/quantmind-br/fastzap/releases/`. O resultado fica em
+`github.com/quantforge-br/fastzap/releases/`. O resultado fica em
 `UpdateState` (`update_info`) e no evento `update://available`; a UI mostra
 o botão ⬆ na barra lateral, que abre um diálogo (um popover ficaria sob os
 webviews das contas), e uma linha na página Sobre.
