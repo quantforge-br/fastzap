@@ -69,11 +69,11 @@ parts:
         export FASTZAP_BUILD_PACKAGING=Snap
       fi
       rustup default stable
-      export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-      # tauri.conf.json's beforeBuildCommand calls pnpm by name.
-      mkdir -p "$CRAFT_PART_BUILD/.pnpm"
-      corepack enable --install-directory "$CRAFT_PART_BUILD/.pnpm" pnpm
-      export PATH="$CRAFT_PART_BUILD/.pnpm:$PATH"
+      # tauri.conf.json's beforeBuildCommand calls pnpm by name. The node
+      # snap ships no corepack, so install the packageManager version.
+      PNPM="$(node -p "require('./package.json').packageManager")"
+      npm install --global --prefix "$CRAFT_PART_BUILD/.pnpm" "$PNPM"
+      export PATH="$CRAFT_PART_BUILD/.pnpm/bin:$PATH"
       pnpm install --frozen-lockfile
       pnpm tauri build --no-bundle
       craftctl set version="$(packaging/common/version.sh)"

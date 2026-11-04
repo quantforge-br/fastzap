@@ -327,6 +327,8 @@
   `node:process` in `vite.config.js` on a clean install.
 - The snap build unsets the gnome extension's `LD_LIBRARY_PATH`, which made
   the rustup snap crash on the SDK's glibc.
+- The snap build installs the `packageManager` pnpm with npm, because the node
+  snap ships no corepack.
 
 ### Changed
 
