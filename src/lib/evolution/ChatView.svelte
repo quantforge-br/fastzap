@@ -225,6 +225,8 @@
   .chat {
     display: grid;
     grid-template-columns: minmax(260px, 340px) 1fr;
+    /* An auto row would grow with the messages and push the composer out. */
+    grid-template-rows: minmax(0, 1fr);
     height: 100%;
     min-height: 0;
   }

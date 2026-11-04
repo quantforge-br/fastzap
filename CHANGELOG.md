@@ -337,6 +337,8 @@
   release.
 - Register the dialog plugin; opening a file or folder picker (downloads,
   avatars, customizations, attachments, dictionaries) aborted the app.
+- Evolution Go conversations no longer grow past the window after older
+  messages load, which hid the composer and blocked scrolling.
 
 ### Changed
 

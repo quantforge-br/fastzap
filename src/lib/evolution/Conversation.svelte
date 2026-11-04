@@ -393,6 +393,7 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0;
     height: 100%;
   }
   header {
@@ -409,6 +410,7 @@
   }
   .messages {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 12px 16px;
     background: var(--sidebar-bg);
