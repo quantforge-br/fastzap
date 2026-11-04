@@ -305,6 +305,9 @@
 - `.gitignore` anchors the snap package pattern to the repo root so Vitest
   snapshot files stay tracked, and ignores the `parts/`, `stage/` and `prime/`
   directories left by local snap builds.
+- Shell scripts keep LF line endings through `.gitattributes`, so the Windows
+  build runners can run `build-info.sh` and `version.sh` after a CRLF
+  checkout.
 
 ### Changed
 
