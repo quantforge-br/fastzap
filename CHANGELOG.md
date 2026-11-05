@@ -183,6 +183,11 @@
   and flag the chat with yourself; receipts refresh the chat list.
 - Appearance option "Show title bar" hides the window title bar, native or
   custom.
+- Upgrade tests open Evolution Go stores built from the schemas released in
+  0.1.0-rc.1 (version 1) and 0.1.0-rc.2/rc.3 (version 2), copied verbatim
+  from each tag.
+- Tests check that the account page and local shortcut maps agree and that
+  every account page shortcut is an action pages may trigger.
 
 ### Fixed
 
@@ -462,6 +467,12 @@
   ts-rs writes when cargo runs from the repository root) and testing.
 - Evolution Go chat list reads the status of our newest messages in one
   indexed query.
+- The quality workflow regenerates the translation catalogs and, on Linux,
+  the IPC bindings and command permissions, and fails when they differ from
+  the committed files; clippy and tests run with `--locked`, tests from
+  `src-tauri/`.
+- `make install` touches `src-tauri/build.rs`, so the build script reruns
+  from this checkout even when another checkout shared its target directory.
 
 ### Removed
 
@@ -470,3 +481,6 @@
   `notifications.donation_message_hidden` setting.
 - ZapZap mentions in the About credits, the AppStream metainfo and the
   console messages of the injected WhatsApp Web scripts.
+- The duplicate ts-rs bindings in `src-tauri/bindings/`, now ignored.
+- The internal `lock` action and the page's `lockApp` helper, which nothing
+  triggered.

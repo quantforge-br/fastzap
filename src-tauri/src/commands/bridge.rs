@@ -113,6 +113,40 @@ mod tests {
         assert!(!remote_action_allowed("toggle_mute"));
         assert!(!remote_action_allowed("report_problem"));
     }
+
+    #[test]
+    fn page_shortcuts_only_send_allowed_actions() {
+        // Windows checkouts may convert the script to CRLF line endings.
+        let source = include_str!("../webview/scripts/bridge.js").replace("\r\n", "\n");
+        let start = source
+            .find("const shortcutFor = (event) => {")
+            .expect("shortcutFor in bridge.js");
+        let block = &source[start..];
+        let block = &block[..block.find("\n  };\n").expect("end of shortcutFor")];
+        let actions: Vec<String> = block
+            .split("return \"")
+            .skip(1)
+            .filter_map(|rest| {
+                let (literal, after) = rest.split_once('"')?;
+                // `return "account_" + key` builds account_1 … account_9.
+                Some(if after.starts_with(" + key") {
+                    format!("{literal}1")
+                } else {
+                    literal.to_owned()
+                })
+            })
+            .collect();
+        assert!(
+            actions.iter().any(|a| a == "reload"),
+            "no actions found in shortcutFor"
+        );
+        for action in &actions {
+            assert!(
+                remote_action_allowed(action) || action == "paste_plain_text",
+                "{action} is not in REMOTE_ACTIONS"
+            );
+        }
+    }
 }
 
 pub const SELECT_ACCOUNT_MENU_PREFIX: &str = "select-account:";

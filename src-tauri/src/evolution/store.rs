@@ -1149,6 +1149,136 @@ mod tests {
 
     const CHAT: &str = "5511@s.whatsapp.net";
 
+    /// `SCHEMA` as released in 0.1.0-rc.1 (`user_version` 1), copied verbatim.
+    const RELEASED_V1_SCHEMA: &str = r#"
+CREATE TABLE IF NOT EXISTS chats (
+    jid TEXT PRIMARY KEY,
+    name TEXT NOT NULL DEFAULT '',
+    ts INTEGER NOT NULL DEFAULT 0,
+    unread INTEGER NOT NULL DEFAULT 0,
+    preview TEXT NOT NULL DEFAULT '',
+    preview_kind TEXT NOT NULL DEFAULT 'text',
+    preview_from_me INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS messages (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat TEXT NOT NULL,
+    id TEXT NOT NULL,
+    sender TEXT NOT NULL DEFAULT '',
+    from_me INTEGER NOT NULL DEFAULT 0,
+    ts INTEGER NOT NULL DEFAULT 0,
+    kind TEXT NOT NULL,
+    body TEXT NOT NULL DEFAULT '',
+    file_name TEXT NOT NULL DEFAULT '',
+    mime TEXT NOT NULL DEFAULT '',
+    push_name TEXT NOT NULL DEFAULT '',
+    quote_id TEXT NOT NULL DEFAULT '',
+    quote_participant TEXT NOT NULL DEFAULT '',
+    quote_text TEXT NOT NULL DEFAULT '',
+    status INTEGER NOT NULL DEFAULT 3,
+    edited INTEGER NOT NULL DEFAULT 0,
+    revoked INTEGER NOT NULL DEFAULT 0,
+    raw TEXT NOT NULL DEFAULT 'null',
+    media_file TEXT NOT NULL DEFAULT '',
+    UNIQUE (chat, id)
+);
+CREATE INDEX IF NOT EXISTS messages_by_time ON messages (chat, ts, seq);
+CREATE TABLE IF NOT EXISTS reactions (
+    chat TEXT NOT NULL,
+    target TEXT NOT NULL,
+    sender TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    PRIMARY KEY (chat, target, sender)
+);
+CREATE TABLE IF NOT EXISTS contacts (
+    jid TEXT PRIMARY KEY,
+    name TEXT NOT NULL DEFAULT '',
+    push_name TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS meta (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+"#;
+
+    /// `SCHEMA` as released in 0.1.0-rc.2 and 0.1.0-rc.3 (`user_version` 2).
+    const RELEASED_V2_SCHEMA: &str = r#"
+CREATE TABLE IF NOT EXISTS chats (
+    jid TEXT PRIMARY KEY,
+    name TEXT NOT NULL DEFAULT '',
+    ts INTEGER NOT NULL DEFAULT 0,
+    unread INTEGER NOT NULL DEFAULT 0,
+    preview TEXT NOT NULL DEFAULT '',
+    preview_kind TEXT NOT NULL DEFAULT 'text',
+    preview_from_me INTEGER NOT NULL DEFAULT 0,
+    archived INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS messages (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat TEXT NOT NULL,
+    id TEXT NOT NULL,
+    sender TEXT NOT NULL DEFAULT '',
+    from_me INTEGER NOT NULL DEFAULT 0,
+    ts INTEGER NOT NULL DEFAULT 0,
+    kind TEXT NOT NULL,
+    body TEXT NOT NULL DEFAULT '',
+    file_name TEXT NOT NULL DEFAULT '',
+    mime TEXT NOT NULL DEFAULT '',
+    push_name TEXT NOT NULL DEFAULT '',
+    quote_id TEXT NOT NULL DEFAULT '',
+    quote_participant TEXT NOT NULL DEFAULT '',
+    quote_text TEXT NOT NULL DEFAULT '',
+    status INTEGER NOT NULL DEFAULT 3,
+    edited INTEGER NOT NULL DEFAULT 0,
+    revoked INTEGER NOT NULL DEFAULT 0,
+    raw TEXT NOT NULL DEFAULT 'null',
+    media_file TEXT NOT NULL DEFAULT '',
+    UNIQUE (chat, id)
+);
+CREATE INDEX IF NOT EXISTS messages_by_time ON messages (chat, ts, seq);
+CREATE TABLE IF NOT EXISTS reactions (
+    chat TEXT NOT NULL,
+    target TEXT NOT NULL,
+    sender TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    PRIMARY KEY (chat, target, sender)
+);
+CREATE TABLE IF NOT EXISTS contacts (
+    jid TEXT PRIMARY KEY,
+    name TEXT NOT NULL DEFAULT '',
+    push_name TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS meta (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+"#;
+
+    /// Store reply `R` in `CHAT`, quoting the document `a.pdf` the way the
+    /// columns of every schema before `quote_kind` kept it.
+    fn insert_quoted_document_reply(conn: &Connection) {
+        let raw = json!({"extendedTextMessage": {"text": "yes", "contextInfo": {
+            "stanzaID": "Q", "participant": CHAT,
+            "quotedMessage": {"documentMessage": {"fileName": "a.pdf"}}}}});
+        conn.execute(
+            "INSERT INTO messages (chat, id, kind, body, quote_id, quote_participant, raw)
+             VALUES (?1, 'R', 'text', 'yes', 'Q', ?1, ?2)",
+            params![CHAT, raw.to_string()],
+        )
+        .unwrap();
+    }
+
+    fn assert_quotes_document(store: &ChatStore) {
+        let quote = store.messages(CHAT, None, 10).unwrap()[0]
+            .quote
+            .clone()
+            .unwrap();
+        assert_eq!(
+            (quote.kind, quote.text.as_str()),
+            (MessageKind::Document, "a.pdf")
+        );
+    }
+
     fn message(id: &str, ts: i64, from_me: bool, body: &str) -> Message {
         Message {
             id: id.into(),
@@ -1603,12 +1733,47 @@ mod tests {
     }
 
     #[test]
+    fn version_1_stores_open_and_keep_their_chats() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("chats.db");
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(RELEASED_V1_SCHEMA).unwrap();
+            conn.execute(
+                "INSERT INTO chats (jid, ts) VALUES (?1, 5), ('77@lid', 1)",
+                [CHAT],
+            )
+            .unwrap();
+            insert_quoted_document_reply(&conn);
+            conn.execute_batch(
+                "INSERT INTO meta (key, value) VALUES ('journal_cursor', '996');
+                 PRAGMA user_version = 1;",
+            )
+            .unwrap();
+        }
+        let store = ChatStore::open(&path).unwrap();
+        let chats = store.chats().unwrap();
+        let chat = chats.iter().find(|c| c.jid == CHAT).expect("chat kept");
+        assert!(!chat.archived);
+        assert_quotes_document(&store);
+        assert_eq!(store.cursor().unwrap(), "");
+        let version: i64 = store
+            .conn
+            .lock()
+            .unwrap()
+            .pragma_query_value(None, "user_version", |r| r.get(0))
+            .unwrap();
+        assert_eq!(version, 4);
+    }
+
+    #[test]
     fn older_stores_with_lid_chats_read_the_journal_again() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("chats.db");
         {
             let conn = Connection::open(&path).unwrap();
-            conn.execute_batch(SCHEMA).unwrap();
+            conn.execute_batch(RELEASED_V2_SCHEMA).unwrap();
+            insert_quoted_document_reply(&conn);
             conn.execute_batch(
                 "INSERT INTO meta (key, value) VALUES ('journal_cursor', '996');
                  INSERT INTO chats (jid, ts) VALUES ('77@lid', 1);
@@ -1618,6 +1783,7 @@ mod tests {
         }
         let store = ChatStore::open(&path).unwrap();
         assert_eq!(store.cursor().unwrap(), "");
+        assert_quotes_document(&store);
         store.set_meta(CURSOR, "997").unwrap();
         drop(store);
         assert_eq!(ChatStore::open(&path).unwrap().cursor().unwrap(), "997");
@@ -1697,25 +1863,10 @@ mod tests {
             let conn = Connection::open(&path).unwrap();
             conn.execute_batch(&SCHEMA.replace("quote_kind TEXT NOT NULL DEFAULT 'text',", ""))
                 .unwrap();
-            let raw = json!({"extendedTextMessage": {"text": "yes", "contextInfo": {
-                "stanzaID": "Q", "participant": CHAT,
-                "quotedMessage": {"documentMessage": {"fileName": "a.pdf"}}}}});
-            conn.execute(
-                "INSERT INTO messages (chat, id, kind, body, quote_id, quote_participant, raw)
-                 VALUES (?1, 'R', 'text', 'yes', 'Q', ?1, ?2)",
-                params![CHAT, raw.to_string()],
-            )
-            .unwrap();
+            insert_quoted_document_reply(&conn);
             conn.pragma_update(None, "user_version", 3).unwrap();
         }
         let store = ChatStore::open(&path).unwrap();
-        let quote = store.messages(CHAT, None, 10).unwrap()[0]
-            .quote
-            .clone()
-            .unwrap();
-        assert_eq!(
-            (quote.kind, quote.text.as_str()),
-            (MessageKind::Document, "a.pdf")
-        );
+        assert_quotes_document(&store);
     }
 }
