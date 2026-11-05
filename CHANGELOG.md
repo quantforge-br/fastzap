@@ -482,3 +482,5 @@
 - ZapZap mentions in the About credits, the AppStream metainfo and the
   console messages of the injected WhatsApp Web scripts.
 - The duplicate ts-rs bindings in `src-tauri/bindings/`, now ignored.
+- The internal `lock` action and the page's `lockApp` helper, which nothing
+  triggered.

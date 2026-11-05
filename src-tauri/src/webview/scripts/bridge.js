@@ -363,7 +363,6 @@
     readProfilePhoto,
     closeConversation: () => dispatchKey({ key: "Escape" }),
     newChat: () => dispatchKey({ key: "n", code: "KeyN", ctrlKey: true, altKey: true }),
-    lockApp: () => dispatchKey({ key: "l", code: "KeyL", ctrlKey: true, altKey: true }),
     notificationClicked(id) {
       const notification = notifications.get(id);
       if (!notification) return;

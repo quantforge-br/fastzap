@@ -114,11 +114,6 @@ pub fn dispatch_for<R: Runtime>(app: &AppHandle<R>, action: &str, account: Optio
             target,
             "window.__FASTZAP__ && window.__FASTZAP__.closeConversation();",
         ),
-        "lock" => eval_on(
-            app,
-            target,
-            "window.__FASTZAP__ && window.__FASTZAP__.lockApp();",
-        ),
         "paste_plain_text" => {
             if let Some(id) = target {
                 paste_plain_text(app, id);
