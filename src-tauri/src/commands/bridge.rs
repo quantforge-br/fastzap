@@ -116,7 +116,8 @@ mod tests {
 
     #[test]
     fn page_shortcuts_only_send_allowed_actions() {
-        let source = include_str!("../webview/scripts/bridge.js");
+        // Windows checkouts may convert the script to CRLF line endings.
+        let source = include_str!("../webview/scripts/bridge.js").replace("\r\n", "\n");
         let start = source
             .find("const shortcutFor = (event) => {")
             .expect("shortcutFor in bridge.js");

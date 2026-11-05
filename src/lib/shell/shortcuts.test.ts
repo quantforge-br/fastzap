@@ -14,7 +14,9 @@ const key = (k: string, mods: Partial<Record<"ctrlKey" | "metaKey" | "altKey" | 
 
 /** `shortcutFor` of the script injected into the account pages. */
 function pageShortcutFor(): (event: KeyLike) => string | null {
-  const source = readFileSync(new URL("../../../src-tauri/src/webview/scripts/bridge.js", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../../src-tauri/src/webview/scripts/bridge.js", import.meta.url), "utf8")
+    // Windows checkouts may convert the script to CRLF line endings.
+    .replaceAll("\r\n", "\n");
   const start = source.indexOf("const shortcutFor = (event) => {");
   const end = source.indexOf("\n  };\n", start);
   if (start < 0 || end < 0) throw new Error("shortcutFor not found in bridge.js");
