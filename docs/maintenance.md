@@ -64,6 +64,9 @@ O artefato fica em `src-tauri/target/local-install/`, e o binário permanece
 gerenciado pelo pacman em `/usr/bin/fastzap`. O canal é local/não oficial.
 O nome do pacote é o mesmo do dsr-aur: a transação substitui essa instalação,
 inclusive `/usr/bin/fastzap`, ícones e lançador, sem instalar uma segunda cópia.
+O instalador toca `src-tauri/build.rs` antes do build, então cada
+`make install` recompila a crate `fastzap` e reexecuta o build script desta
+checkout, mesmo que outra worktree tenha usado o mesmo `src-tauri/target`.
 
 Contas, histórico, preferências e keyring não são alterados pelo instalador.
 Ele não fecha nem abre o app: se estiver rodando, use Sair e abra novamente

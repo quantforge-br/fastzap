@@ -462,6 +462,12 @@
   ts-rs writes when cargo runs from the repository root) and testing.
 - Evolution Go chat list reads the status of our newest messages in one
   indexed query.
+- The quality workflow regenerates the translation catalogs and, on Linux,
+  the IPC bindings and command permissions, and fails when they differ from
+  the committed files; clippy and tests run with `--locked`, tests from
+  `src-tauri/`.
+- `make install` touches `src-tauri/build.rs`, so the build script reruns
+  from this checkout even when another checkout shared its target directory.
 
 ### Removed
 
@@ -470,3 +476,4 @@
   `notifications.donation_message_hidden` setting.
 - ZapZap mentions in the About credits, the AppStream metainfo and the
   console messages of the injected WhatsApp Web scripts.
+- The duplicate ts-rs bindings in `src-tauri/bindings/`, now ignored.

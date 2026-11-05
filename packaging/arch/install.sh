@@ -42,6 +42,10 @@ export FASTZAP_BUILD_PACKAGING=Arch
 
 printf 'Building %s from the current working tree (including uncommitted changes).\n' "$FASTZAP_LOCAL_VERSION"
 pnpm install --frozen-lockfile
+# Another checkout that shared this target directory may have compiled the
+# build script, with its own command lists and catalog path. A newer
+# build.rs makes Cargo rebuild and rerun it from this checkout.
+touch src-tauri/build.rs
 pnpm tauri build --bundles deb -- --frozen
 
 # Select the exact native artifact, never an arbitrary older DEB in bundle/deb.
