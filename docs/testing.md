@@ -41,7 +41,10 @@ cobre:
   recibos que só avançam, falha tardia que não rebaixa mensagem confirmada,
   página do journal aplicada em ordem com o cursor, contagem de mensagens
   que só o journal trouxe, troca de origem que
-  limpa o banco, páginas, âncora do history-sync, nomes). O prazo de 65 s
+  limpa o banco, páginas, âncora do history-sync, nomes; abertura de stores
+  publicados (`0.1.0-rc.1` v1, `rc.2`/`rc.3` v2) a partir do DDL copiado de
+  cada tag). Toda versão publicada com `user_version` novo ganha uma fixture
+  com o DDL da tag. O prazo de 65 s
   sem frames do WebSocket e a leitura periódica do journal na sessão não têm
   teste automatizado.
 - **customizations**, **downloads**, **reporting**: regras puras de arquivos,

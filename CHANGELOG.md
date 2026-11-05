@@ -183,6 +183,9 @@
   and flag the chat with yourself; receipts refresh the chat list.
 - Appearance option "Show title bar" hides the window title bar, native or
   custom.
+- Upgrade tests open Evolution Go stores built from the schemas released in
+  0.1.0-rc.1 (version 1) and 0.1.0-rc.2/rc.3 (version 2), copied verbatim
+  from each tag.
 
 ### Fixed
 
