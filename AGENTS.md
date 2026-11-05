@@ -198,9 +198,13 @@ packaging/common/version.sh --check  # versões + <release> do metainfo
   entrada nos `.po`.
 - `patchSettings` aceita `unknown` e o backend ignora chaves desconhecidas:
   chave digitada errada é no-op silencioso. Confira o campo Rust.
-- Atalhos vivem em vários lugares que precisam ficar em sincronia:
-  `webview/scripts/bridge.js` (`shortcutFor`) e `src/lib/shell/shortcuts.ts`
-  (mapas idênticos), aceleradores de `MenuBar.svelte`,
+- Atalhos vivem em vários lugares. `shortcutFor` de
+  `webview/scripts/bridge.js` e `src/lib/shell/shortcuts.ts` são mapas
+  idênticos, comparados por `src/lib/shell/shortcuts.test.ts`; um teste de
+  `commands/bridge.rs` exige que toda ação de `shortcutFor` em `bridge.js`
+  esteja em `REMOTE_ACTIONS`. Exceções: `Ctrl+Shift+V` (`paste_plain_text`)
+  só existe na página, e o filtro `e.repeat` só em `+page.svelte`. Ainda
+  sincronizados à mão: aceleradores de `MenuBar.svelte`,
   `shortcuts/ShortcutsDialog.svelte` e `app/actions.rs::dispatch_for`.
 
 ## Important Files
@@ -280,6 +284,7 @@ packaging/common/version.sh --check  # versões + <release> do metainfo
   foco, tray, notificações e compositor exigem `pnpm tauri dev` com duas
   contas WhatsApp Web, deep link `xdg-open "whatsapp://send?phone=..."`,
   downloads, tema e grade. Sem teste automatizado: watchdog de 65 s do
-  WebSocket, scripts injetados em `webview/scripts/`.
+  WebSocket, scripts injetados em `webview/scripts/` (só o mapa
+  `shortcutFor` de `bridge.js` é testado).
 - Antes de entregar: `pnpm check`, `pnpm test`, `cargo fmt … --check`,
   `cargo clippy … -D warnings`, `cargo test …`, `git diff --check`.

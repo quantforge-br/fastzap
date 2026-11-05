@@ -27,7 +27,9 @@ cobre:
   `quit_in_close`, chaves legadas (`system/wayland`,
   `downloads/auto_open_media`), banco `zapzap.db` e mapeamento
   `storage-whats` → conta 1.
-- **webview**: allowlist de navegação, deep links, User-Agent por conta.
+- **webview**: allowlist de navegação, deep links, User-Agent por conta;
+  toda ação de `shortcutFor` em `bridge.js` está em `REMOTE_ACTIONS` (ou é
+  `paste_plain_text`).
 - **notifications**: política global/por conta, ocultação de nome e texto.
 - **evolution**: cliente REST com `wiremock` (escopo admin vs instância,
   payload completo e mesclado do connect, campos capitalizados, erros não-2xx
@@ -51,7 +53,8 @@ cobre:
   histórico e sanitização.
 
 Testes do frontend (Vitest) cobrem funções puras de `src/lib/` (formatação,
-i18n, validação, `src/lib/evolution/format.ts`).
+i18n, validação, `src/lib/evolution/format.ts`) e comparam o mapa de atalhos
+locais com o `shortcutFor` de `bridge.js`, avaliado a partir do script.
 
 ## Empacotamento
 
