@@ -196,6 +196,15 @@
   shows as disconnected with its chats instead of a QR code that never comes.
   Retry restarts that client through the admin force reconnect, since the
   server's reconnect route refuses disconnected clients.
+- Evolution Go conversations show WhatsApp business messages (templates,
+  interactive, button and list messages), polls, album photos and videos,
+  answers to business buttons and round video notes instead of "Unsupported
+  message": their text, header media and buttons, with web links opening in
+  the browser. Stores migrate to schema 5 (`messages.buttons`) and read the
+  messages kept as unsupported again; an album's opening message, which only
+  announces its items, is no longer kept. Media that WhatsApp serves only
+  from a static URL (its own announcements) reports that it opens on the
+  phone instead of failing on the server.
 - Grid view is ZapZap's account overview instead of tiled webviews: a card
   per account, including Evolution Go and disabled accounts, with icon, name
   and unread count, laid out in the configured columns. A card opens its

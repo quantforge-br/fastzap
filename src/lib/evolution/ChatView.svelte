@@ -23,6 +23,7 @@
     sticker: "emoji",
     location: "location",
     contact: "person",
+    poll: "poll",
   };
 
   let connection = $state<Connection>({ state: "connecting" });

@@ -30,6 +30,7 @@ function message(id: string, ts: number, seq: number): ChatMessage {
     body: id,
     file_name: "",
     mime: "",
+    buttons: [],
     quote: null,
     status: "sent",
     edited: false,

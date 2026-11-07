@@ -102,10 +102,17 @@ origem, o módulo equivalente no FastZap e diferenças intencionais.
   emojis), mas não a barra lateral de status, canais e chamadas, nem gravação
   de áudio. Fixar,
   arquivar, desarquivar e silenciar chats pelo FastZap (a pasta "Arquivadas"
-  só espelha o telefone, com até 5 min de atraso), status, chamadas, enquetes, figurinhas
-  enviadas, menções, encaminhamento e criação de grupos não existem. Respostas
+  só espelha o telefone, com até 5 min de atraso), status, chamadas, votar em
+  enquetes (o FastZap mostra a pergunta e as opções, sem votos), figurinhas
+  enviadas, menções, encaminhamento e criação de grupos não existem. Botões
+  de mensagens comerciais só agem quando são links; respostas rápidas,
+  listas e códigos para copiar ficam como rótulos. Álbuns aparecem como fotos
+  separadas, não em grade. Figurinhas animadas Lottie, comentários,
+  mensagens ocultas dos aparelhos conectados e avisos de histórico continuam
+  como mensagem não suportada, e o vídeo que o WhatsApp serve só por URL
+  estática (anúncios da conta oficial) só abre no telefone. Respostas
   a mensagens que o FastZap não guardou mostram só a cópia que o servidor
-  entregou (sem miniatura; enquetes e álbuns como mensagem não suportada);
+  entregou (sem miniatura);
   só as
   próprias mensagens podem ser apagadas ou editadas; envios de mídia que
   falham não têm "enviar de novo"; mídia antiga que expirou no CDN do

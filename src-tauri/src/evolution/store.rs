@@ -13,7 +13,8 @@ use ts_rs::TS;
 
 use super::client::ArchivedChat;
 use super::model::{
-    Change, Event, History, Message, MessageKind, Receipt, Status, is_lid, is_phone, quote_of_raw,
+    Change, Event, History, Message, MessageButton, MessageKind, Receipt, Status, is_lid, is_phone,
+    quote_of_raw, shown,
 };
 
 pub type StoreResult<T> = Result<T, rusqlite::Error>;
@@ -50,6 +51,8 @@ CREATE TABLE IF NOT EXISTS messages (
     revoked INTEGER NOT NULL DEFAULT 0,
     raw TEXT NOT NULL DEFAULT 'null',
     media_file TEXT NOT NULL DEFAULT '',
+    -- JSON list of `MessageButton`.
+    buttons TEXT NOT NULL DEFAULT '[]',
     UNIQUE (chat, id)
 );
 CREATE INDEX IF NOT EXISTS messages_by_time ON messages (chat, ts, seq);
@@ -153,6 +156,7 @@ pub struct ChatMessage {
     pub body: String,
     pub file_name: String,
     pub mime: String,
+    pub buttons: Vec<MessageButton>,
     pub quote: Option<QuotedMessage>,
     pub status: Status,
     pub edited: bool,
@@ -244,7 +248,12 @@ impl ChatStore {
         if (1..4).contains(&version) {
             add_quote_kinds(&conn)?;
         }
-        conn.pragma_update(None, "user_version", 4)?;
+        // Version 4 stores kept business messages, polls, round videos and
+        // album photos as unsupported.
+        if (1..5).contains(&version) {
+            reread_unsupported(&conn)?;
+        }
+        conn.pragma_update(None, "user_version", 5)?;
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -887,6 +896,7 @@ fn row_to_message(r: &Row<'_>) -> rusqlite::Result<ChatMessage> {
         body: r.get("body")?,
         file_name: r.get("file_name")?,
         mime: r.get("mime")?,
+        buttons: serde_json::from_str(&r.get::<_, String>("buttons")?).unwrap_or_default(),
         quote: (!quote_id.is_empty())
             .then(|| -> rusqlite::Result<QuotedMessage> {
                 let participant: String = r.get("quote_participant")?;
@@ -1002,6 +1012,84 @@ fn add_quote_kinds(conn: &Connection) -> StoreResult<()> {
     tx.commit()
 }
 
+/// Add `messages.buttons` and read again what was stored as unsupported:
+/// business messages, polls, round videos and album photos, and the quotes
+/// of them; in one transaction with the version bump. An album's opening
+/// message is dropped: its photos and videos are messages of their own.
+fn reread_unsupported(conn: &Connection) -> StoreResult<()> {
+    let tx = conn.unchecked_transaction()?;
+    let has_column: bool = tx.query_row(
+        "SELECT EXISTS (SELECT 1 FROM pragma_table_info('messages') WHERE name = 'buttons')",
+        [],
+        |r| r.get(0),
+    )?;
+    if !has_column {
+        tx.execute_batch("ALTER TABLE messages ADD COLUMN buttons TEXT NOT NULL DEFAULT '[]'")?;
+    }
+    let mut chats = BTreeSet::new();
+    let mut found = Vec::new();
+    {
+        let mut select =
+            tx.prepare("SELECT seq, chat, raw FROM messages WHERE kind = 'unsupported'")?;
+        let mut rows = select.query([])?;
+        while let Some(row) = rows.next()? {
+            let raw: String = row.get(2)?;
+            let Ok(raw) = serde_json::from_str::<Value>(&raw) else {
+                continue;
+            };
+            let now = shown(&raw);
+            if now.album || now.kind != MessageKind::Unsupported {
+                found.push((row.get::<_, i64>(0)?, row.get::<_, String>(1)?, now));
+            }
+        }
+    }
+    for (seq, chat, now) in found {
+        if now.album {
+            tx.execute("DELETE FROM messages WHERE seq = ?", [seq])?;
+        } else {
+            tx.execute(
+                "UPDATE messages SET kind = ?2, body = ?3, file_name = ?4, mime = ?5, buttons = ?6
+                 WHERE seq = ?1",
+                params![
+                    seq,
+                    now.kind.as_str(),
+                    now.body,
+                    now.file_name,
+                    now.mime,
+                    json!(now.buttons).to_string()
+                ],
+            )?;
+        }
+        chats.insert(chat);
+    }
+    let mut quotes = Vec::new();
+    {
+        let mut select =
+            tx.prepare("SELECT seq, raw FROM messages WHERE quote_kind = 'unsupported'")?;
+        let mut rows = select.query([])?;
+        while let Some(row) = rows.next()? {
+            let raw: String = row.get(1)?;
+            if let Some(quote) = serde_json::from_str(&raw)
+                .ok()
+                .and_then(|v| quote_of_raw(&v))
+            {
+                quotes.push((row.get::<_, i64>(0)?, quote));
+            }
+        }
+    }
+    for (seq, quote) in quotes {
+        tx.execute(
+            "UPDATE messages SET quote_kind = ?2, quote_text = ?3 WHERE seq = ?1",
+            params![seq, quote.kind.as_str(), quote.text],
+        )?;
+    }
+    for chat in chats {
+        refresh_preview(&tx, &chat)?;
+    }
+    tx.pragma_update(None, "user_version", 5)?;
+    tx.commit()
+}
+
 /// Recompute a chat's preview from its newest message.
 fn refresh_preview(conn: &Connection, chat: &str) -> StoreResult<()> {
     conn.execute(
@@ -1043,8 +1131,8 @@ fn apply_change(
             let inserted = conn.execute(
                 "INSERT INTO messages (chat, id, sender, from_me, ts, kind, body, file_name,
                     mime, push_name, quote_id, quote_participant, quote_text, quote_kind,
-                    status, raw)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
+                    status, raw, buttons)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
                  ON CONFLICT (chat, id) DO NOTHING",
                 params![
                     m.chat,
@@ -1063,6 +1151,7 @@ fn apply_change(
                     quote.map_or(MessageKind::Text, |q| q.kind).as_str(),
                     status_rank(m.status),
                     m.raw.to_string(),
+                    json!(m.buttons).to_string(),
                 ],
             )? > 0;
             if !inserted {
@@ -1290,6 +1379,7 @@ CREATE TABLE IF NOT EXISTS meta (
             body: body.into(),
             file_name: String::new(),
             mime: String::new(),
+            buttons: Vec::new(),
             push_name: "Ana".into(),
             quote: None,
             status: if from_me {
@@ -1763,7 +1853,7 @@ CREATE TABLE IF NOT EXISTS meta (
             .unwrap()
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 4);
+        assert_eq!(version, 5);
     }
 
     #[test]
@@ -1861,12 +1951,156 @@ CREATE TABLE IF NOT EXISTS meta (
         let path = dir.path().join("chats.db");
         {
             let conn = Connection::open(&path).unwrap();
-            conn.execute_batch(&SCHEMA.replace("quote_kind TEXT NOT NULL DEFAULT 'text',", ""))
-                .unwrap();
+            conn.execute_batch(
+                &schema_without_buttons().replace("quote_kind TEXT NOT NULL DEFAULT 'text',", ""),
+            )
+            .unwrap();
             insert_quoted_document_reply(&conn);
             conn.pragma_update(None, "user_version", 3).unwrap();
         }
         let store = ChatStore::open(&path).unwrap();
         assert_quotes_document(&store);
+    }
+
+    /// `SCHEMA` before `messages.buttons` (`user_version` 3 and 4).
+    fn schema_without_buttons() -> String {
+        let column =
+            "    -- JSON list of `MessageButton`.\n    buttons TEXT NOT NULL DEFAULT '[]',\n";
+        assert!(SCHEMA.contains(column));
+        SCHEMA.replace(column, "")
+    }
+
+    #[test]
+    fn version_4_stores_show_what_they_kept_as_unsupported() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("chats.db");
+        let album = json!({"albumMessage": {"expectedImageCount": 2}});
+        let flow = json!({"name": "cta_url",
+            "buttonParamsJSON": json!({"display_text": "Start", "url": "https://wa.me/x"}).to_string()});
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(&schema_without_buttons()).unwrap();
+            let rows = [
+                ("A", "unsupported", "", album.clone(), "", "text"),
+                (
+                    "P",
+                    "unsupported",
+                    "",
+                    json!({"associatedChildMessage": {"message": {"imageMessage":
+                        {"caption": "beach", "directPath": "/p"}}}}),
+                    "",
+                    "text",
+                ),
+                (
+                    "R",
+                    "text",
+                    "nice",
+                    json!({"extendedTextMessage": {"text": "nice", "contextInfo": {
+                        "stanzaID": "A", "quotedMessage": album}}}),
+                    "A",
+                    "unsupported",
+                ),
+                (
+                    "X",
+                    "unsupported",
+                    "",
+                    json!({"placeholderMessage": {"type": 0}}),
+                    "",
+                    "text",
+                ),
+                (
+                    "T",
+                    "unsupported",
+                    "",
+                    json!({"interactiveMessage": {"body": {"text": "Pay faster"},
+                        "InteractiveMessage": {"NativeFlowMessage": {"buttons": [flow]}}}}),
+                    "",
+                    "text",
+                ),
+            ];
+            for (ts, (id, kind, body, raw, quote, quote_kind)) in rows.into_iter().enumerate() {
+                conn.execute(
+                    "INSERT INTO messages (chat, id, ts, kind, body, raw, quote_id, quote_kind)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                    params![
+                        CHAT,
+                        id,
+                        ts as i64,
+                        kind,
+                        body,
+                        raw.to_string(),
+                        quote,
+                        quote_kind
+                    ],
+                )
+                .unwrap();
+            }
+            conn.execute(
+                "INSERT INTO chats (jid, ts, preview_kind) VALUES (?1, 4, 'unsupported')",
+                [CHAT],
+            )
+            .unwrap();
+            conn.pragma_update(None, "user_version", 4).unwrap();
+        }
+        let store = ChatStore::open(&path).unwrap();
+        let shown: Vec<_> = store
+            .messages(CHAT, None, 10)
+            .unwrap()
+            .into_iter()
+            .map(|m| {
+                let urls: Vec<_> = m.buttons.into_iter().map(|b| b.url).collect();
+                (m.id, m.kind, m.body, urls, m.quote.map(|q| q.kind))
+            })
+            .collect();
+        assert_eq!(
+            shown,
+            [
+                ("P".into(), MessageKind::Image, "beach".into(), vec![], None),
+                (
+                    "R".into(),
+                    MessageKind::Text,
+                    "nice".into(),
+                    vec![],
+                    Some(MessageKind::Image)
+                ),
+                (
+                    "X".into(),
+                    MessageKind::Unsupported,
+                    "".into(),
+                    vec![],
+                    None
+                ),
+                (
+                    "T".into(),
+                    MessageKind::Text,
+                    "Pay faster".into(),
+                    vec!["https://wa.me/x".to_owned()],
+                    None
+                ),
+            ]
+        );
+        let chat = &store.chats().unwrap()[0];
+        assert_eq!(
+            (chat.preview_kind, chat.preview.as_str()),
+            (MessageKind::Text, "Pay faster")
+        );
+        // The album photo downloads although it was stored wrapped.
+        let (raw, _) = store.media(CHAT, "P").unwrap().unwrap();
+        assert!(crate::evolution::model::media_message(&raw).is_some());
+    }
+
+    #[test]
+    fn buttons_are_kept_with_the_message() {
+        let store = ChatStore::in_memory().unwrap();
+        let button = MessageButton {
+            text: "Start".into(),
+            url: "https://wa.me/x".into(),
+        };
+        let m = Message {
+            buttons: vec![button.clone()],
+            ..message("B", 1, false, "Pay faster")
+        };
+        store.apply(&[Change::New(m)], true, None).unwrap();
+        assert_eq!(store.messages(CHAT, None, 10).unwrap()[0].buttons, [button]);
     }
 }

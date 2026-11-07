@@ -16,6 +16,7 @@ export function kindLabel(kind: MessageKind, t: Translate): string {
     sticker: t("Sticker"),
     location: t("Location"),
     contact: t("Contact"),
+    poll: t("Poll"),
     unsupported: t("Unsupported message"),
   }[kind];
 }

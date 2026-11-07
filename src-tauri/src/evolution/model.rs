@@ -25,6 +25,7 @@ pub enum MessageKind {
     Sticker,
     Location,
     Contact,
+    Poll,
     Unsupported,
 }
 
@@ -39,6 +40,7 @@ impl MessageKind {
             Self::Sticker => "sticker",
             Self::Location => "location",
             Self::Contact => "contact",
+            Self::Poll => "poll",
             Self::Unsupported => "unsupported",
         }
     }
@@ -53,15 +55,21 @@ impl MessageKind {
             "sticker" => Self::Sticker,
             "location" => Self::Location,
             "contact" => Self::Contact,
+            "poll" => Self::Poll,
             _ => Self::Unsupported,
         }
     }
 
-    pub fn has_media(self) -> bool {
-        matches!(
-            self,
-            Self::Image | Self::Video | Self::Audio | Self::Document | Self::Sticker
-        )
+    /// Field of a media message proto, as `/message/downloadmedia` takes it.
+    pub fn media_field(self) -> Option<&'static str> {
+        match self {
+            Self::Image => Some("imageMessage"),
+            Self::Video => Some("videoMessage"),
+            Self::Audio => Some("audioMessage"),
+            Self::Document => Some("documentMessage"),
+            Self::Sticker => Some("stickerMessage"),
+            _ => None,
+        }
     }
 }
 
@@ -124,6 +132,16 @@ pub struct QuoteRef {
     pub text: String,
 }
 
+/// A button, list row or poll option shown under a message. Only links act;
+/// answering the rest needs the phone.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct MessageButton {
+    pub text: String,
+    /// An `http(s)` link the button opens; empty for a label.
+    pub url: String,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Message {
     pub id: String,
@@ -133,10 +151,12 @@ pub struct Message {
     /// Unix seconds.
     pub ts: i64,
     pub kind: MessageKind,
-    /// Text, or the caption of media.
+    /// Text, the caption of media, the text of a business message or the
+    /// question of a poll.
     pub body: String,
     pub file_name: String,
     pub mime: String,
+    pub buttons: Vec<MessageButton>,
     pub push_name: String,
     pub quote: Option<QuoteRef>,
     pub status: Status,
@@ -144,6 +164,9 @@ pub struct Message {
     pub raw: Value,
 }
 
+// Nearly every change is a new message, so boxing it would only add an
+// allocation per message.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Change {
     New(Message),
@@ -282,6 +305,8 @@ fn unwrap(message: &Value) -> &Value {
         "documentWithCaptionMessage",
         "editedMessage",
         "deviceSentMessage",
+        // A photo or video of an album.
+        "associatedChildMessage",
     ];
     let mut current = message;
     for _ in 0..4 {
@@ -296,91 +321,306 @@ fn unwrap(message: &Value) -> &Value {
     current
 }
 
-/// Text shown for a message proto, used for quotes and edits.
-pub fn preview_text(message: &Value) -> String {
-    let message = unwrap(message);
-    if let Some(text) = message.get("conversation").and_then(Value::as_str) {
-        return text.to_owned();
-    }
-    for (field, key) in [
-        ("extendedTextMessage", "text"),
-        ("imageMessage", "caption"),
-        ("videoMessage", "caption"),
-        ("documentMessage", "caption"),
-    ] {
-        let text = message
-            .get(field)
-            .and_then(|m| m.get(key))
-            .and_then(Value::as_str)
-            .unwrap_or("");
-        if !text.is_empty() {
-            return text.to_owned();
-        }
-    }
-    String::new()
+/// Message fields that hold their content directly.
+const PLAIN: &[(&str, MessageKind)] = &[
+    ("imageMessage", MessageKind::Image),
+    ("videoMessage", MessageKind::Video),
+    // A round video note.
+    ("ptvMessage", MessageKind::Video),
+    ("audioMessage", MessageKind::Audio),
+    ("documentMessage", MessageKind::Document),
+    ("stickerMessage", MessageKind::Sticker),
+    ("locationMessage", MessageKind::Location),
+    ("liveLocationMessage", MessageKind::Location),
+    ("contactMessage", MessageKind::Contact),
+    ("contactsArrayMessage", MessageKind::Contact),
+    ("extendedTextMessage", MessageKind::Text),
+];
+
+/// Polls, as each WhatsApp version creates them.
+const POLLS: &[&str] = &[
+    "pollCreationMessage",
+    "pollCreationMessageV2",
+    "pollCreationMessageV3",
+];
+
+/// Answers to business buttons and lists, shown as the chosen text:
+/// `(field, object holding the text or "" for the field itself, key)`.
+const ANSWERS: &[(&str, &str, &str)] = &[
+    ("buttonsResponseMessage", "Response", "SelectedDisplayText"),
+    ("listResponseMessage", "", "title"),
+    ("templateButtonReplyMessage", "", "selectedDisplayText"),
+    ("interactiveResponseMessage", "body", "text"),
+];
+
+/// What an unwrapped message proto shows.
+struct Content<'a> {
+    kind: MessageKind,
+    /// Text, caption, place, contact name, business text or poll question.
+    body: String,
+    /// The media proto, in the field `kind.media_field()` names.
+    media: Option<&'a Value>,
+    /// The object whose `contextInfo` names the message it answers.
+    context: &'a Value,
+    buttons: Vec<MessageButton>,
+    /// An album's opening message: it only announces the photos and videos
+    /// that follow as messages of their own.
+    album: bool,
 }
 
-/// Kind of an unwrapped message proto and the field holding its content.
-fn kind_of(message: &Value) -> (MessageKind, &Value) {
-    [
-        ("imageMessage", MessageKind::Image),
-        ("videoMessage", MessageKind::Video),
-        ("audioMessage", MessageKind::Audio),
-        ("documentMessage", MessageKind::Document),
-        ("stickerMessage", MessageKind::Sticker),
-        ("locationMessage", MessageKind::Location),
-        ("liveLocationMessage", MessageKind::Location),
-        ("contactMessage", MessageKind::Contact),
-        ("contactsArrayMessage", MessageKind::Contact),
-        ("extendedTextMessage", MessageKind::Text),
-    ]
-    .into_iter()
-    .find_map(|(field, kind)| message.get(field).map(|inner| (kind, inner)))
-    .unwrap_or_else(|| {
-        if message.get("conversation").is_some() {
-            (MessageKind::Text, &Value::Null)
-        } else {
-            (MessageKind::Unsupported, &Value::Null)
+impl<'a> Content<'a> {
+    fn new(kind: MessageKind, body: impl Into<String>, context: &'a Value) -> Self {
+        Self {
+            kind,
+            body: body.into(),
+            media: None,
+            context,
+            buttons: Vec::new(),
+            album: false,
         }
+    }
+
+    fn file_name(&self) -> &'a str {
+        self.media.map_or("", |m| str_at(m, "fileName"))
+    }
+
+    fn mime(&self) -> &'a str {
+        self.media.map_or("", |m| str_at(m, "mimetype"))
+    }
+}
+
+fn items<'a>(value: &'a Value, key: &str) -> impl Iterator<Item = &'a Value> + use<'a> {
+    value
+        .get(key)
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+}
+
+/// `value.<field>.text`.
+fn text_in<'a>(value: &'a Value, field: &str) -> &'a str {
+    value.get(field).map_or("", |v| str_at(v, "text"))
+}
+
+/// Title, text and footer of a business message, as paragraphs.
+fn paragraphs(parts: &[&str]) -> String {
+    parts
+        .iter()
+        .map(|p| p.trim())
+        .filter(|p| !p.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
+
+/// A button labeled `text` that opens `url` when it is a web link.
+fn button(text: &str, url: &str) -> Option<MessageButton> {
+    let text = text.trim();
+    let scheme = url.split_once("://").map(|(s, _)| s.to_ascii_lowercase());
+    let web = matches!(scheme.as_deref(), Some("http" | "https"));
+    (!text.is_empty()).then(|| MessageButton {
+        text: text.to_owned(),
+        url: if web { url.to_owned() } else { String::new() },
     })
 }
 
-/// Text, caption, place or contact name of an unwrapped message proto.
-fn body_of(kind: MessageKind, inner: &Value, message: &Value) -> String {
-    match kind {
-        MessageKind::Location => {
-            let name = str_at(inner, "name");
-            if name.is_empty() {
-                format!(
-                    "{}, {}",
-                    inner.get("degreesLatitude").unwrap_or(&Value::Null),
-                    inner.get("degreesLongitude").unwrap_or(&Value::Null)
-                )
-            } else {
-                name.to_owned()
-            }
-        }
-        MessageKind::Contact => str_at(inner, "displayName").to_owned(),
-        _ => preview_text(message),
+/// A `HydratedButton`, a Go oneof: `UrlButton`, `QuickReplyButton` or
+/// `CallButton`.
+fn hydrated_button(item: &Value) -> Option<MessageButton> {
+    let (kind, inner) = item.get("HydratedButton")?.as_object()?.iter().next()?;
+    let url = if kind == "UrlButton" {
+        str_at(inner, "URL")
+    } else {
+        ""
+    };
+    button(str_at(inner, "displayText"), url)
+}
+
+/// A native flow button; its label and link are in `buttonParamsJSON`.
+fn flow_button(item: &Value) -> Option<MessageButton> {
+    let params: Value = serde_json::from_str(str_at(item, "buttonParamsJSON")).ok()?;
+    let label = match str_at(&params, "display_text") {
+        "" => str_at(&params, "flow_cta"),
+        text => text,
+    };
+    match str_at(&params, "copy_code") {
+        "" => button(label, str_at(&params, "url")),
+        code => button(&format!("{label}: {code}"), ""),
     }
 }
 
-/// The quote of a message, from the `contextInfo` of its content field.
-fn quote_in(inner: &Value) -> Option<QuoteRef> {
-    let ctx = inner
+/// A business message whose kind and media come from its header, a Go
+/// oneof whose media fields are capitalized.
+fn with_header<'a>(
+    header: &'a Value,
+    body: String,
+    buttons: Vec<MessageButton>,
+    context: &'a Value,
+) -> Content<'a> {
+    let media = [
+        ("ImageMessage", MessageKind::Image),
+        ("VideoMessage", MessageKind::Video),
+        ("DocumentMessage", MessageKind::Document),
+    ]
+    .into_iter()
+    .find_map(|(field, kind)| {
+        header
+            .get(field)
+            .filter(|m| m.is_object())
+            .map(|m| (kind, m))
+    });
+    Content {
+        kind: media.map_or(MessageKind::Text, |(kind, _)| kind),
+        media: media.map(|(_, m)| m),
+        buttons,
+        ..Content::new(MessageKind::Text, body, context)
+    }
+}
+
+/// An `InteractiveMessage`, alone or inside a template.
+fn interactive(message: &Value) -> Content<'_> {
+    let header = message.get("header").unwrap_or(&Value::Null);
+    let body = paragraphs(&[
+        str_at(header, "title"),
+        text_in(message, "body"),
+        text_in(message, "footer"),
+    ]);
+    let buttons = message
+        .get("InteractiveMessage")
+        .and_then(|m| m.get("NativeFlowMessage"))
+        .map(|flow| items(flow, "buttons").filter_map(flow_button).collect())
+        .unwrap_or_default();
+    with_header(
+        header.get("Media").unwrap_or(&Value::Null),
+        body,
+        buttons,
+        message,
+    )
+}
+
+/// Read an unwrapped message proto.
+fn content(message: &Value) -> Content<'_> {
+    if let Some((kind, inner)) = PLAIN
+        .iter()
+        .find_map(|&(field, kind)| message.get(field).map(|inner| (kind, inner)))
+    {
+        let body = match kind {
+            MessageKind::Location => match str_at(inner, "name") {
+                "" => format!(
+                    "{}, {}",
+                    inner.get("degreesLatitude").unwrap_or(&Value::Null),
+                    inner.get("degreesLongitude").unwrap_or(&Value::Null)
+                ),
+                name => name.to_owned(),
+            },
+            MessageKind::Contact => str_at(inner, "displayName").to_owned(),
+            MessageKind::Text => str_at(inner, "text").to_owned(),
+            _ => str_at(inner, "caption").to_owned(),
+        };
+        return Content {
+            media: kind.media_field().map(|_| inner),
+            ..Content::new(kind, body, inner)
+        };
+    }
+    if let Some(text) = message.get("conversation").and_then(Value::as_str) {
+        return Content::new(MessageKind::Text, text, &Value::Null);
+    }
+    if let Some(template) = message.get("templateMessage") {
+        let format = template.get("Format").unwrap_or(&Value::Null);
+        let rows = template
+            .get("hydratedTemplate")
+            .filter(|t| t.is_object())
+            .or_else(|| format.get("HydratedFourRowTemplate"));
+        if let Some(rows) = rows {
+            let title = rows.get("Title").unwrap_or(&Value::Null);
+            let body = paragraphs(&[
+                str_at(title, "HydratedTitleText"),
+                str_at(rows, "hydratedContentText"),
+                str_at(rows, "hydratedFooterText"),
+            ]);
+            let buttons = items(rows, "hydratedButtons")
+                .filter_map(hydrated_button)
+                .collect();
+            return with_header(title, body, buttons, template);
+        }
+        if let Some(inner) = format.get("InteractiveMessageTemplate") {
+            return interactive(inner);
+        }
+    }
+    if let Some(inner) = message.get("interactiveMessage") {
+        return interactive(inner);
+    }
+    if let Some(inner) = message.get("buttonsMessage") {
+        let header = inner.get("Header").unwrap_or(&Value::Null);
+        let body = paragraphs(&[
+            str_at(header, "Text"),
+            str_at(inner, "contentText"),
+            str_at(inner, "footerText"),
+        ]);
+        let buttons = items(inner, "buttons")
+            .filter_map(|b| button(str_at(b.get("buttonText")?, "displayText"), ""))
+            .collect();
+        return with_header(header, body, buttons, inner);
+    }
+    if let Some(inner) = message.get("listMessage") {
+        let body = paragraphs(&[
+            str_at(inner, "title"),
+            str_at(inner, "description"),
+            str_at(inner, "footerText"),
+        ]);
+        return Content {
+            buttons: items(inner, "sections")
+                .flat_map(|s| items(s, "rows"))
+                .filter_map(|r| button(str_at(r, "title"), ""))
+                .collect(),
+            ..Content::new(MessageKind::Text, body, inner)
+        };
+    }
+    if let Some(poll) = POLLS.iter().find_map(|f| message.get(*f)) {
+        return Content {
+            buttons: items(poll, "options")
+                .filter_map(|o| button(str_at(o, "optionName"), ""))
+                .collect(),
+            ..Content::new(MessageKind::Poll, str_at(poll, "name"), poll)
+        };
+    }
+    for &(field, holder, key) in ANSWERS {
+        if let Some(inner) = message.get(field) {
+            let holder = match holder {
+                "" => inner,
+                holder => inner.get(holder).unwrap_or(&Value::Null),
+            };
+            return Content::new(MessageKind::Text, str_at(holder, key), inner);
+        }
+    }
+    if let Some(album) = message.get("albumMessage") {
+        // Quoted as the media it holds.
+        let kind = if int_at(album, "expectedImageCount") > 0 {
+            MessageKind::Image
+        } else {
+            MessageKind::Video
+        };
+        return Content {
+            album: true,
+            ..Content::new(kind, "", album)
+        };
+    }
+    Content::new(MessageKind::Unsupported, "", &Value::Null)
+}
+
+/// The quote of a message, from the `contextInfo` of its content.
+fn quote_in(context: &Value) -> Option<QuoteRef> {
+    let ctx = context
         .get("contextInfo")
         .filter(|ctx| !str_at(ctx, "stanzaID").is_empty())?;
     let (kind, text) = match ctx.get("quotedMessage") {
         Some(quoted) => {
-            let quoted = unwrap(quoted);
-            let (kind, inner) = kind_of(quoted);
-            let text = match body_of(kind, inner, quoted) {
-                text if text.is_empty() && kind == MessageKind::Document => {
-                    str_at(inner, "fileName").to_owned()
-                }
-                text => text,
+            let quoted = content(unwrap(quoted));
+            let text = if quoted.body.is_empty() && quoted.kind == MessageKind::Document {
+                quoted.file_name().to_owned()
+            } else {
+                quoted.body
             };
-            (kind, text)
+            (quoted.kind, text)
         }
         None => (MessageKind::Text, String::new()),
     };
@@ -394,7 +634,44 @@ fn quote_in(inner: &Value) -> Option<QuoteRef> {
 
 /// The quote of a stored message proto (`Message::raw`).
 pub fn quote_of_raw(raw: &Value) -> Option<QuoteRef> {
-    quote_in(kind_of(unwrap(raw)).1)
+    quote_in(content(unwrap(raw)).context)
+}
+
+/// What a stored message proto (`Message::raw`) shows, read again.
+pub struct Shown {
+    pub kind: MessageKind,
+    pub body: String,
+    pub file_name: String,
+    pub mime: String,
+    pub buttons: Vec<MessageButton>,
+    /// An album's opening message, which is not kept as a message.
+    pub album: bool,
+}
+
+pub fn shown(raw: &Value) -> Shown {
+    let content = content(unwrap(raw));
+    Shown {
+        file_name: content.file_name().to_owned(),
+        mime: content.mime().to_owned(),
+        kind: content.kind,
+        body: content.body,
+        buttons: content.buttons,
+        album: content.album,
+    }
+}
+
+/// The media of a stored message proto as `/message/downloadmedia` takes
+/// it (`{"imageMessage": …}`), when the server can fetch it: whatsmeow needs
+/// a direct path, which media WhatsApp serves from a static URL (its own
+/// announcements) lacks.
+pub fn media_message(raw: &Value) -> Option<Value> {
+    let content = content(unwrap(raw));
+    let media = content
+        .media
+        .filter(|m| !str_at(m, "directPath").is_empty())?;
+    let mut message = serde_json::Map::new();
+    message.insert(content.kind.media_field()?.to_owned(), media.clone());
+    Some(Value::Object(message))
 }
 
 struct Envelope<'a> {
@@ -423,7 +700,7 @@ fn parse_body(env: Envelope<'_>, message: &Value) -> Option<Change> {
                 target,
                 body: protocol
                     .get("editedMessage")
-                    .map(preview_text)
+                    .map(|edited| content(unwrap(edited)).body)
                     .unwrap_or_default(),
             }),
             // History sync notices, key shares, ephemeral settings, …
@@ -448,9 +725,12 @@ fn parse_body(env: Envelope<'_>, message: &Value) -> Option<Change> {
         return None;
     }
 
-    let (kind, inner) = kind_of(message);
-    let body = body_of(kind, inner, message);
-    let quote = quote_in(inner);
+    let content = content(message);
+    if content.album {
+        return None;
+    }
+    let quote = quote_in(content.context);
+    let (file_name, mime) = (content.file_name().to_owned(), content.mime().to_owned());
     let mut raw = message.clone();
     strip_heavy(&mut raw);
     Some(Change::New(Message {
@@ -459,10 +739,11 @@ fn parse_body(env: Envelope<'_>, message: &Value) -> Option<Change> {
         sender: env.sender.to_owned(),
         from_me: env.from_me,
         ts: env.ts,
-        kind,
-        body,
-        file_name: str_at(inner, "fileName").to_owned(),
-        mime: str_at(inner, "mimetype").to_owned(),
+        kind: content.kind,
+        body: content.body,
+        file_name,
+        mime,
+        buttons: content.buttons,
         push_name: env.push_name.to_owned(),
         quote,
         status: env.status,
@@ -770,6 +1051,166 @@ mod tests {
         assert_eq!(m.body, "pic");
         assert_eq!(m.raw["imageMessage"]["mediaKey"], "a2V5");
         assert!(m.raw["imageMessage"].get("JPEGThumbnail").is_none());
+    }
+
+    fn new_message(message: Value) -> Message {
+        match single(parse(&live(message))) {
+            Change::New(m) => m,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    fn buttons(m: &Message) -> Vec<(&str, &str)> {
+        m.buttons
+            .iter()
+            .map(|b| (b.text.as_str(), b.url.as_str()))
+            .collect()
+    }
+
+    #[test]
+    fn business_messages_show_their_text_media_and_buttons() {
+        // WhatsApp's own announcements: the video only has a static URL.
+        let flow = |name: &str, params: Value| json!({"name": name, "buttonParamsJSON": params.to_string()});
+        let m = new_message(json!({"interactiveMessage": {
+            "header": {"hasMediaAttachment": true, "Media": {"VideoMessage": {
+                "mimetype": "video/mp4", "staticURL": "https://static.whatsapp.net/downloadable?id=1",
+                "mediaKey": "a2V5"}}},
+            "body": {"text": "*Pay faster* 🎁"},
+            "InteractiveMessage": {"NativeFlowMessage": {"buttons": [
+                flow("cta_url", json!({"display_text": "Start", "url": "https://wa.me/x"})),
+                flow("cta_copy", json!({"display_text": "Copy code", "copy_code": "SAVE10"})),
+                flow("quick_reply", json!({"display_text": "Not now", "id": "n"})),
+                flow("cta_url", json!({"display_text": "Trap", "url": "javascript:alert(1)"})),
+                flow("payment_info", json!({"currency": "BRL"}))]}}}}));
+        assert_eq!(
+            (m.kind, m.body.as_str()),
+            (MessageKind::Video, "*Pay faster* 🎁")
+        );
+        assert_eq!(
+            buttons(&m),
+            [
+                ("Start", "https://wa.me/x"),
+                ("Copy code: SAVE10", ""),
+                ("Not now", ""),
+                ("Trap", "")
+            ]
+        );
+        assert_eq!(media_message(&m.raw), None);
+
+        let image = json!({"URL": "https://mmg.whatsapp.net/x", "directPath": "/v/x",
+            "mimetype": "image/jpeg", "mediaKey": "a2V5"});
+        let m = new_message(json!({"templateMessage": {
+            "hydratedTemplate": {
+                "Title": {"ImageMessage": image},
+                "hydratedContentText": "Your plan is ready",
+                "hydratedFooterText": "Reply STOP to opt out",
+                "hydratedButtons": [
+                    {"HydratedButton": {"UrlButton": {"displayText": "Open", "URL": "https://isp.example/plan"}}, "index": 0},
+                    {"HydratedButton": {"QuickReplyButton": {"displayText": "Upgrade", "ID": "u"}}, "index": 1}]},
+            "templateID": "1"}}));
+        assert_eq!(
+            (m.kind, m.body.as_str(), m.mime.as_str()),
+            (
+                MessageKind::Image,
+                "Your plan is ready\n\nReply STOP to opt out",
+                "image/jpeg"
+            )
+        );
+        assert_eq!(
+            buttons(&m),
+            [("Open", "https://isp.example/plan"), ("Upgrade", "")]
+        );
+        assert_eq!(media_message(&m.raw), Some(json!({"imageMessage": image})));
+
+        let m = new_message(
+            json!({"templateMessage": {"Format": {"InteractiveMessageTemplate": {
+            "header": {"Media": {"DocumentMessage": {"fileName": "bill.pdf", "directPath": "/d"}}},
+            "body": {"text": "Your bill"}, "footer": {"text": "Thanks"}}}}}),
+        );
+        assert_eq!(
+            (m.kind, m.body.as_str(), m.file_name.as_str()),
+            (MessageKind::Document, "Your bill\n\nThanks", "bill.pdf")
+        );
+
+        let m = new_message(json!({"buttonsMessage": {"Header": {"Text": "Survey"},
+            "contentText": "Did it work?", "footerText": "",
+            "buttons": [{"buttonID": "y", "buttonText": {"displayText": "Yes"}, "type": 1}]}}));
+        assert_eq!(
+            (m.kind, m.body.as_str()),
+            (MessageKind::Text, "Survey\n\nDid it work?")
+        );
+        assert_eq!(buttons(&m), [("Yes", "")]);
+
+        let m = new_message(json!({"listMessage": {"description": "Pick a day",
+            "buttonText": "Days", "sections": [{"rows": [{"title": "Mon", "rowID": "1"},
+            {"title": "Tue", "rowID": "2"}]}]}}));
+        assert_eq!((m.kind, m.body.as_str()), (MessageKind::Text, "Pick a day"));
+        assert_eq!(buttons(&m), [("Mon", ""), ("Tue", "")]);
+    }
+
+    #[test]
+    fn polls_and_answers_to_business_buttons() {
+        let m = new_message(json!({"pollCreationMessageV3": {"name": "Lunch?",
+            "options": [{"optionName": "Yes"}, {"optionName": "No"}], "selectableOptionsCount": 1}}));
+        assert_eq!((m.kind, m.body.as_str()), (MessageKind::Poll, "Lunch?"));
+        assert_eq!(buttons(&m), [("Yes", ""), ("No", "")]);
+
+        // An answer quotes the business message it answers.
+        let m = new_message(json!({"buttonsResponseMessage": {
+            "Response": {"SelectedDisplayText": "Yes"}, "selectedButtonID": "y",
+            "contextInfo": {"stanzaID": "B1", "participant": "552@s.whatsapp.net",
+                "quotedMessage": {"buttonsMessage": {"contentText": "Did it work?"}}}}}));
+        assert_eq!((m.kind, m.body.as_str()), (MessageKind::Text, "Yes"));
+        let quote = m.quote.unwrap();
+        assert_eq!(
+            (quote.id.as_str(), quote.kind, quote.text.as_str()),
+            ("B1", MessageKind::Text, "Did it work?")
+        );
+        for (answer, text) in [
+            (
+                json!({"listResponseMessage": {"title": "Mon", "singleSelectReply": {}}}),
+                "Mon",
+            ),
+            (
+                json!({"templateButtonReplyMessage": {"selectedDisplayText": "Upgrade"}}),
+                "Upgrade",
+            ),
+            (
+                json!({"interactiveResponseMessage": {"body": {"text": "Sent"}}}),
+                "Sent",
+            ),
+        ] {
+            let m = new_message(answer);
+            assert_eq!((m.kind, m.body.as_str()), (MessageKind::Text, text));
+        }
+    }
+
+    #[test]
+    fn album_items_are_messages_and_the_album_is_not() {
+        let album = json!({"albumMessage": {"expectedImageCount": 2, "expectedVideoCount": 0}});
+        assert_eq!(parse(&live(album.clone())), Event::Changes(vec![]));
+
+        let photo = json!({"caption": "beach", "mimetype": "image/jpeg", "directPath": "/p"});
+        let m = new_message(
+            json!({"associatedChildMessage": {"message": {"imageMessage": photo}},
+            "messageContextInfo": {}}),
+        );
+        assert_eq!((m.kind, m.body.as_str()), (MessageKind::Image, "beach"));
+        assert_eq!(media_message(&m.raw), Some(json!({"imageMessage": photo})));
+
+        // A reply to an album quotes it as the media it holds.
+        let m = new_message(
+            json!({"extendedTextMessage": {"text": "nice", "contextInfo": {
+            "stanzaID": "A1", "quotedMessage": album}}}),
+        );
+        let quote = m.quote.unwrap();
+        assert_eq!((quote.kind, quote.text.as_str()), (MessageKind::Image, ""));
+
+        // Round video notes download as videos.
+        let note = json!({"mimetype": "video/mp4", "directPath": "/v", "seconds": 5});
+        let m = new_message(json!({"ptvMessage": note}));
+        assert_eq!(m.kind, MessageKind::Video);
+        assert_eq!(media_message(&m.raw), Some(json!({"videoMessage": note})));
     }
 
     #[test]

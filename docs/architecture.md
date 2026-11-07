@@ -384,7 +384,18 @@ atualizar os ticks.
   desregistra a instância logo antes) e reconecta sem `Down` nem backoff.
 - `evolution::model`: converte eventos whatsmeow (mensagens, histórico,
   recibos, presença, conexão) em `Change`/`Event`, desembrulhando
-  `ephemeralMessage`/`viewOnce`/`editedMessage` e removendo miniaturas.
+  `ephemeralMessage`/`viewOnce`/`editedMessage`/`associatedChildMessage` e
+  removendo miniaturas. Mensagens comerciais (`templateMessage`,
+  `interactiveMessage`, `buttonsMessage`, `listMessage`) viram texto (título,
+  corpo e rodapé), mídia do cabeçalho e `buttons` (`MessageButton`: só links
+  `http(s)` abrem; respostas rápidas, linhas de lista e opções de enquete são
+  rótulos); enquetes (`pollCreationMessage*`) são `poll`; respostas a botões
+  e listas, texto; `ptvMessage`, vídeo. A mensagem de abertura de um álbum
+  (`albumMessage`) não é guardada: as fotos chegam como mensagens próprias, e
+  uma resposta ao álbum o cita como foto ou vídeo. O download envia ao
+  servidor só o proto da mídia (`{"imageMessage": …}`) e só quando há
+  `directPath`; a mídia que o WhatsApp serve apenas por `staticURL` (anúncios
+  da conta oficial) o servidor não baixa.
 - `evolution::store`: SQLite por conta em `<data>/evolution/<id>/chats.db`
   (chats, mensagens com chave `(chat, id)`, reações, contatos, meta). Status
   de entrega só avança (uma falha de envio tardia não rebaixa uma mensagem já
@@ -407,7 +418,9 @@ atualizar os ticks.
   migração o preenche, com o texto, a partir do proto de cada resposta. Ao
   ler uma página, a citação usa a mensagem citada quando ela está guardada
   (texto atual, autor, documento pelo nome) e, senão, a cópia que a resposta
-  trouxe.
+  trouxe. `messages.buttons` (schema 5, JSON) guarda os botões; a migração
+  relê do proto as mensagens guardadas como não suportadas e as citações
+  delas, apaga as aberturas de álbum e refaz a prévia dos chats afetados.
 - `evolution` (sessão): `sync` inicia/para sessões conforme as contas
   habilitadas, serializado por um lock de ciclo de vida; parar a sessão
   cancela o trabalho em andamento. Cada sessão confere a instância pela listagem admin e só chama

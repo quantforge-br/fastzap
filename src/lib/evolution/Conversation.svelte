@@ -19,7 +19,7 @@
     startsGroup,
     statusIcon,
   } from "./format";
-  import Icon from "./Icon.svelte";
+  import Icon, { type IconName } from "./Icon.svelte";
 
   let {
     accountId,
@@ -396,6 +396,8 @@
     m.from_me && !m.revoked && (m.status === "sent" || m.status === "delivered" || m.status === "read");
   const visual = (m: ChatMessage) => !m.revoked && (m.kind === "image" || m.kind === "video" || m.kind === "sticker");
   const caption = (m: ChatMessage) => (m.body && !(m.kind === "document" && m.body === m.file_name) ? m.body : "");
+  const MEDIA_KINDS = new Set<ChatMessage["kind"]>(["image", "video", "audio", "document", "sticker"]);
+  const KIND_ICONS: Partial<Record<ChatMessage["kind"], IconName>> = { location: "location", contact: "person", poll: "poll" };
 </script>
 
 <svelte:window onclick={onWindowClick} />
@@ -515,7 +517,7 @@
                 </button>
               {:else if m.kind !== "text"}
                 <span class="kind">
-                  <Icon name={m.kind === "location" ? "location" : m.kind === "contact" ? "person" : "alert"} size={18} />
+                  <Icon name={KIND_ICONS[m.kind] ?? "alert"} size={18} />
                   {kindLabel(m.kind, t)}
                 </span>
               {/if}
@@ -523,10 +525,21 @@
                 <p class="text">
                   {#each linkParts(caption(m)) as part, p (p)}{#if part.url}<a href={part.url} onclick={(e) => openLink(e, part.url!)}>{part.text}</a>{:else}{part.text}{/if}{/each}{@render meta(m)}
                 </p>
-              {:else if visual(m)}
+              {:else if visual(m) && !m.buttons.length}
                 <span class="overlay">{@render meta(m)}</span>
               {:else}
                 <p class="text">{@render meta(m)}</p>
+              {/if}
+              {#if m.buttons.length}
+                <div class="buttons" class:poll={m.kind === "poll"}>
+                  {#each m.buttons as b, i (i)}
+                    {#if b.url}
+                      <a href={b.url} onclick={(e) => openLink(e, b.url)}><Icon name="external" size={18} />{b.text}</a>
+                    {:else}
+                      <span>{b.text}</span>
+                    {/if}
+                  {/each}
+                </div>
               {/if}
             {/if}
           </div>
@@ -555,7 +568,7 @@
               <button role="menuitem" onclick={() => startReply(m)}>{t("Reply")}</button>
               {#if m.body}<button role="menuitem" onclick={() => act(() => navigator.clipboard.writeText(m.body))}>{t("Copy")}</button>{/if}
               <button role="menuitem" onclick={() => toggleMenu(m.id, "react")}>{t("React")}</button>
-              {#if m.kind !== "text" && m.kind !== "location" && m.kind !== "contact" && m.kind !== "unsupported"}
+              {#if MEDIA_KINDS.has(m.kind)}
                 <button role="menuitem" onclick={() => act(() => evolution.saveMedia(target, m.id))}>{t("Download")}</button>
               {/if}
               {#if canChange(m) && m.kind === "text"}<button role="menuitem" onclick={() => startEdit(m)}>{t("Edit")}</button>{/if}
@@ -1071,6 +1084,45 @@
     align-items: center;
     gap: 6px;
     color: var(--wa-secondary);
+  }
+  /* Business buttons and list rows; only links act here. */
+  .buttons {
+    display: grid;
+    margin-top: 6px;
+  }
+  .buttons > * {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 8px 6px;
+    border-top: 1px solid var(--wa-border);
+    color: var(--wa-secondary);
+    font-size: 14px;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .buttons a {
+    color: var(--wa-tick-read);
+    text-decoration: none;
+  }
+  .buttons a:hover {
+    text-decoration: underline;
+  }
+  .buttons.poll > * {
+    justify-content: flex-start;
+    padding: 5px 2px;
+    border-top: 0;
+    color: var(--wa-text);
+    text-align: left;
+  }
+  .buttons.poll > *::before {
+    content: "";
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--wa-secondary);
+    border-radius: 50%;
   }
   .reactions {
     position: absolute;

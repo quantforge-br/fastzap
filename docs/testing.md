@@ -39,13 +39,18 @@ cobre:
   de `instanceToken`, filtro de instância, frame de 20 MiB, reconexão,
   renovação que só reconecta depois que o servidor encerrou o socket antigo);
   parser de eventos (texto, resposta, mídia desembrulhada, reação, edição,
-  revogação, recibos, HistorySync); store SQLite (deduplicação, outbox,
+  revogação, recibos, HistorySync, mensagens comerciais com botões e mídia
+  do cabeçalho, enquetes, respostas a botões, itens de álbum, vídeo
+  redondo, proto de download só com `directPath`); store SQLite
+  (deduplicação, outbox,
   recibos que só avançam, falha tardia que não rebaixa mensagem confirmada,
   página do journal aplicada em ordem com o cursor, contagem de mensagens
   que só o journal trouxe, troca de origem que
-  limpa o banco, páginas, âncora do history-sync, nomes; abertura de stores
+  limpa o banco, páginas, âncora do history-sync, nomes; botões guardados;
+  abertura de stores
   publicados (`0.1.0-rc.1` v1, `rc.2`/`rc.3` v2) a partir do DDL copiado de
-  cada tag). Toda versão publicada com `user_version` novo ganha uma fixture
+  cada tag; store v4 com mensagens, citações e prévias não suportadas que a
+  migração para o schema 5 relê). Toda versão publicada com `user_version` novo ganha uma fixture
   com o DDL da tag. O prazo de 65 s
   sem frames do WebSocket e a leitura periódica do journal na sessão não têm
   teste automatizado.

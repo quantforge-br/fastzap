@@ -909,6 +909,7 @@ pub fn describe(kind: MessageKind, body: &str) -> String {
         MessageKind::Sticker => tr("Sticker"),
         MessageKind::Location => tr("Location"),
         MessageKind::Contact => tr("Contact"),
+        MessageKind::Poll => tr("Poll"),
         MessageKind::Unsupported => tr("Unsupported message"),
     };
     if body.is_empty() {

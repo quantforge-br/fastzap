@@ -362,6 +362,7 @@ fn pending_message(
         body: body.to_owned(),
         file_name: file_name.to_owned(),
         mime: mime.to_owned(),
+        buttons: Vec::new(),
         push_name: String::new(),
         quote: None,
         status: Status::Pending,
@@ -743,7 +744,13 @@ async fn media_bytes(session: &Session, chat: &str, id: &str) -> CommandResult<(
     if raw.is_null() {
         return Err(tr("This media is no longer available.").into());
     }
-    let data_url = session.client.download_media(&session.token, &raw).await?;
+    let Some(message) = evo::model::media_message(&raw) else {
+        return Err(tr("This media can only be opened on your phone.").into());
+    };
+    let data_url = session
+        .client
+        .download_media(&session.token, &message)
+        .await?;
     let (header, data) = data_url
         .split_once(',')
         .ok_or_else(|| tr("This media is no longer available."))?;
