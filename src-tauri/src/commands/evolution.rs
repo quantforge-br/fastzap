@@ -4,7 +4,6 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
 
 use base64::Engine;
 use serde::{Deserialize, Serialize};
@@ -183,14 +182,14 @@ pub fn evo_connection(app: AppHandle, account_id: i64) -> Connection {
     app.state::<Evolution>().connection(account_id)
 }
 
-/// Retry now (e.g. after the server came back).
+/// Retry now (e.g. after the server came back). A linked phone whose client
+/// has no socket is started again on the server.
 #[tauri::command]
 pub async fn evo_reconnect(app: AppHandle, account_id: i64) -> CommandResult<()> {
     let session = session(&app, account_id)?;
     let status = evo::ensure_connected(&app, &session).await;
-    if status.is_some_and(|s| s.logged_in && !s.connected) {
-        session.client.reconnect(&session.token).await?;
-        evo::spawn_refresh(&app, account_id, Some(Duration::from_secs(3)));
+    if status.is_some_and(|s| !s.connected) {
+        evo::restart_client(&app, &session).await?;
     }
     Ok(())
 }

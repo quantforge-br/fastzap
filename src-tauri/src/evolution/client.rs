@@ -407,10 +407,20 @@ impl Client {
         key: &Secret,
         body: Option<&Value>,
     ) -> EvoResult<Value> {
+        self.call_url(method, self.url(path), key, body).await
+    }
+
+    async fn call_url(
+        &self,
+        method: Method,
+        url: Url,
+        key: &Secret,
+        body: Option<&Value>,
+    ) -> EvoResult<Value> {
         let (name, value) = key_header(key);
         let mut request = self
             .http
-            .request(method, self.url(path))
+            .request(method, url)
             .header(name, value)
             .timeout(self.timeout);
         if let Some(body) = body {
@@ -486,17 +496,26 @@ impl Client {
             .ok_or_else(|| EvoError::Invalid("missing instance id".into()))
     }
 
-    // ---- Instance scope ----
-
-    pub async fn connect(&self, token: &InstanceToken, payload: &Value) -> EvoResult<()> {
-        self.call(Method::POST, "/instance/connect", &token.0, Some(payload))
+    /// Start the instance's WhatsApp client again from its stored device.
+    /// This is the only call that revives a client the server keeps without
+    /// a socket (`POST /instance/reconnect` refuses a disconnected client).
+    /// The server requires `number`, the paired phone; it only uses it to
+    /// look the device up when the instance has no JID.
+    pub async fn force_reconnect(&self, admin: &AdminKey, id: &str, number: &str) -> EvoResult<()> {
+        let mut url = self.url("/instance/forcereconnect");
+        url.path_segments_mut()
+            .map_err(|()| EvoError::Invalid("server address cannot take a path".into()))?
+            .push(id);
+        let body = json!({ "number": number });
+        self.call_url(Method::POST, url, &admin.0, Some(&body))
             .await
             .map(drop)
     }
 
-    /// Reconnect a running client to WhatsApp (keeps the link).
-    pub async fn reconnect(&self, token: &InstanceToken) -> EvoResult<()> {
-        self.call(Method::POST, "/instance/reconnect", &token.0, None)
+    // ---- Instance scope ----
+
+    pub async fn connect(&self, token: &InstanceToken, payload: &Value) -> EvoResult<()> {
+        self.call(Method::POST, "/instance/connect", &token.0, Some(payload))
             .await
             .map(drop)
     }
@@ -1066,16 +1085,22 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn reconnect_uses_the_instance_token() {
+    async fn force_reconnect_is_an_admin_call_on_the_instance_path() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/instance/reconnect"))
-            .and(header("apikey", "instance-token"))
+            .and(path("/evo/instance/forcereconnect/u1"))
+            .and(header("apikey", "admin-key"))
+            .and(body_json(json!({"number": "5511999990000"})))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({"message": "success"})))
             .expect(1)
             .mount(&server)
             .await;
-        client(&server).await.reconnect(&token()).await.unwrap();
+        let base = parse_base_url(&format!("{}/evo/", server.uri())).unwrap();
+        Client::new(base)
+            .unwrap()
+            .force_reconnect(&admin(), "u1", "5511999990000")
+            .await
+            .unwrap();
     }
 
     #[tokio::test]

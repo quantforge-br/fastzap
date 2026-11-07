@@ -191,6 +191,11 @@
 
 ### Fixed
 
+- An Evolution Go phone that is still linked but whose server client has no
+  socket (the server could not reach WhatsApp at startup and never retries)
+  shows as disconnected with its chats instead of a QR code that never comes.
+  Retry restarts that client through the admin force reconnect, since the
+  server's reconnect route refuses disconnected clients.
 - Grid view is ZapZap's account overview instead of tiled webviews: a card
   per account, including Evolution Go and disabled accounts, with icon, name
   and unread count, laid out in the configured columns. A card opens its

@@ -476,12 +476,9 @@ pub async fn ensure_connected(
     refresh_status(app, session).await
 }
 
-/// Linked and connected is online; linked but disconnected waits for the
-/// server's own reconnect (or an explicit retry).
 /// A different phone linked to the instance has its own chats and journal.
 fn bind_owner(app: &AppHandle, session: &Session, jid: &str) {
-    let user = jid.split('@').next().unwrap_or("");
-    let owner = user.split(':').next().unwrap_or("");
+    let owner = jid_owner(jid);
     if owner.is_empty() {
         return;
     }
@@ -502,6 +499,12 @@ fn bind_owner(app: &AppHandle, session: &Session, jid: &str) {
     }
 }
 
+/// The phone number of a device JID (`5511…:79@s.whatsapp.net`).
+fn jid_owner(jid: &str) -> &str {
+    let user = jid.split('@').next().unwrap_or("");
+    user.split(':').next().unwrap_or("")
+}
+
 fn clear_media(dir: &std::path::Path) {
     if let Err(e) = std::fs::remove_dir_all(dir)
         && e.kind() != std::io::ErrorKind::NotFound
@@ -513,23 +516,73 @@ fn clear_media(dir: &std::path::Path) {
 async fn refresh_status(app: &AppHandle, session: &Session) -> Option<client::ConnectionStatus> {
     let status = session.client.status(&session.token).await;
     match &status {
-        Ok(status) if status.logged_in && !status.connected => set_connection(
-            app,
-            session,
-            Connection::Offline {
-                reason: tr("WhatsApp disconnected from the server."),
-            },
-        ),
-        Ok(status) if status.logged_in => {
-            set_connection(app, session, Connection::Online);
-            if !session.contacts_loaded.swap(true, Ordering::SeqCst) {
+        Ok(status) => {
+            let linked = !session.own_jid().is_empty();
+            let connection = connection_for(status, linked, &session.connection());
+            let online = connection == Connection::Online;
+            set_connection(app, session, connection);
+            if online && !session.contacts_loaded.swap(true, Ordering::SeqCst) {
                 load_contacts(app, session).await;
             }
         }
-        Ok(_) => set_connection(app, session, Connection::Pairing),
         Err(e) => set_connection(app, session, Connection::Offline { reason: reason(e) }),
     }
     status.ok()
+}
+
+/// What the server's client state means here. `LoggedIn` is only true while
+/// authenticated, so it says nothing about the link: a client without a
+/// socket cannot make QR codes, and for a linked phone it is a client the
+/// server failed to connect (it keeps one that could not reach WhatsApp at
+/// startup and never retries it). Linked but disconnected waits for the
+/// server's own reconnect or an explicit retry (`restart_client`).
+fn connection_for(
+    status: &client::ConnectionStatus,
+    linked: bool,
+    current: &Connection,
+) -> Connection {
+    let disconnected = || Connection::Offline {
+        reason: tr("WhatsApp disconnected from the server."),
+    };
+    match (status.connected, status.logged_in) {
+        (true, true) => Connection::Online,
+        (false, true) => disconnected(),
+        (true, false) => Connection::Pairing,
+        // The phone unlinked it: wait for "Link again".
+        (false, false) if *current == Connection::LoggedOut => Connection::LoggedOut,
+        (false, false) if linked => disconnected(),
+        (false, false) => Connection::Pairing,
+    }
+}
+
+/// Start the server's client of a linked phone again when it has no socket.
+/// `POST /instance/reconnect` refuses such a client and `GET /instance/qr`
+/// waits for a QR code it never makes, so this takes the admin force
+/// reconnect.
+pub async fn restart_client(app: &AppHandle, session: &Session) -> Result<(), EvoError> {
+    let jid = session.own_jid();
+    let number = jid_owner(&jid);
+    if number.is_empty() {
+        return Ok(());
+    }
+    let restarted = session
+        .client
+        .force_reconnect(&session.admin, &session.instance_id, number)
+        .await;
+    spawn_refresh(app, session.account_id, Some(Duration::from_secs(3)));
+    match restarted {
+        // The server checks the new client 2 s after starting it and answers
+        // 500 when it is not logged in yet (or is pairing a new device); it
+        // keeps starting, and the refresh and `Connected` event tell the rest.
+        Err(EvoError::Http {
+            status: 500,
+            message,
+        }) => {
+            log::info!("evolution client restart still pending: {message}");
+            Ok(())
+        }
+        other => other,
+    }
 }
 
 /// Contact names and group subjects (read-only).
@@ -917,5 +970,81 @@ pub fn notification_clicked(app: &AppHandle, account_id: i64, chat: &str) {
                 chat: chat.to_owned(),
             },
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use client::ConnectionStatus;
+
+    fn status(connected: bool, logged_in: bool) -> ConnectionStatus {
+        ConnectionStatus {
+            connected,
+            logged_in,
+            name: String::new(),
+        }
+    }
+
+    fn is_offline(c: &Connection) -> bool {
+        matches!(c, Connection::Offline { .. })
+    }
+
+    #[test]
+    fn a_linked_phone_without_a_socket_is_offline_not_pairing() {
+        // The server kept a client that failed to reach WhatsApp at startup:
+        // no socket, not logged in, and no QR code will ever come.
+        let c = connection_for(&status(false, false), true, &Connection::Connecting);
+        assert!(is_offline(&c), "{c:?}");
+        let c = connection_for(&status(false, false), true, &Connection::Pairing);
+        assert!(is_offline(&c), "{c:?}");
+    }
+
+    #[test]
+    fn pairing_needs_a_socket_or_an_unlinked_instance() {
+        let pairing = |s, linked| connection_for(&s, linked, &Connection::Connecting);
+        // A socket without a login is waiting for a QR scan, linked or not.
+        assert_eq!(pairing(status(true, false), true), Connection::Pairing);
+        assert_eq!(pairing(status(true, false), false), Connection::Pairing);
+        // A new instance's client may still be starting.
+        assert_eq!(pairing(status(false, false), false), Connection::Pairing);
+    }
+
+    #[test]
+    fn login_decides_online_and_a_dropped_login_is_offline() {
+        let current = Connection::Pairing;
+        assert_eq!(
+            connection_for(&status(true, true), true, &current),
+            Connection::Online
+        );
+        assert!(is_offline(&connection_for(
+            &status(false, true),
+            true,
+            &current
+        )));
+    }
+
+    #[test]
+    fn an_unlinked_phone_stays_logged_out_until_pairing_starts() {
+        let current = Connection::LoggedOut;
+        // The instance keeps the old JID after the phone unlinks it.
+        assert_eq!(
+            connection_for(&status(false, false), true, &current),
+            Connection::LoggedOut
+        );
+        assert_eq!(
+            connection_for(&status(true, false), true, &current),
+            Connection::Pairing
+        );
+    }
+
+    #[test]
+    fn device_jids_map_to_the_phone_number() {
+        assert_eq!(
+            jid_owner("5511999990000:79@s.whatsapp.net"),
+            "5511999990000"
+        );
+        assert_eq!(jid_owner("5511999990000@s.whatsapp.net"), "5511999990000");
+        assert_eq!(jid_owner(""), "");
     }
 }

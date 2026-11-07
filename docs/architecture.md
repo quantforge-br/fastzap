@@ -424,9 +424,16 @@ atualizar os ticks.
   registro do novo, o socket continua aberto (pongs chegam) sem receber
   eventos. Se a leitura grava mensagens que o socket não entregou e nenhum
   evento chegou desde a leitura anterior, a sessão pede um socket novo.
-  `LoggedIn` com
-  `Connected` falso aparece como offline, e "Tentar de novo" chama
-  `POST /instance/reconnect`. Não lidas entram no `UnreadRegistry`
+  `LoggedIn` só vale enquanto o cliente está autenticado. Sem socket
+  (`Connected` falso), uma instância com JID pareado aparece como offline, e
+  não como pareamento: o servidor mantém, sem tentar de novo, o cliente que
+  não alcançou o WhatsApp ao iniciar, e não gera QR para ele (`logged_out`
+  continua até "Link again"). "Tentar de novo" reinicia esse cliente com
+  `POST /instance/forcereconnect/{id}` (chave admin, corpo com o número
+  pareado), porque `POST /instance/reconnect` recusa cliente desconectado; o
+  500 que o servidor devolve quando o cliente novo ainda não fez login 2 s
+  depois não é erro, e a atualização seguinte decide o estado. Não lidas
+  entram no `UnreadRegistry`
   (chats com não lidas, como o título do WhatsApp Web) e mensagens novas
   geram notificações pelo pipeline comum com `tag` = JID do chat; o clique
   emite `open_chat`.
