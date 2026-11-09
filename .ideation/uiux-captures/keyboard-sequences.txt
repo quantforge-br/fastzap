@@ -1,0 +1,52 @@
+Keyboard sequences (FastZap UI/UX audit, 2026-11-05)
+
+R = real release build on Xvfb :93 (xdotool keys, WebKitGTK). C = Chromium harness
+(agent-browser `press`, same production SPA build, mocked IPC). activeElement read
+after each key in C.
+
+K1 (R) Onboarding modal, first run, 1000x700
+  open app -> no element focused inside the dialog
+  Tab x1..x3 -> step buttons / Next inside dialog (onboarding-tab1, onboarding-tab3, onboarding-tab-next)
+  Tab past "Next" -> focus leaves the modal to menu bar "File" behind the backdrop
+     (onboarding-tab-escape-behind-1000x700.png, onboarding-tab-escape-behind2-1000x700.png)
+  Enter -> native File menu (Settings / Hide / Quit) opens while onboarding is still modal
+     (onboarding-behind-file-menu-open-1000x700.png)
+
+K2 (C) Onboarding, ?s=onboarding: initial activeElement = BODY;
+  Tab 1-14 -> OUT File, View, Chat, Users, Help, account "3", "Audit Evolution", Downloads, "▦", "⚙",
+  Menu, New chat, search, All (all behind the modal; none inside the dialog)
+
+K3 (C) "Send message to number" dialog (ui://action open_chat_by_number)
+  initial: IN input "Phone number" (good)
+  Tab 1: IN textarea; Tab 2: IN Cancel; Tab 3: OUT BODY; Tab 4..8: OUT File, View, Chat, Users, Help
+
+K4 (C) Keyboard shortcuts dialog (ui://action show_shortcuts)
+  initial: OUT (focus stays on the previously focused background control)
+  Tab 1..8: OUT account "3", "Audit Evolution", Downloads, "▦", "⚙", Menu, New chat, search
+  (R: shortcuts-dialog-1000x700.png shows the focus ring on the sidebar Downloads button behind the backdrop)
+
+K5 (R) Conversation per-message buttons
+  click chat "Ana Souza" -> Tab x12 -> notice button focused (evo-conversation-tab12-focus-hidden)
+  Tab x13 -> focus on first "Message actions" button, nothing visible on screen
+     (evo-conversation-tab13-focus-hidden-1000x700.png)
+  Enter -> actions menu opens on a message the user could not see was focused
+     (evo-conversation-tab13-enter-menu-1000x700.png)
+  Escape -> menu stays open (evo-conversation-menu-after-escape-1000x700.png)
+
+K6 (C) Tab stops from the selected chat row to the composer (11-message chat)
+  focus row "Ana Souza" -> Tab x38 -> TEXTAREA "Type a message"
+  in between: 8 more chat rows, chat Menu, notice, 11x "Message actions", 11x "React",
+  1 link, 1 document button, Attach file, Emoji. Shift+Tab from composer -> Emoji.
+
+K7 (C) Downloads list
+  focus "relatorio-trimestral.pdf" -> Tab -> "Clear download history"
+  ("Show in folder" and "Delete" row buttons skipped; visibility:hidden until hover)
+
+K8 (R) Chrome-less window (Browser sidebar off + Menu bar off, Settings > Appearance)
+  Escape -> Accounts overview with no visible navigation (shell-no-sidebar-no-menubar-1000x700.png)
+  click account card -> chat with no app chrome at all (shell-no-chrome-evolution-1000x700.png)
+  Ctrl+P -> Settings reopens (only recovery path besides the tray; undocumented on screen)
+     (shell-no-chrome-ctrlp-recovery-1000x700.png)
+
+K9 (C) Close confirmation (ui://action confirm_quit), pt_BR locale
+  initial: IN "Yes" (autofocus; Enter quits); Escape closes the dialog without quitting

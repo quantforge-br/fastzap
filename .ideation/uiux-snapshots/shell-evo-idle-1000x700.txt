@@ -1,0 +1,101 @@
+- generic
+  - navigation "Menu bar" [ref=e1]
+    - button "File" [ref=e3]
+    - button "View" [ref=e4]
+    - button "Chat" [ref=e5]
+    - button "Users" [ref=e6]
+    - button "Help" [ref=e7]
+  - navigation "Accounts" [ref=e2]
+    - button "3" [ref=e8]
+      - StaticText "3"
+    - button "Audit Evolution" [ref=e9]
+      - StaticText "9"
+    - button "Downloads" [ref=e10]
+      - StaticText "⬇"
+    - button "▦" [ref=e11]
+    - button "⚙" [ref=e12]
+  - main
+    - complementary
+      - sectionheader
+        - heading "Chats" [level=1, ref=e14]
+        - button "Menu" [expanded=false, ref=e20]
+        - button "New chat" [ref=e15]
+      - LabelText
+        - textbox [ref=e16]
+      - tablist
+        - tab "All" [selected, ref=e17]
+        - tab "Unread 9" [ref=e18]
+          - StaticText "Unread"
+          - StaticText "9"
+        - tab "Groups" [ref=e19]
+      - list
+        - listitem [level=1]
+          - button "Archived 1" [ref=e21]
+            - StaticText "Archived"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Ana Souza 08:24 PM Vou enviar a versão final ainda hoje." [ref=e22]
+            - StaticText "Ana Souza"
+            - StaticText "08:24 PM"
+            - StaticText "Vou enviar a versão final ainda hoje."
+        - listitem [level=1]
+          - button "Equipe Projeto 07:44 PM Valeu! 3" [ref=e23]
+            - StaticText "Equipe Projeto"
+            - StaticText "07:44 PM"
+            - StaticText "Valeu!"
+            - StaticText "3"
+        - listitem [level=1]
+          - button "Carlos Lima 11/04/26 Document 1" [ref=e24]
+            - StaticText "Carlos Lima"
+            - StaticText "11/04/26"
+            - StaticText "Document"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Beatriz Rocha 11/03/26 Mensagem de teste 2 1" [ref=e25]
+            - StaticText "Beatriz Rocha"
+            - StaticText "11/03/26"
+            - StaticText "Mensagem de teste 2"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Diego Martins 11/02/26 Mensagem de teste 3 1" [ref=e26]
+            - StaticText "Diego Martins"
+            - StaticText "11/02/26"
+            - StaticText "Mensagem de teste 3"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Elisa Prado 11/01/26 Mensagem de teste 4 1" [ref=e27]
+            - StaticText "Elisa Prado"
+            - StaticText "11/01/26"
+            - StaticText "Mensagem de teste 4"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Fábio Nunes 10/31/26 Mensagem de teste 5 1" [ref=e28]
+            - StaticText "Fábio Nunes"
+            - StaticText "10/31/26"
+            - StaticText "Mensagem de teste 5"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Gabriela Torres (Financeiro da empresa com nome bem longo) 10/30/26 Mensagem de teste 6 1" [ref=e29]
+            - StaticText "Gabriela Torres (Financeiro da empresa com nome bem longo)"
+            - StaticText "10/30/26"
+            - StaticText "Mensagem de teste 6"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Hugo Alves 10/29/26 Mensagem de teste 7 1" [ref=e30]
+            - StaticText "Hugo Alves"
+            - StaticText "10/29/26"
+            - StaticText "Mensagem de teste 7"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Isabela Costa 10/28/26 Mensagem de teste 8 1" [ref=e31]
+            - StaticText "Isabela Costa"
+            - StaticText "10/28/26"
+            - StaticText "Mensagem de teste 8"
+            - StaticText "1"
+    - generic
+      - heading "Evolution Go" [level=2, ref=e13]
+      - paragraph
+        - StaticText "Select a chat to start messaging."
+      - paragraph
+        - StaticText "Archived chats follow the phone; pinning, archiving and muting are not available through Evolution Go."
+      - StaticText "Messages go through your Evolution Go server."

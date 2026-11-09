@@ -1,0 +1,20 @@
+Evolution Go mock request log (audit harness, 127.0.0.1:18080, fictitious data).
+Journey: real FastZap release build on Xvfb :93 -> account "Audit Evolution" ->
+chat "Ana Souza" -> hover own message -> "Message actions" -> "Delete for everyone"
+(one click). Screens before/after: evo-conversation-own-actions-menu-scrolled-1000x700.png,
+evo-conversation-after-delete-click-1000x700.png.
+
+Excerpt of the mock stdout around the single click (no other request in between;
+no confirmation dialog was shown and the bubble became "This message was deleted"):
+
+journal after 21 -> 0
+journal after 21 -> 0
+UNHANDLED POST /message/delete        <- sent immediately by the single menu click
+UNHANDLED POST /message/markread
+journal after 21 -> 0
+UNHANDLED POST /message/presence
+UNHANDLED POST /message/presence
+SEND text {"number": "5511987650001@s.whatsapp.net", "id": "3EB039BE2D56613E9090"}
+
+("UNHANDLED" only means the mock answered the route with the generic
+{"data": []} success envelope; FastZap treated it as a successful revoke.)

@@ -1,0 +1,23 @@
+- generic
+  - generic "Monitoring panel"
+    - banner
+      - heading "Quick access" [level=1, ref=e5]
+    - list
+      - listitem [level=1]
+        - button "Account 1" [ref=e6]
+          - StaticText "Account 1"
+          - StaticText "3"
+      - listitem [level=1]
+        - button "Audit Evolution" [ref=e7]
+          - StaticText "Audit Evolution"
+          - StaticText "9"
+      - listitem [level=1]
+        - button "Trabalho" [disabled, ref=e8]
+          - StaticText "Trabalho"
+    - button "+ New account" [ref=e1]
+      - StaticText "+"
+      - StaticText "New account"
+    - separator
+    - button "🔊 Mute" [ref=e2]
+    - button "⬇ Downloads" [ref=e3]
+    - button "⚙ Settings" [ref=e4]

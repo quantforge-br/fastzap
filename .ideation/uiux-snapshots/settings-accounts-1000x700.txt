@@ -1,0 +1,92 @@
+- generic
+  - navigation "Menu bar" [ref=e1]
+    - button "File" [ref=e3]
+    - button "View" [ref=e4]
+    - button "Chat" [ref=e5]
+    - button "Users" [ref=e6]
+    - button "Help" [ref=e7]
+  - navigation "Accounts" [ref=e2]
+    - button "3" [ref=e8]
+      - StaticText "3"
+    - button "Audit Evolution" [ref=e9]
+      - StaticText "9"
+    - button "Downloads" [ref=e10]
+      - StaticText "⬇"
+    - button "▦" [ref=e11]
+    - button "⚙" [ref=e12]
+  - main
+    - generic
+      - complementary
+        - sectionheader
+          - heading "Settings" [level=1, ref=e14]
+          - paragraph
+            - StaticText "Adjust accounts, appearance, notifications and advanced options."
+          - button "Close settings" [ref=e15]
+            - StaticText "✕"
+        - navigation
+          - button "Accounts" [ref=e16]
+          - button "Appearance" [ref=e17]
+          - button "Notifications" [ref=e18]
+          - button "Permissions" [ref=e19]
+          - button "System and startup" [ref=e20]
+          - button "Language and Download" [ref=e21]
+          - button "Privacy and Network" [ref=e22]
+          - button "Advanced Customizations" [ref=e23]
+          - button "Performance experimental" [ref=e24]
+          - button "Report a problem" [ref=e25]
+          - button "About" [ref=e26]
+        - sectionfooter
+          - button "Quit" [disabled, ref=e27]
+      - main
+        - heading "Accounts" [level=1, ref=e13]
+        - paragraph
+          - StaticText "Manage your accounts and individual preferences."
+        - generic
+          - sectionheader
+            - heading "Account list" [level=2, ref=e31]
+            - paragraph
+              - StaticText "Each account can have independent settings."
+            - button "+ Add account" [ref=e32]
+            - button "+ Evolution Go" [ref=e33]
+          - paragraph
+            - StaticText "3 of 5 accounts configured."
+        - generic
+          - sectionheader
+            - StaticText "Unnamed account"
+            - button "Edit" [ref=e34]
+            - button "Remove" [disabled, ref=e35]
+          - StaticText "Account status"
+          - StaticText "Disabled accounts remain saved, but are not loaded and do not receive notifications."
+          - radiogroup "Account status"
+            - radio "Enabled" [checked=true, ref=e36]
+            - radio "Disabled" [checked=false, ref=e37]
+          - StaticText "Do not disturb"
+          - StaticText "Silences notifications for this account."
+          - switch "Do not disturb" [checked=false, ref=e28]
+        - generic
+          - sectionheader
+            - StaticText "Audit Evolution"
+            - button "Evolution Go" [ref=e38]
+            - button "Edit" [ref=e39]
+            - button "Remove" [ref=e40]
+          - StaticText "Account status"
+          - StaticText "Disabled accounts remain saved, but are not loaded and do not receive notifications."
+          - radiogroup "Account status"
+            - radio "Enabled" [checked=true, ref=e41]
+            - radio "Disabled" [checked=false, ref=e42]
+          - StaticText "Do not disturb"
+          - StaticText "Silences notifications for this account."
+          - switch "Do not disturb" [checked=false, ref=e29]
+        - generic
+          - sectionheader
+            - StaticText "Trabalho"
+            - button "Edit" [ref=e43]
+            - button "Remove" [ref=e44]
+          - StaticText "Account status"
+          - StaticText "Disabled accounts remain saved, but are not loaded and do not receive notifications."
+          - radiogroup "Account status"
+            - radio "Enabled" [checked=false, ref=e45]
+            - radio "Disabled" [checked=true, ref=e46]
+          - StaticText "Do not disturb"
+          - StaticText "Unavailable while the account is disabled."
+          - switch "Do not disturb" [checked=true, disabled, ref=e30]

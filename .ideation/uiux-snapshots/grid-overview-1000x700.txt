@@ -1,0 +1,29 @@
+- generic
+  - navigation "Menu bar" [ref=e1]
+    - button "File" [ref=e3]
+    - button "View" [ref=e4]
+    - button "Chat" [ref=e5]
+    - button "Users" [ref=e6]
+    - button "Help" [ref=e7]
+  - navigation "Accounts" [ref=e2]
+    - button "3" [ref=e8]
+      - StaticText "3"
+    - button "Audit Evolution" [ref=e9]
+      - StaticText "9"
+    - button "Downloads" [ref=e10]
+      - StaticText "⬇"
+    - button "▦" [ref=e11]
+    - button "⚙" [ref=e12]
+  - main
+    - generic
+      - heading "Accounts overview" [level=1, ref=e13]
+      - paragraph
+        - StaticText "Select an account to return to its chat."
+      - button "Account" [ref=e14]
+        - StaticText "Unnamed account"
+        - StaticText "3"
+      - button "Audit Evolution" [ref=e15]
+        - StaticText "Audit Evolution"
+        - StaticText "9"
+      - button "Trabalho" [ref=e16]
+        - StaticText "Trabalho"

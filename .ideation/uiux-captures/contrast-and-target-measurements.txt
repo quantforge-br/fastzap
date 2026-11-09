@@ -1,0 +1,64 @@
+Contrast and target-size measurements (FastZap UI/UX audit, 2026-11-05)
+
+Method: production SPA build (build/) served on 127.0.0.1:4173 and rendered in the
+agent-browser Chromium session with a Tauri IPC mock (fictitious fixtures). Foreground
+= computed `color` with the product of ancestor opacities applied; background = all
+ancestor `background-color` layers composited from the root down; ratio per WCAG 2.x
+relative luminance. Size = getBoundingClientRect at 1000x700, 100 % scale.
+Thresholds: 4.5:1 normal text, 3:1 large text (>= 24 px, or >= 18.66 px bold) and
+non-text UI/graphics; WCAG 2.2 SC 2.5.8 target minimum 24x24 CSS px (spacing exception).
+Automated cross-check: axe-core 4.12.1 color-contrast (axe-evo-conversation-1000x700.txt).
+
+LIGHT THEME (default)                              fg       bg       ratio  font        size    verdict
+chat list unread time (.time.unread)              #1daa61  #ffffff  3.01   12px 600    53x17   FAIL text (axe: serious, 6 nodes)
+chat list unread count badge (.badge)             #ffffff  #1daa61  3.01   12px 600    20x20   FAIL text
+archived folder count (.folder-count)             #1daa61  #ffffff  3.01   12px 600    7x17    FAIL text
+filter chip count (.chip-count)                   #828181  #ffffff  3.87   12px 400    7x17    FAIL text
+sidebar unread badge (.badge)                     #ffffff  #e53935  4.23   11px 400    26x18   FAIL text
+link in incoming bubble (p.text a)                #53bdeb  #ffffff  2.13   14.2px 400  206x19  FAIL text
+message time, outgoing bubble (.meta)             #667781  #d9fdd3  4.19   11px 400    67x16   FAIL text
+message time, incoming bubble (.meta)             #667781  #ffffff  4.65   11px 400    48x15   pass
+read ticks, outgoing bubble (.tick.read)          #53bdeb  #d9fdd3  1.92   icon 16px   16x16   FAIL non-text 3:1
+quote author in outgoing quote (strong)           #ffd279  #cef0c8  1.15   13px 600    336x18  FAIL text
+primary button (.btn.primary, white on accent)    #ffffff  #00a884  3.03   13px 400    113x32  FAIL text
+segmented control "Enabled" (selected)            #ffffff  #00a884  3.03   16px 400    85x30   FAIL text
+settings nav active item (.nav.active)            #00a884  #eae9e7  2.50   14px 600    236x35  FAIL text
+quick-access panel unread badge                   #ffffff  #00a884  3.03   11px 400    30x18   FAIL text
+quick-access panel "+" avatar                     #ffffff  #00a884  3.03   12px 600    28x28   FAIL text
+settings row description (.description)           #585f64  #ffffff  6.46   12px 400    -       pass
+settings subtitle (p.muted)                       #545c61  #f0f2f5  6.12   12px 400    -       pass
+danger button text (.btn.danger)                  #e01b24  #ffffff  4.83   13px 400    75x32   pass
+date pill / notice / media error                  -        -        5.4-6.1                     pass
+
+Group sender / quote author palette (src/lib/evolution/format.ts:94) on light bubbles:
+  bg #ffffff: #06cf9c 2.02  #d88deb 2.35  #fc9775 2.14  #53bdeb 2.13  #ffd279 1.42  #a5b337 2.31  #ff72a1 2.57  #7f66ff 4.00
+  bg #d9fdd3: #06cf9c 1.82  #d88deb 2.12  #fc9775 1.93  #53bdeb 1.92  #ffd279 1.28  #a5b337 2.08  #ff72a1 2.32  #7f66ff 3.61
+  bg #cef0c8: #06cf9c 1.63  #d88deb 1.90  #fc9775 1.72  #53bdeb 1.72  #ffd279 1.15  #a5b337 1.86  #ff72a1 2.07  #7f66ff 3.23
+  -> 8/8 colors fail 4.5:1 on every light background.
+
+DARK THEME (prefers-color-scheme: dark)
+link in incoming bubble                           #53bdeb  #242626  7.13                       pass
+quote author                                      #ffd279  #0f3a29  8.92                       pass
+message time, outgoing                            #a1b8af  #144d37  4.65                       pass
+read ticks                                        #53bdeb  #144d37  4.59                       pass
+unread time                                       #21c063  #161717  7.51                       pass
+primary button                                    #ffffff  #00a884  3.03   13px                FAIL text
+segmented "Enabled"                               #ffffff  #00a884  3.03   16px                FAIL text
+settings nav active item                          #00a884  #292a2a  4.75                       pass
+
+TARGET SIZES (light, 1000x700)
+sidebar tool buttons (Downloads, Grid, Settings)  44x44  pass
+chat list Menu / New chat                          40x40  pass
+message "Message actions" chevron (.more)          32x24  pass (but opacity 0 unless :hover)
+message "React" (.react)                           28x28  pass (but opacity 0 unless :hover)
+menu bar titles                                    41x26  pass
+Settings close (button.close, glyph)               25x21  below 24 px height; spacing exception applies (isolated)
+Switch (button.switch)                             40x22  below 24 px height; spacing exception applies (one per row)
+close-confirm "No" (unstyled native button)        33x27  pass
+downloads row "Show in folder" / "Delete"          29x26 / 24x26  pass, but visibility:hidden unless li:hover
+
+FOCUS INDICATORS (computed while focused)
+.more / .react (focused via keyboard, :focus-visible true)   opacity 0 -> focus invisible
+ChatView search input (.search input)                        outline none, box-shadow none
+Conversation composer (textarea)                             outline none, box-shadow none
+Only :focus-visible rule in src/: src/lib/accounts/AccountsOverview.svelte:134

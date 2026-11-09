@@ -1,0 +1,191 @@
+- generic
+  - navigation "Menu bar" [ref=e1]
+    - button "File" [ref=e3]
+    - button "View" [ref=e4]
+    - button "Chat" [ref=e5]
+    - button "Users" [ref=e6]
+    - button "Help" [ref=e7]
+  - navigation "Accounts" [ref=e2]
+    - button "3" [ref=e8]
+      - StaticText "3"
+    - button "Audit Evolution" [ref=e9]
+      - StaticText "9"
+    - button "Downloads" [ref=e10]
+      - StaticText "⬇"
+    - button "▦" [ref=e11]
+    - button "⚙" [ref=e12]
+  - main
+    - complementary
+      - sectionheader
+        - heading "Chats" [level=1, ref=e13]
+        - button "Menu" [expanded=false, ref=e19]
+        - button "New chat" [ref=e14]
+      - LabelText
+        - textbox [ref=e15]
+      - tablist
+        - tab "All" [selected, ref=e16]
+        - tab "Unread 9" [ref=e17]
+          - StaticText "Unread"
+          - StaticText "9"
+        - tab "Groups" [ref=e18]
+      - list
+        - listitem [level=1]
+          - button "Archived 1" [ref=e20]
+            - StaticText "Archived"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Ana Souza 08:24 PM Vou enviar a versão final ainda hoje." [ref=e21]
+            - StaticText "Ana Souza"
+            - StaticText "08:24 PM"
+            - StaticText "Vou enviar a versão final ainda hoje."
+        - listitem [level=1]
+          - button "Equipe Projeto 07:44 PM Valeu! 3" [ref=e22]
+            - StaticText "Equipe Projeto"
+            - StaticText "07:44 PM"
+            - StaticText "Valeu!"
+            - StaticText "3"
+        - listitem [level=1]
+          - button "Carlos Lima 11/04/26 Document 1" [ref=e23]
+            - StaticText "Carlos Lima"
+            - StaticText "11/04/26"
+            - StaticText "Document"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Beatriz Rocha 11/03/26 Mensagem de teste 2 1" [ref=e24]
+            - StaticText "Beatriz Rocha"
+            - StaticText "11/03/26"
+            - StaticText "Mensagem de teste 2"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Diego Martins 11/02/26 Mensagem de teste 3 1" [ref=e25]
+            - StaticText "Diego Martins"
+            - StaticText "11/02/26"
+            - StaticText "Mensagem de teste 3"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Elisa Prado 11/01/26 Mensagem de teste 4 1" [ref=e26]
+            - StaticText "Elisa Prado"
+            - StaticText "11/01/26"
+            - StaticText "Mensagem de teste 4"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Fábio Nunes 10/31/26 Mensagem de teste 5 1" [ref=e27]
+            - StaticText "Fábio Nunes"
+            - StaticText "10/31/26"
+            - StaticText "Mensagem de teste 5"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Gabriela Torres (Financeiro da empresa com nome bem longo) 10/30/26 Mensagem de teste 6 1" [ref=e28]
+            - StaticText "Gabriela Torres (Financeiro da empresa com nome bem longo)"
+            - StaticText "10/30/26"
+            - StaticText "Mensagem de teste 6"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Hugo Alves 10/29/26 Mensagem de teste 7 1" [ref=e29]
+            - StaticText "Hugo Alves"
+            - StaticText "10/29/26"
+            - StaticText "Mensagem de teste 7"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Isabela Costa 10/28/26 Mensagem de teste 8 1" [ref=e30]
+            - StaticText "Isabela Costa"
+            - StaticText "10/28/26"
+            - StaticText "Mensagem de teste 8"
+            - StaticText "1"
+    - generic
+      - sectionheader
+        - StaticText "Ana Souza"
+        - button "Menu" [expanded=false, ref=e31]
+      - generic
+        - generic
+          - button "Click this notice to load older messages from your phone." [ref=e32]
+          - StaticText "Yesterday"
+          - generic
+            - generic
+              - button "Message actions" [ref=e48]
+              - paragraph
+                - StaticText "Oi! Tudo certo para a reunião de amanhã?"
+                - StaticText "05:34 PM"
+            - button "React" [ref=e37]
+          - generic
+            - generic
+              - button "Message actions" [ref=e49]
+              - paragraph
+                - StaticText "Tudo sim. Te mando a pauta mais tarde."
+                - StaticText "05:46 PM"
+            - button "React" [ref=e38]
+          - generic
+            - generic
+              - button "Message actions" [ref=e50]
+              - paragraph
+                - StaticText "Perfeito, obrigada!"
+                - StaticText "05:52 PM"
+            - button "React" [ref=e39]
+            - StaticText "❤️"
+          - StaticText "Today"
+          - generic
+            - generic
+              - button "Message actions" [ref=e51]
+              - paragraph
+                - StaticText "Bom dia! Conseguiu revisar o documento? Segue o link: "
+                - link "https://example.com/doc/rev-3" [ref=e60]
+                - StaticText "06:34 PM"
+            - button "React" [ref=e40]
+          - generic
+            - generic
+              - button "Message actions" [ref=e52]
+              - button "relatorio-trimestral.pdf" [ref=e53]
+                - StaticText "relatorio-trimestral.pdf"
+              - paragraph
+                - StaticText "06:40 PM"
+            - button "React" [ref=e41]
+          - generic
+            - generic
+              - button "Message actions" [ref=e54]
+              - StaticText "this media is no longer on WhatsApp's servers; open it on your phone"
+              - StaticText "06:46 PM"
+            - button "React" [ref=e42]
+          - generic
+            - generic
+              - button "Message actions" [ref=e55]
+              - strong
+                - StaticText "Ana Souza"
+              - StaticText "Bom dia! Conseguiu revisar o documento?"
+              - paragraph
+                - StaticText "Revisei agora. Ajustei a seção de prazos e a tabela de custos estimados para o próximo trimestre."
+                - StaticText "edited"
+                - StaticText "06:52 PM"
+            - button "React" [ref=e43]
+          - generic
+            - generic
+              - button "Message actions" [ref=e56]
+              - paragraph
+                - StaticText "Esta mensagem falhou ao enviar."
+                - StaticText "06:58 PM"
+            - button "React" [ref=e44]
+          - generic
+            - generic
+              - button "Message actions" [ref=e57]
+              - paragraph
+                - StaticText "Esta pode ter sido enviada."
+                - StaticText "07:04 PM"
+            - button "React" [ref=e45]
+          - generic
+            - generic
+              - button "Message actions" [ref=e58]
+              - paragraph
+                - StaticText "Show 👍"
+                - StaticText "08:04 PM"
+            - button "React" [ref=e46]
+          - generic
+            - generic
+              - button "Message actions" [ref=e59]
+              - paragraph
+                - StaticText "Vou enviar a versão final ainda hoje."
+                - StaticText "08:24 PM"
+            - button "React" [ref=e47]
+        - sectionfooter
+          - button "Attach file" [ref=e33]
+          - button "Emoji" [expanded=false, ref=e34]
+          - textbox "Type a message" [ref=e35]
+          - button "Send" [disabled, ref=e36]

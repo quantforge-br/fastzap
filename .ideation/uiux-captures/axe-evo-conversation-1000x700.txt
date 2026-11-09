@@ -1,0 +1,26 @@
+url: http://127.0.0.1:4173/?s=evo
+axe-core: 4.12.1  violations: 1  incomplete: 1  passes: 30
+
+[serious] color-contrast: Elements must meet minimum color contrast ratio thresholds (6 nodes)
+  https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI
+  - li:nth-child(3) > .row > .body.svelte-1xm8klu > .line.svelte-1xm8klu:nth-child(1) > .unread.time.svelte-1xm8klu
+  - li:nth-child(4) > .row > .body.svelte-1xm8klu > .line.svelte-1xm8klu:nth-child(1) > .unread.time.svelte-1xm8klu
+  - li:nth-child(5) > .row > .body.svelte-1xm8klu > .line.svelte-1xm8klu:nth-child(1) > .unread.time.svelte-1xm8klu
+  - li:nth-child(6) > .row > .body.svelte-1xm8klu > .line.svelte-1xm8klu:nth-child(1) > .unread.time.svelte-1xm8klu
+  - li:nth-child(7) > .row > .body.svelte-1xm8klu > .line.svelte-1xm8klu:nth-child(1) > .unread.time.svelte-1xm8klu
+  - li:nth-child(8) > .row > .body.svelte-1xm8klu > .line.svelte-1xm8klu:nth-child(1) > .unread.time.svelte-1xm8klu
+
+incomplete (needs manual review):
+[serious] color-contrast: Elements must meet minimum color contrast ratio thresholds (31 nodes)
+  https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI
+  - button[title=""] > .badge.svelte-1uha8ag
+  - button[title="Audit Evolution"] > .badge.svelte-1uha8ag
+  - button[title="Grid View (Ctrl+G)"]
+  - .chip-count
+  - .folder-count
+  - li:nth-child(3) > .row > .body.svelte-1xm8klu > .line.svelte-1xm8klu:nth-child(2) > .badge.svelte-1xm8klu
+  - li:nth-child(4) > .row > .body.svelte-1xm8klu > .line.svelte-1xm8klu:nth-child(2) > .badge.svelte-1xm8klu
+  - li:nth-child(5) > .row > .body.svelte-1xm8klu > .line.svelte-1xm8klu:nth-child(2) > .badge.svelte-1xm8klu
+  - li:nth-child(6) > .row > .body.svelte-1xm8klu > .line.svelte-1xm8klu:nth-child(2) > .badge.svelte-1xm8klu
+  - li:nth-child(7) > .row > .body.svelte-1xm8klu > .line.svelte-1xm8klu:nth-child(2) > .badge.svelte-1xm8klu
+  … and 21 more nodes

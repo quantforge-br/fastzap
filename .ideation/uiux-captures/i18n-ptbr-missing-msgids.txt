@@ -1,0 +1,160 @@
+t()/tn() literal msgids in src (excluding tests/generated): 735
+msgids without a pt_BR translation: 157
+
+'Account {number}'  <- src/lib/components/MenuBar.svelte
+'Add Evolution Go account'  <- src/lib/evolution/SetupDialog.svelte
+'Adjust interface chrome, quick access, theme, tray icon, grid view, and window decorations.'  <- src/lib/settings/pages/Appearance.svelte
+'Admin key'  <- src/lib/evolution/SetupDialog.svelte
+'All preferences return to their defaults. Accounts and WhatsApp sessions are kept.'  <- src/lib/settings/pages/Debugging.svelte
+'Archived'  <- src/lib/evolution/ChatView.svelte
+'Archived chats follow the phone; pinning, archiving and muting are not available through Evolution Go.'  <- src/lib/evolution/ChatView.svelte
+'Attach file'  <- src/lib/evolution/Conversation.svelte
+'Attachments'  <- src/lib/evolution/Conversation.svelte
+'Audio'  <- src/lib/evolution/format.ts
+'Automatic is recommended and uses the native backend for the current session. X11 is available as a compatibility fallback.'  <- src/lib/settings/pages/SystemStartup.svelte
+'Chats'  <- src/lib/evolution/ChatView.svelte
+'Chats appear here as messages arrive or history syncs.'  <- src/lib/evolution/ChatView.svelte
+'Check spelling in the message box with the selected dictionaries.'  <- src/lib/settings/pages/LanguageDownloads.svelte
+"Check this account's Evolution Go connection in Settings → Accounts."  <- src/lib/evolution/PairingPanel.svelte
+'Choose a predefined rendering configuration or customize individual options.'  <- src/lib/settings/pages/Performance.svelte
+'Clear search'  <- src/lib/evolution/ChatView.svelte
+'Click this notice to load older messages from your phone.'  <- src/lib/evolution/Conversation.svelte
+'Close chat'  <- src/lib/evolution/Conversation.svelte
+'Compatibility'  <- src/lib/settings/pages/Performance.svelte
+'Configure notifications and privacy.'  <- src/lib/settings/pages/Notifications.svelte
+'Connected'  <- src/lib/evolution/format.ts
+"Connecting turns on the instance's WebSocket; its webhook and other integrations are kept."  <- src/lib/evolution/SetupDialog.svelte
+'Connecting…'  <- src/lib/evolution/format.ts
+'Contact'  <- src/lib/evolution/format.ts
+'Could not copy the report to the clipboard. It was saved locally; try again.'  <- src/lib/reporting/ReportDialog.svelte
+'Could not open GitHub. The report is still copied to the clipboard. Open the official FastZap repository and paste it into a new issue.'  <- src/lib/reporting/ReportDialog.svelte
+'Create a new instance on the server'  <- src/lib/evolution/SetupDialog.svelte
+'Current instance: {id}'  <- src/lib/evolution/SetupDialog.svelte
+'Delete file'  <- src/lib/downloads/DownloadsView.svelte
+'Delete for everyone'  <- src/lib/evolution/Conversation.svelte
+'Description'  <- src/lib/reporting/format.ts
+'Dictionary operation failed: {msg}'  <- src/lib/spellcheck/DictionaryManager.svelte
+'Disables WebRTC so it cannot bypass the proxy.'  <- src/lib/settings/pages/NetworkPrivacy.svelte
+'Display backend'  <- src/lib/settings/pages/SystemStartup.svelte
+'Document'  <- src/lib/evolution/format.ts
+'Download directly (where supported)'  <- src/lib/settings/pages/LanguageDownloads.svelte
+'Downloading…'  <- src/lib/spellcheck/DictionaryManager.svelte
+'Drop files to attach'  <- src/lib/evolution/Conversation.svelte
+'Editing message'  <- src/lib/evolution/Conversation.svelte
+'Emoji'  <- src/lib/evolution/Conversation.svelte
+'Enable'  <- src/lib/settings/pages/Debugging.svelte
+'Error details'  <- src/lib/reporting/format.ts
+'Error type'  <- src/lib/reporting/format.ts
+'Evolution Go'  <- src/lib/evolution/ChatView.svelte, src/lib/settings/pages/Accounts.svelte
+'Evolution Go account'  <- src/lib/evolution/SetupDialog.svelte
+'Evolution Go connection'  <- src/lib/evolution/SetupDialog.svelte
+'Expected result'  <- src/lib/reporting/format.ts
+'FastZap can prepare a sanitized technical report locally after a serious failure. You will review it on the next startup.\\n\\nFastZap never transmits or publishes the report automatically.'  <- src/lib/settings/pages/Debugging.svelte
+'FastZap does not send reports. After review, it copies the report and opens the official GitHub repository quantforge-br/fastzap. You need a GitHub account to publish the public issue.'  <- src/lib/settings/pages/Debugging.svelte
+'FastZap is free software licensed under GNU General Public License v3.0 (GPL-3.0-or-later).'  <- src/lib/settings/pages/About.svelte
+'Filter'  <- src/lib/spellcheck/DictionaryManager.svelte
+'Frequency'  <- src/lib/reporting/format.ts
+'Get code'  <- src/lib/evolution/PairingPanel.svelte
+'Go to Settings → Linked devices → Link a device.'  <- src/lib/evolution/PairingPanel.svelte
+'Groups'  <- src/lib/evolution/ChatView.svelte
+'Install Hunspell dictionaries for spell checking. Dictionaries found on the system are used too.'  <- src/lib/spellcheck/DictionaryManager.svelte
+'Instance'  <- src/lib/evolution/SetupDialog.svelte
+'Limit of {} users reached.\\nIt is not possible to create more users!'  <- src/lib/settings/pages/Accounts.svelte
+'Link WhatsApp'  <- src/lib/evolution/PairingPanel.svelte
+'Link again'  <- src/lib/evolution/PairingPanel.svelte
+'Link with phone number instead'  <- src/lib/evolution/PairingPanel.svelte
+'Load instances'  <- src/lib/evolution/SetupDialog.svelte
+'Load older messages from phone'  <- src/lib/evolution/Conversation.svelte
+'Loading…'  <- src/lib/evolution/PairingPanel.svelte
+'Local reports deleted.'  <- src/lib/settings/pages/Debugging.svelte
+'Manual'  <- src/lib/settings/pages/Performance.svelte
+'Menu'  <- src/lib/evolution/ChatView.svelte, src/lib/evolution/Conversation.svelte
+'Message actions'  <- src/lib/evolution/Conversation.svelte
+'Messages go through your Evolution Go server.'  <- src/lib/evolution/ChatView.svelte
+'New instance name'  <- src/lib/evolution/SetupDialog.svelte
+'No QR code yet.'  <- src/lib/evolution/PairingPanel.svelte
+'No archived chats.'  <- src/lib/evolution/ChatView.svelte
+'No chats match the search.'  <- src/lib/evolution/ChatView.svelte
+'No groups.'  <- src/lib/evolution/ChatView.svelte
+'No local reports.'  <- src/lib/reporting/ReportsDialog.svelte
+'No unread chats.'  <- src/lib/evolution/ChatView.svelte
+'Not available with the system web view.'  <- src/lib/settings/pages/Performance.svelte
+'Not running'  <- src/lib/evolution/format.ts
+'Number with country code'  <- src/lib/evolution/PairingPanel.svelte
+'Official FastZap repository on GitHub: quantforge-br/fastzap'  <- src/lib/reporting/format.ts
+'Offline'  <- src/lib/evolution/format.ts
+'Offline: messages cannot be sent now'  <- src/lib/evolution/Conversation.svelte
+'Older messages were requested from your phone and will appear when it answers.'  <- src/lib/evolution/Conversation.svelte
+'On this platform the web engine uses the system spell checker and its languages.'  <- src/lib/settings/pages/LanguageDownloads.svelte
+'On your phone, choose “Link with phone number instead” and enter this code.'  <- src/lib/evolution/PairingPanel.svelte
+'Open WhatsApp Web in your browser with the Evolution Go passkey helper to confirm the link.'  <- src/lib/evolution/PairingPanel.svelte
+'Open WhatsApp on your phone.'  <- src/lib/evolution/PairingPanel.svelte
+'Open in browser'  <- src/lib/evolution/PairingPanel.svelte
+'Optional'  <- src/lib/evolution/SetupDialog.svelte
+'Optional file name (e.g. 10-custom.css)'  <- src/lib/settings/pages/Customizations.svelte
+'PDF file clicks'  <- src/lib/settings/pages/LanguageDownloads.svelte
+'Pairing code'  <- src/lib/evolution/PairingPanel.svelte
+'Phone number with country code'  <- src/lib/evolution/ChatView.svelte
+"Preview PDF files in WhatsApp or download them when the browser handles the PDF. WhatsApp's own preview may still open."  <- src/lib/settings/pages/LanguageDownloads.svelte
+'Preview in WhatsApp'  <- src/lib/settings/pages/LanguageDownloads.svelte
+'Problem type'  <- src/lib/reporting/format.ts
+'QR code'  <- src/lib/evolution/PairingPanel.svelte
+'Quoted message'  <- src/lib/evolution/Conversation.svelte
+'React'  <- src/lib/evolution/Conversation.svelte
+'Reconnect'  <- src/lib/evolution/ChatView.svelte
+'Refresh QR code'  <- src/lib/evolution/PairingPanel.svelte
+'Refresh contacts'  <- src/lib/evolution/ChatView.svelte
+'Remove attachment: {name}'  <- src/lib/evolution/Conversation.svelte
+'Remove every diagnostic file?'  <- src/lib/settings/pages/Debugging.svelte
+'Remove reaction'  <- src/lib/evolution/Conversation.svelte
+'Rendering profile'  <- src/lib/settings/pages/Performance.svelte
+'Reply'  <- src/lib/evolution/Conversation.svelte
+'Reports may include the FastZap version, operating system, installation type, architecture, web view version, error details, and sanitized logs.'  <- src/lib/settings/pages/Debugging.svelte
+'Restore every preference to its default value.'  <- src/lib/settings/pages/Debugging.svelte
+'Retry'  <- src/lib/evolution/ChatView.svelte
+'Save and reload to apply changes.'  <- src/lib/settings/pages/Customizations.svelte
+'Saved in the system keyring'  <- src/lib/evolution/SetupDialog.svelte
+'Scan the code below.'  <- src/lib/evolution/PairingPanel.svelte
+'Scroll to the newest message'  <- src/lib/evolution/Conversation.svelte
+'Search or start a new chat'  <- src/lib/evolution/ChatView.svelte
+'Select Hunspell dictionaries and the languages used for spell checking.'  <- src/lib/onboarding/Onboarding.svelte, src/lib/settings/pages/LanguageDownloads.svelte
+'Select a chat to start messaging.'  <- src/lib/evolution/ChatView.svelte
+'Send'  <- src/lib/evolution/Conversation.svelte
+'Send again'  <- src/lib/evolution/Conversation.svelte
+'Send again (it may already have been sent)'  <- src/lib/evolution/Conversation.svelte
+'Sending attachment…'  <- src/lib/evolution/Conversation.svelte
+'Server address'  <- src/lib/evolution/SetupDialog.svelte
+'Settings restored to their defaults.'  <- src/lib/settings/pages/Debugging.svelte
+'Show title bar'  <- src/lib/settings/pages/Appearance.svelte
+'Spell checking is handled by the system'  <- src/lib/settings/pages/LanguageDownloads.svelte
+'Start chat'  <- src/lib/evolution/ChatView.svelte
+'Sticker'  <- src/lib/evolution/format.ts
+'Syncing history… {progress}%'  <- src/lib/evolution/ChatView.svelte
+'Thanks to everyone who contributes translations, code, testing, and feedback.'  <- src/lib/settings/pages/About.svelte
+'The account could not be updated. Please try again.'  <- src/lib/accounts/AccountEditDialog.svelte
+'The key is kept in the system keyring and gives full access to the server. Use it only on your own computer.'  <- src/lib/evolution/SetupDialog.svelte
+'The system web view cannot authenticate to proxies; credentials are kept but not used.'  <- src/lib/settings/pages/NetworkPrivacy.svelte
+'These chats stay archived when new messages arrive, as on your phone.'  <- src/lib/evolution/ChatView.svelte
+'This message was deleted'  <- src/lib/evolution/Conversation.svelte
+'Today'  <- src/lib/evolution/format.ts
+'Turn off to hide the bar with the minimize, maximize and close buttons, as on tiling window managers.'  <- src/lib/settings/pages/Appearance.svelte
+'Type a message'  <- src/lib/evolution/Conversation.svelte
+"Type the admin key again to list the server's instances."  <- src/lib/evolution/SetupDialog.svelte
+'Unread'  <- src/lib/evolution/ChatView.svelte
+'Unsupported message'  <- src/lib/evolution/format.ts
+'Use WhatsApp through your own Evolution Go server instead of WhatsApp Web.'  <- src/lib/evolution/SetupDialog.svelte, src/lib/settings/pages/Accounts.svelte
+'Use an existing instance'  <- src/lib/evolution/SetupDialog.svelte
+'Video'  <- src/lib/evolution/format.ts
+'Waiting for WhatsApp to be linked'  <- src/lib/evolution/format.ts
+'Web view'  <- src/lib/settings/pages/About.svelte
+'WhatsApp Web is requesting access to {}.\\n\\nAllow?'  <- src/lib/permissions/PermissionDialog.svelte
+'WhatsApp asked for a passkey'  <- src/lib/evolution/PairingPanel.svelte
+'WhatsApp temporarily banned this number'  <- src/lib/evolution/format.ts
+'WhatsApp was unlinked from this instance'  <- src/lib/evolution/format.ts
+'Yesterday'  <- src/lib/evolution/format.ts
+'You'  <- src/lib/evolution/ChatView.svelte, src/lib/evolution/Conversation.svelte
+'disabled'  <- src/lib/settings/pages/NetworkPrivacy.svelte
+'disconnected'  <- src/lib/evolution/SetupDialog.svelte
+'edited'  <- src/lib/evolution/Conversation.svelte
+'recording audio…'  <- src/lib/evolution/ChatView.svelte, src/lib/evolution/Conversation.svelte
+'typing…'  <- src/lib/evolution/ChatView.svelte, src/lib/evolution/Conversation.svelte

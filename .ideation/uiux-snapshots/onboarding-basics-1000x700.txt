@@ -1,0 +1,177 @@
+- generic
+  - navigation "Menu bar" [ref=e1]
+    - button "File" [ref=e3]
+    - button "View" [ref=e4]
+    - button "Chat" [ref=e5]
+    - button "Users" [ref=e6]
+    - button "Help" [ref=e7]
+  - navigation "Accounts" [ref=e2]
+    - button "3" [ref=e8]
+      - StaticText "3"
+    - button "Audit Evolution" [ref=e9]
+      - StaticText "9"
+    - button "Downloads" [ref=e10]
+      - StaticText "⬇"
+    - button "▦" [ref=e11]
+    - button "⚙" [ref=e12]
+  - main
+    - complementary
+      - sectionheader
+        - heading "Chats" [level=1, ref=e15]
+        - button "Menu" [expanded=false, ref=e27]
+        - button "New chat" [ref=e16]
+      - LabelText
+        - textbox [ref=e17]
+      - tablist
+        - tab "All" [selected, ref=e18]
+        - tab "Unread 9" [ref=e19]
+          - StaticText "Unread"
+          - StaticText "9"
+        - tab "Groups" [ref=e20]
+      - list
+        - listitem [level=1]
+          - button "Archived 1" [ref=e28]
+            - StaticText "Archived"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Ana Souza 08:28 PM Vou enviar a versão final ainda hoje." [ref=e29]
+            - StaticText "Ana Souza"
+            - StaticText "08:28 PM"
+            - StaticText "Vou enviar a versão final ainda hoje."
+        - listitem [level=1]
+          - button "Equipe Projeto 07:48 PM Valeu! 3" [ref=e30]
+            - StaticText "Equipe Projeto"
+            - StaticText "07:48 PM"
+            - StaticText "Valeu!"
+            - StaticText "3"
+        - listitem [level=1]
+          - button "Carlos Lima 11/04/26 Document 1" [ref=e31]
+            - StaticText "Carlos Lima"
+            - StaticText "11/04/26"
+            - StaticText "Document"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Beatriz Rocha 11/03/26 Mensagem de teste 2 1" [ref=e32]
+            - StaticText "Beatriz Rocha"
+            - StaticText "11/03/26"
+            - StaticText "Mensagem de teste 2"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Diego Martins 11/02/26 Mensagem de teste 3 1" [ref=e33]
+            - StaticText "Diego Martins"
+            - StaticText "11/02/26"
+            - StaticText "Mensagem de teste 3"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Elisa Prado 11/01/26 Mensagem de teste 4 1" [ref=e34]
+            - StaticText "Elisa Prado"
+            - StaticText "11/01/26"
+            - StaticText "Mensagem de teste 4"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Fábio Nunes 10/31/26 Mensagem de teste 5 1" [ref=e35]
+            - StaticText "Fábio Nunes"
+            - StaticText "10/31/26"
+            - StaticText "Mensagem de teste 5"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Gabriela Torres (Financeiro da empresa com nome bem longo) 10/30/26 Mensagem de teste 6 1" [ref=e36]
+            - StaticText "Gabriela Torres (Financeiro da empresa com nome bem longo)"
+            - StaticText "10/30/26"
+            - StaticText "Mensagem de teste 6"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Hugo Alves 10/29/26 Mensagem de teste 7 1" [ref=e37]
+            - StaticText "Hugo Alves"
+            - StaticText "10/29/26"
+            - StaticText "Mensagem de teste 7"
+            - StaticText "1"
+        - listitem [level=1]
+          - button "Isabela Costa 10/28/26 Mensagem de teste 8 1" [ref=e38]
+            - StaticText "Isabela Costa"
+            - StaticText "10/28/26"
+            - StaticText "Mensagem de teste 8"
+            - StaticText "1"
+    - generic
+      - heading "Evolution Go" [level=2, ref=e13]
+      - paragraph
+        - StaticText "Select a chat to start messaging."
+      - paragraph
+        - StaticText "Archived chats follow the phone; pinning, archiving and muting are not available through Evolution Go."
+      - StaticText "Messages go through your Evolution Go server."
+  - dialog "Setup FastZap"
+    - navigation
+      - heading "Welcome to FastZap" [level=1, ref=e21]
+      - paragraph
+        - StaticText "Choose the essentials now. You can change everything later in Settings."
+      - list
+        - listitem [level=1]
+          - button "1 Basics" [ref=e41]
+            - StaticText "1"
+            - StaticText "Basics"
+        - listitem [level=1]
+          - button "2 Notifications" [ref=e42]
+            - StaticText "2"
+            - StaticText "Notifications"
+        - listitem [level=1]
+          - button "3 Background" [ref=e43]
+            - StaticText "3"
+            - StaticText "Background"
+        - listitem [level=1]
+          - button "4 Files" [ref=e44]
+            - StaticText "4"
+            - StaticText "Files"
+        - listitem [level=1]
+          - button "5 Permissions" [ref=e45]
+            - StaticText "5"
+            - StaticText "Permissions"
+        - listitem [level=1]
+          - button "6 Finish" [ref=e46]
+            - StaticText "6"
+            - StaticText "Finish"
+    - heading "Language and appearance" [level=2, ref=e14]
+    - paragraph
+      - StaticText "Start with the interface language and a comfortable visual theme."
+    - generic
+      - sectionheader
+        - heading "Language" [level=2, ref=e39]
+        - paragraph
+          - StaticText "Choose the interface language used by FastZap."
+      - StaticText "Interface language"
+      - StaticText "The interface language is applied when you finish setup."
+      - combobox "Interface language" [expanded=false, ref=e22]: System default
+        - MenuListPopup
+          - option "System default" [selected, ref=e47]
+          - option "Arabic - ar" [ref=e48]
+          - option "Bosnian - bs" [ref=e49]
+          - option "German - de" [ref=e50]
+          - option "Spanish - es" [ref=e51]
+          - option "French - fr" [ref=e52]
+          - option "Hebrew - he" [ref=e53]
+          - option "Hungarian - hu" [ref=e54]
+          - option "Italian - it" [ref=e55]
+          - option "Dutch - nl" [ref=e56]
+          - option "Polish - pl" [ref=e57]
+          - option "Brazilian Portuguese - pt_BR" [ref=e58]
+          - option "European Portuguese - pt_PT" [ref=e59]
+          - option "Russian (Russia) - ru_RU" [ref=e60]
+          - option "Swedish - sv" [ref=e61]
+          - option "Turkish - tr" [ref=e62]
+          - option "Ukrainian - uk" [ref=e63]
+          - option "Ukrainian (United Kingdom) - uk_UK" [ref=e64]
+          - option "Chinese (China) - zh_CN" [ref=e65]
+    - generic
+      - sectionheader
+        - heading "Theme" [level=2, ref=e40]
+        - paragraph
+          - StaticText "Choose the visual theme."
+      - StaticText "Theme"
+      - combobox "Theme" [expanded=false, ref=e23]: Automatic
+        - MenuListPopup
+          - option "Automatic" [selected, ref=e66]
+          - option "Light" [ref=e67]
+          - option "Dark" [ref=e68]
+    - contentinfo
+      - button "Skip setup" [ref=e24]
+      - button "Back" [disabled, ref=e25]
+      - button "Next" [ref=e26]

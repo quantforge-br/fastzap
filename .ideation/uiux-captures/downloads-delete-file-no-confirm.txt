@@ -1,0 +1,21 @@
+Real FastZap release build, isolated profile (/tmp/fz-uiux/profile), Xvfb :93, dark theme.
+Journey: Audit Evolution -> chat "Carlos Lima" -> click document "relatorio-trimestral.pdf"
+-> Download prompt (download-prompt-dark-1000x700.png) -> Save -> sidebar Downloads
+-> hover row (downloads-row-hover-dark-1000x700.png) -> one click on the trash glyph.
+
+Before the click:
+  -rw-r--r-- 1 diogo diogo 45 Nov  5 20:40 /tmp/fz-uiux/profile/home/relatorio-trimestral.pdf
+
+After the single click (about 1 s later), no dialog shown:
+  ls: cannot access '/tmp/fz-uiux/profile/home/relatorio-trimestral.pdf': No such file or directory
+  ls: cannot access '/tmp/fz-uiux/profile/home/.local/share/Trash/files': No such file or directory
+
+The row stays labelled "Completed" with only a strike-through
+(downloads-after-delete-click-dark-1000x700.png). Backend: src-tauri/src/commands/downloads.rs:63
+calls std::fs::remove_file (permanent, not moved to the trash).
+
+Keyboard reachability (Chromium harness, same production SPA build, mocked IPC,
+downloads-list-1000x700.txt): focus "relatorio-trimestral.pdf" -> Tab -> "Clear download history".
+The two row buttons (title "Show in folder" / "Delete") are skipped because
+.row-actions has visibility:hidden until li:hover; they are also absent from the
+accessibility tree.
