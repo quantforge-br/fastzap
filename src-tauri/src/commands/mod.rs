@@ -22,7 +22,7 @@ pub struct CommandError {
 impl<E: std::fmt::Display> From<E> for CommandError {
     fn from(err: E) -> Self {
         Self {
-            message: err.to_string(),
+            message: crate::i18n::tr(&err.to_string()),
         }
     }
 }

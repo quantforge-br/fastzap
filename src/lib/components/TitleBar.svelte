@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getCurrentWindow } from "@tauri-apps/api/window";
 
+  import { t } from "$lib/i18n/index.svelte";
   import type { AppearanceSettings } from "$lib/ipc";
   import { CSR_BUTTON_THEMES, resolveCsrButtonTheme } from "$lib/shell/csr";
 
@@ -29,14 +30,14 @@
   <span class="title" data-tauri-drag-region>FastZap</span>
   <div class="buttons">
     {#if appearance.csr_show_minimize_button}
-      <button title="Minimize" onclick={() => win.minimize()}>{buttons.minimize}</button>
+      <button title={t("Minimize")} onclick={() => win.minimize()}>{buttons.minimize}</button>
     {/if}
     {#if appearance.csr_show_maximize_button}
-      <button title={maximized ? "Restore" : "Maximize"} onclick={() => win.toggleMaximize()}>
+      <button title={maximized ? t("Restore") : t("Maximize")} onclick={() => win.toggleMaximize()}>
         {buttons.maximize}
       </button>
     {/if}
-    <button class="close" class:adwaita={theme === "adwaita"} title="Close" onclick={() => win.close()}>
+    <button class="close" class:adwaita={theme === "adwaita"} title={t("Close")} onclick={() => win.close()}>
       {buttons.close}
     </button>
   </div>

@@ -1,6 +1,7 @@
 // Report msgids used by the source that are missing from a translated catalog.
-// Extraction mirrors the call sites: t()/tn() in the frontend and tr() in Rust.
-// Run with \`pnpm i18n:coverage [po/code.po]\`.
+// Extraction mirrors the call sites: t()/tn() in the frontend and tr() in Rust,
+// plus literals rendered by Svelte markup and literals held in lookup tables.
+// Run with: pnpm i18n:coverage [po/code.po].
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
@@ -32,17 +33,97 @@ function unescape(body) {
   });
 }
 
-const CALL = /(?<![\w.])(tn|t|tr)\(\s*"((?:[^"\\]|\\.)*)"/g;
+const CALL = /(?<![\w.])(tr_args|tn|t|tr)\(\s*"((?:[^"\\]|\\.)*)"/g;
+// t(NAME) or t(NAME[...]) reads a literal declared elsewhere in the file.
+const INDIRECT = /(?<![\w.])(?:tn|t)\(\s*([A-Za-z_$][\w$]*)\s*(?:\[|[),])/g;
+const ERROR = /#\[error\("((?:[^"\\]|\\.)*)"\)/g;
+const TRANSLATABLE_ATTR = /\b(?:title|aria-label|aria-description|placeholder|alt|label)="([^"]*)"/g;
+
+// Literal strings that a named constant can hold (object values, ternaries).
+function literalsOf(text, name) {
+  const start = text.search(new RegExp("\\bconst\\s+" + name + "\\b"));
+  if (start < 0) return [];
+  const eq = text.indexOf("=", start);
+  if (eq < 0) return [];
+  const rest = text.slice(eq + 1);
+  const end = rest.search(/\n\s*(?:const|let|function|export|<\/script>)/);
+  const body = end < 0 ? rest : rest.slice(0, end);
+  return [...body.matchAll(/"((?:[^"\\]|\\.)*)"/g)]
+    .map((m) => unescape(m[1]))
+    .filter((id) => /[A-Z]/.test(id));
+}
+
+// Remove Svelte expressions, respecting quotes and nested braces.
+function stripExpressions(text) {
+  let out = "";
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] !== "{") {
+      out += text[i];
+      i += 1;
+      continue;
+    }
+    let depth = 0;
+    let quote = null;
+    while (i < text.length) {
+      const c = text[i];
+      if (quote) {
+        if (c === "\\") i += 1;
+        else if (c === quote) quote = null;
+      } else if (c === '"' || c === "'" || c === String.fromCharCode(96)) quote = c;
+      else if (c === "{") depth += 1;
+      else if (c === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          i += 1;
+          break;
+        }
+      }
+      i += 1;
+    }
+  }
+  return out;
+}
+
+// Text nodes and translatable attributes of the markup outside <script>/<style>.
+function markupStrings(text) {
+  const markup = stripExpressions(
+    text
+      .replace(/<script\b[\s\S]*?<\/script>/gi, "")
+      .replace(/<style\b[\s\S]*?<\/style>/gi, ""),
+  );
+  const found = [];
+  for (const m of markup.matchAll(TRANSLATABLE_ATTR)) found.push(m[1]);
+  for (const m of markup.matchAll(/>([^<>]+)</g)) found.push(m[1]);
+  return found
+    .map((s) => s.replace(/&[a-z]+;|&#\d+;/gi, " ").replace(/\s+/g, " ").trim())
+    .filter((s) => /[A-Za-z]/.test(s) && !/^[{}().,;:!?|&/+*=-]+$/.test(s));
+}
 
 function extract(path) {
   const text = readFileSync(path, "utf8");
+  const isRust = path.endsWith(".rs");
   const found = [];
   for (const match of text.matchAll(CALL)) {
     const [, callee, body] = match;
-    const isRust = path.endsWith(".rs");
-    if (isRust !== (callee === "tr")) continue;
-    // Skip i18n infra and non-user-facing catalog helpers.
+    if (isRust !== (callee === "tr" || callee === "tr_args")) continue;
     found.push({ id: unescape(body), where: relative(root, path) });
+  }
+  if (isRust) {
+    // Static error messages reach the UI through CommandError; strings built
+    // with format placeholders carry runtime values and cannot be matched.
+    for (const m of text.matchAll(ERROR)) {
+      const id = unescape(m[1]);
+      if (!/[{}]/.test(id)) found.push({ id, where: relative(root, path) });
+    }
+  }
+  if (!isRust) {
+    for (const match of text.matchAll(INDIRECT)) {
+      for (const id of literalsOf(text, match[1])) found.push({ id, where: relative(root, path) });
+    }
+    if (path.endsWith(".svelte")) {
+      for (const id of markupStrings(text)) found.push({ id, where: relative(root, path) });
+    }
   }
   return found;
 }

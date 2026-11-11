@@ -1902,7 +1902,7 @@ msgstr "Código JavaScript"
 
 #: zapzap/features/settings/pages/advanced_customizations/controller.py:641
 msgid "Ctrl+S to save"
-msgstr "Ctrl+S to save"
+msgstr "Ctrl+S para salvar"
 
 #: zapzap/features/settings/pages/advanced_customizations/controller.py:643
 #: zapzap/features/settings/pages/advanced_customizations/view.py:418
@@ -5851,6 +5851,126 @@ msgstr "Baixando…"
 #: src/lib/spellcheck/DictionaryManager.svelte
 msgid "Filter"
 msgstr "Filtrar"
+
+#: src/lib/downloads/DownloadsView.svelte
+msgid "Downloading"
+msgstr "Baixando"
+
+#: src/lib/settings/pages/Customizations.svelte
+msgid "JS file enabled: {}"
+msgstr "Arquivo JS ativado: {}"
+
+#: src/lib/settings/pages/Customizations.svelte
+msgid "JS file disabled: {}"
+msgstr "Arquivo JS desativado: {}"
+
+#: src/routes/+page.svelte
+msgid "No enabled accounts."
+msgstr "Nenhuma conta ativada."
+
+#: src-tauri/src/accounts/avatar.rs
+msgid "image is too large"
+msgstr "a imagem é grande demais"
+
+#: src-tauri/src/accounts/mod.rs
+msgid "an Evolution Go account requires its connection settings"
+msgstr "uma conta Evolution Go exige as configurações de conexão"
+
+#: src-tauri/src/customizations/files.rs
+msgid "invalid file name"
+msgstr "nome de arquivo inválido"
+
+#: src-tauri/src/customizations/files.rs
+msgid "file not found"
+msgstr "arquivo não encontrado"
+
+#: src-tauri/src/evolution/client.rs
+msgid "the server refused the credentials"
+msgstr "o servidor recusou as credenciais"
+
+#: src-tauri/src/evolution/client.rs
+msgid "the server address or route was not found"
+msgstr "o endereço ou a rota do servidor não foi encontrado"
+
+#: src-tauri/src/evolution/client.rs
+msgid "the server did not answer in time"
+msgstr "o servidor não respondeu a tempo"
+
+#: src-tauri/src/evolution/client.rs
+msgid "the message may or may not have been sent"
+msgstr "a mensagem pode ou não ter sido enviada"
+
+#: src-tauri/src/evolution/client.rs
+msgid "this media is no longer on WhatsApp's servers; open it on your phone"
+msgstr "esta mídia não está mais nos servidores do WhatsApp; abra-a no celular"
+
+#: src-tauri/src/webview/deeplink.rs
+msgid "missing country"
+msgstr "país ausente"
+
+#: src-tauri/src/webview/deeplink.rs
+msgid "empty number"
+msgstr "número vazio"
+
+#: src-tauri/src/webview/deeplink.rs
+msgid "number too short"
+msgstr "número muito curto"
+
+#: src-tauri/src/webview/deeplink.rs
+msgid "number too long"
+msgstr "número muito longo"
+
+#: src-tauri/src/webview/deeplink.rs
+msgid "duplicated country code"
+msgstr "código de país duplicado"
+
+#: src-tauri/src/webview/deeplink.rs
+msgid "message too long"
+msgstr "mensagem muito longa"
+
+#: src-tauri/src/accounts/avatar.rs
+msgid "invalid image: {error}"
+msgstr "imagem inválida: {error}"
+
+#: src-tauri/src/accounts/mod.rs
+msgid "account limit of {limit} reached"
+msgstr "limite de {limit} contas atingido"
+
+#: src-tauri/src/accounts/mod.rs
+msgid "account {id} not found"
+msgstr "conta {id} não encontrada"
+
+#: src-tauri/src/accounts/mod.rs
+msgid "database error: {error}"
+msgstr "erro de banco de dados: {error}"
+
+#: src-tauri/src/evolution/client.rs
+msgid "the server returned {status}: {message}"
+msgstr "o servidor retornou {status}: {message}"
+
+#: src-tauri/src/evolution/client.rs
+msgid "could not reach the server: {error}"
+msgstr "não foi possível alcançar o servidor: {error}"
+
+#: src-tauri/src/evolution/client.rs
+msgid "unexpected server response: {error}"
+msgstr "resposta inesperada do servidor: {error}"
+
+#: src-tauri/src/evolution/client.rs
+msgid "invalid server address: {error}"
+msgstr "endereço de servidor inválido: {error}"
+
+#: src-tauri/src/secrets.rs
+msgid "keyring operation failed: {error}"
+msgstr "falha na operação do chaveiro: {error}"
+
+#: src-tauri/src/settings/store.rs
+msgid "settings I/O failed: {error}"
+msgstr "falha de E/S das configurações: {error}"
+
+#: src-tauri/src/settings/store.rs
+msgid "invalid settings: {error}"
+msgstr "configurações inválidas: {error}"
 
 #~ msgid ""
 #~ "Show only chat avatars at a fixed width. Resizing is unavailable while "

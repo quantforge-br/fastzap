@@ -58,7 +58,7 @@ pub enum EvoError {
     Unauthorized,
     #[error("the server address or route was not found")]
     NotFound,
-    #[error("the server returned {status}: {message}")]
+    #[error("{}", crate::i18n::tr_args("the server returned {status}: {message}", &[("status", status.to_string()), ("message", message.clone())]))]
     Http { status: u16, message: String },
     #[error("the server did not answer in time")]
     Timeout,
@@ -66,11 +66,11 @@ pub enum EvoError {
     /// request left); it must not be retried blindly.
     #[error("the message may or may not have been sent")]
     Ambiguous,
-    #[error("could not reach the server: {0}")]
+    #[error("{}", crate::i18n::tr_args("could not reach the server: {error}", &[("error", .0.clone())]))]
     Network(String),
-    #[error("unexpected server response: {0}")]
+    #[error("{}", crate::i18n::tr_args("unexpected server response: {error}", &[("error", .0.clone())]))]
     Invalid(String),
-    #[error("invalid server address: {0}")]
+    #[error("{}", crate::i18n::tr_args("invalid server address: {error}", &[("error", .0.clone())]))]
     BadUrl(String),
     /// WhatsApp's CDN no longer has the file; only the phone can resend it.
     #[error("this media is no longer on WhatsApp's servers; open it on your phone")]

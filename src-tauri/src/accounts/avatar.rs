@@ -19,9 +19,9 @@ static DOWNLOADS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(2);
 pub enum AvatarError {
     #[error("image is too large")]
     TooLarge,
-    #[error("invalid image: {0}")]
+    #[error("{}", crate::i18n::tr_args("invalid image: {error}", &[("error", .0.to_string())]))]
     Invalid(#[from] image::ImageError),
-    #[error("invalid image: {0}")]
+    #[error("{}", crate::i18n::tr_args("invalid image: {error}", &[("error", .0.to_string())]))]
     Io(#[from] std::io::Error),
 }
 

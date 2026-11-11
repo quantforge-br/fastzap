@@ -17,6 +17,7 @@
     type UnreadSnapshot,
   } from "$lib/ipc";
   import { iconSrc } from "$lib/accounts/icon";
+  import { t } from "$lib/i18n/index.svelte";
   import { unreadLabel } from "$lib/shell/format";
 
   let accounts = $state<Account[]>([]);
@@ -58,22 +59,22 @@
 
 <svelte:window onkeydown={(e) => e.key === "Escape" && getCurrentWindow().close()} />
 
-<div class="surface" aria-label="Monitoring panel">
+<div class="surface" aria-label={t("Monitoring panel")}>
   <header>
-    <h1>Quick access</h1>
+    <h1>{t("Quick access")}</h1>
     {#if locked}
-      <button class="icon" title="Unlock position" aria-label="Unlock position" onclick={unlock}>
+      <button class="icon" title={t("Unlock position")} aria-label={t("Unlock position")} onclick={unlock}>
         📌
       </button>
     {/if}
   </header>
 
   {#if accounts.length === 0}
-    <p class="empty">No account activity to show yet.</p>
+    <p class="empty">{t("No account activity to show yet.")}</p>
   {:else}
     <ul class="accounts">
       {#each accounts as account, index (account.id)}
-        {@const name = account.name || `Account ${index + 1}`}
+        {@const name = account.name || t("Account {number}", { number: index + 1 })}
         {@const count = account.enabled ? (unread.per_account[account.id] ?? 0) : 0}
         <li>
           <button
@@ -94,18 +95,18 @@
 
   <button class="row" onclick={() => app.action("add_account")}>
     <span class="avatar initials">+</span>
-    <span class="name">New account</span>
+    <span class="name">{t("New account")}</span>
   </button>
 
   <hr />
 
   <div class="footer">
     <button class="action" onclick={() => app.action("toggle_mute")}>
-      {muted ? "🔇 Unmute" : "🔊 Mute"}
+      {muted ? "🔇 " + t("Unmute") : "🔊 " + t("Mute")}
     </button>
-    <button class="action" onclick={() => app.action("downloads")}>⬇ Downloads</button>
+    <button class="action" onclick={() => app.action("downloads")}>⬇ {t("Downloads")}</button>
   </div>
-  <button class="action" onclick={() => app.action("settings")}>⚙ Settings</button>
+  <button class="action" onclick={() => app.action("settings")}>⚙ {t("Settings")}</button>
 </div>
 
 <style>

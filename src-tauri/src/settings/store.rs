@@ -7,12 +7,13 @@ use std::sync::{Mutex, RwLock};
 use serde_json::Value;
 
 use super::Settings;
+use crate::i18n::tr_args;
 
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
-    #[error("settings I/O failed: {0}")]
+    #[error("{}", tr_args("settings I/O failed: {error}", &[("error", .0.to_string())]))]
     Io(#[from] std::io::Error),
-    #[error("invalid settings: {0}")]
+    #[error("{}", tr_args("invalid settings: {error}", &[("error", .0.to_string())]))]
     Invalid(#[from] serde_json::Error),
 }
 

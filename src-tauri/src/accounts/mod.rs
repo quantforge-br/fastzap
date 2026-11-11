@@ -104,13 +104,13 @@ where
 
 #[derive(Debug, thiserror::Error)]
 pub enum AccountError {
-    #[error("account limit of {0} reached")]
+    #[error("{}", crate::i18n::tr_args("account limit of {limit} reached", &[("limit", .0.to_string())]))]
     LimitReached(u32),
-    #[error("account {0} not found")]
+    #[error("{}", crate::i18n::tr_args("account {id} not found", &[("id", .0.to_string())]))]
     NotFound(i64),
     #[error("an Evolution Go account requires its connection settings")]
     MissingEvolutionConfig,
-    #[error("database error: {0}")]
+    #[error("{}", crate::i18n::tr_args("database error: {error}", &[("error", .0.to_string())]))]
     Db(#[from] rusqlite::Error),
 }
 

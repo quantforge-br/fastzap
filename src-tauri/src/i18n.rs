@@ -70,6 +70,15 @@ pub fn tr(source: &str) -> String {
         .map_or_else(|| source.to_owned(), Clone::clone)
 }
 
+/// Translate the source string and fill {name} placeholders from args.
+pub fn tr_args(source: &str, args: &[(&str, String)]) -> String {
+    let mut text = tr(source);
+    for (name, value) in args {
+        text = text.replace(&format!("{{{name}}}"), value);
+    }
+    text
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

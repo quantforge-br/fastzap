@@ -38,7 +38,7 @@ impl fmt::Debug for Secret {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("keyring operation failed: {0}")]
+#[error("{}", crate::i18n::tr_args("keyring operation failed: {error}", &[("error", .0.clone())]))]
 pub struct SecretError(String);
 
 pub trait SecretStore: Send + Sync {

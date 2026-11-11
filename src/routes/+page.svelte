@@ -275,7 +275,7 @@
       >
         <img src={iconSrc(account.icon)} alt="" />
         {#if badge}<span class="badge">{badge}</span>{/if}
-        {#if !account.notifications}<span class="dnd" title="Do not disturb"></span>{/if}
+        {#if !account.notifications}<span class="dnd" title={t("Do not disturb")}></span>{/if}
       </button>
     {/each}
     <div class="spacer"></div>
@@ -336,7 +336,7 @@
         />
       {/key}
     {:else if visible.length === 0}
-      <section class="placeholder"><p>No enabled accounts.</p></section>
+      <section class="placeholder"><p>{t("No enabled accounts.")}</p></section>
     {/if}
   </main>
 </div>
@@ -354,13 +354,13 @@
 {#if confirm}
   <div class="backdrop">
     <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="close-title">
-      <h2 id="close-title">Close FastZap</h2>
-      <p>Are you sure you want to close?</p>
-      <label><input type="checkbox" bind:checked={dontAskAgain} /> Don't ask again</label>
+      <h2 id="close-title">{t("Close FastZap")}</h2>
+      <p>{t("Are you sure you want to close?")}</p>
+      <label><input type="checkbox" bind:checked={dontAskAgain} /> {t("Don't ask again")}</label>
       <div class="actions">
-        <button onclick={() => answerClose(false)}>No</button>
+        <button onclick={() => answerClose(false)}>{t("No")}</button>
         <!-- svelte-ignore a11y_autofocus -->
-        <button class="primary" autofocus onclick={() => answerClose(true)}>Yes</button>
+        <button class="primary" autofocus onclick={() => answerClose(true)}>{t("Yes")}</button>
       </div>
     </div>
   </div>
