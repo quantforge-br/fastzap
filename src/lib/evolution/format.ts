@@ -3,6 +3,8 @@ import type { ChatMessage, Connection } from "$lib/ipc";
 import type { MessageKind } from "$lib/ipc/generated/MessageKind";
 import type { Status } from "$lib/ipc/generated/Status";
 
+import { formatDuration } from "./voice";
+
 type Translate = (source: string, params?: Record<string, string | number>) => string;
 
 /** Label for media and other non-text messages. */
@@ -26,6 +28,13 @@ export function previewText(kind: MessageKind, body: string, t: Translate): stri
   const label = kindLabel(kind, t);
   if (!label) return body;
   return body ? `${label}: ${body}` : label;
+}
+
+/** Chat list preview text: the body, the audio's duration, or the kind. */
+export function listPreview(kind: MessageKind, body: string, seconds: number, t: Translate): string {
+  if (body) return body;
+  if (kind === "audio" && seconds > 0) return formatDuration(seconds);
+  return kindLabel(kind, t);
 }
 
 /** Icon of the delivery state of our own messages. */

@@ -4,6 +4,7 @@
 
 ### Added
 
+- The Evolution Go chat list previews audios by their duration (🎤 0:17).
 - Evolution Go voice messages play in a WhatsApp-style player: play/pause,
   a waveform to click or drag for seeking, elapsed time, the sender's photo
   with a microphone badge, 1×/1.5×/2× speed while playing, one audio at a

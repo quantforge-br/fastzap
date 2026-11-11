@@ -6,6 +6,7 @@ import {
   dayLabel,
   jidForNumber,
   linkParts,
+  listPreview,
   listTime,
   mergeMessages,
   previewText,
@@ -49,6 +50,13 @@ describe("evolution chat formatting", () => {
     expect(previewText("document", "cv.pdf", t)).toBe("Document: cv.pdf");
     expect(statusIcon("read")).toBe("checks");
     expect(statusIcon("failed")).toBe("alert");
+  });
+
+  it("previews audios in the chat list by their duration", () => {
+    expect(listPreview("audio", "", 17, t)).toBe("0:17");
+    expect(listPreview("audio", "", 0, t)).toBe("Audio");
+    expect(listPreview("image", "", 0, t)).toBe("Photo");
+    expect(listPreview("image", "beach", 0, t)).toBe("beach");
   });
 
   it("formats times relative to today", () => {

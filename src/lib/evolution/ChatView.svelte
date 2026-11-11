@@ -6,7 +6,7 @@
 
   import Avatar from "./Avatar.svelte";
   import Conversation from "./Conversation.svelte";
-  import { connectionText, jidForNumber, kindLabel, listTime, statusIcon } from "./format";
+  import { connectionText, jidForNumber, listPreview, listTime, statusIcon } from "./format";
   import Icon, { type IconName } from "./Icon.svelte";
   import PairingPanel from "./PairingPanel.svelte";
 
@@ -295,7 +295,7 @@
                           </span>
                         {/if}
                         {#if PREVIEW_ICONS[c.preview_kind]}<Icon name={PREVIEW_ICONS[c.preview_kind]!} size={16} />{/if}
-                        <span class="preview-text">{c.preview || kindLabel(c.preview_kind, t)}</span>
+                        <span class="preview-text">{listPreview(c.preview_kind, c.preview, c.preview_seconds, t)}</span>
                       {/if}
                     </span>
                     {#if c.unread > 0}<span class="badge">{c.unread}</span>{/if}
