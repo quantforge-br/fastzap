@@ -57,6 +57,11 @@ pub fn run() {
         // SAFETY: still single-threaded; WebKitGTK reads this when it starts.
         unsafe { std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") };
     }
+    #[cfg(target_os = "linux")]
+    if let Some(props) = platform::pulse_props(std::env::var("PULSE_PROP").ok().as_deref()) {
+        // SAFETY: still single-threaded; the web processes inherit it.
+        unsafe { std::env::set_var("PULSE_PROP", props) };
+    }
     // Enchant reads its Hunspell dictionaries from here; `AppPaths` resolves
     // the same directory once Tauri runs.
     #[cfg(target_os = "linux")]

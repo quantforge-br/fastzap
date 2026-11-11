@@ -191,6 +191,12 @@
 
 ### Fixed
 
+- Audio has sound again on Linux in WhatsApp Web and Evolution Go accounts.
+  WirePlumber saved a muted page's stream volume (0%) under FastZap's
+  application name and restored it on every new stream, so voice messages
+  played silent while their progress moved. The web processes now start with
+  `PULSE_PROP=state.restore-props=false` (appended to the user's own
+  `PULSE_PROP`, unless it already sets that property).
 - An Evolution Go phone that is still linked but whose server client has no
   socket (the server could not reach WhatsApp at startup and never retries)
   shows as disconnected with its chats instead of a QR code that never comes.
