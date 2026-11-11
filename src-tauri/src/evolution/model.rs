@@ -660,6 +660,33 @@ pub fn shown(raw: &Value) -> Shown {
     }
 }
 
+/// What an audio message shows before it is downloaded.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct AudioInfo {
+    /// Duration; 0 when the sender did not say.
+    pub seconds: u32,
+    /// WhatsApp's waveform: one loudness byte (0–100) per bar, usually 64.
+    pub waveform: Vec<u8>,
+    /// Recorded as a voice message (push to talk), not attached as a file.
+    pub voice: bool,
+}
+
+/// The duration, waveform and voice flag of an audio message proto.
+pub fn audio_info(raw: &Value) -> Option<AudioInfo> {
+    use base64::Engine as _;
+    let content = content(unwrap(raw));
+    let media = content
+        .media
+        .filter(|_| content.kind == MessageKind::Audio)?;
+    Some(AudioInfo {
+        seconds: u32::try_from(int_at(media, "seconds")).unwrap_or(0),
+        waveform: base64::engine::general_purpose::STANDARD
+            .decode(str_at(media, "waveform"))
+            .unwrap_or_default(),
+        voice: bool_at(media, "PTT"),
+    })
+}
+
 /// The media of a stored message proto as `/message/downloadmedia` takes
 /// it (`{"imageMessage": …}`), when the server can fetch it: whatsmeow needs
 /// a direct path, which media WhatsApp serves from a static URL (its own
@@ -966,6 +993,33 @@ pub fn parse(payload: &Value) -> Event {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn audio_info_reads_duration_waveform_and_voice_flag() {
+        let voice = json!({"audioMessage": {
+            "PTT": true, "mimetype": "audio/ogg; codecs=opus", "seconds": 17,
+            "waveform": "AAJkMg==", "directPath": "/a"}});
+        assert_eq!(
+            audio_info(&voice),
+            Some(AudioInfo {
+                seconds: 17,
+                waveform: vec![0, 2, 100, 50],
+                voice: true
+            })
+        );
+        let file = json!({"ephemeralMessage": {"message": {"audioMessage": {
+            "mimetype": "audio/mpeg", "seconds": "3", "waveform": "not base64"}}}});
+        assert_eq!(
+            audio_info(&file),
+            Some(AudioInfo {
+                seconds: 3,
+                waveform: Vec::new(),
+                voice: false
+            })
+        );
+        assert_eq!(audio_info(&json!({"videoMessage": {"seconds": 5}})), None);
+        assert_eq!(audio_info(&json!({"conversation": "hi"})), None);
+    }
 
     fn live(message: Value) -> Value {
         json!({"event": "Message", "data": {

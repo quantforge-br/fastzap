@@ -9,4 +9,16 @@ export type ChatMessage = {
 /**
  * Page cursor.
  */
-seq: number, id: string, chat: string, sender: string, sender_name: string, from_me: boolean, ts: number, kind: MessageKind, body: string, file_name: string, mime: string, buttons: Array<MessageButton>, quote: QuotedMessage | null, status: Status, edited: boolean, revoked: boolean, reactions: Array<ReactionCount>, };
+seq: number, id: string, chat: string, sender: string, sender_name: string, from_me: boolean, ts: number, kind: MessageKind, body: string, file_name: string, mime: string, buttons: Array<MessageButton>, 
+/**
+ * Audio duration; 0 when unknown or not an audio.
+ */
+seconds: number, 
+/**
+ * Audio loudness per bar (0–100); empty when unknown.
+ */
+waveform: Array<number>, 
+/**
+ * An audio recorded as a voice message.
+ */
+voice: boolean, quote: QuotedMessage | null, status: Status, edited: boolean, revoked: boolean, reactions: Array<ReactionCount>, };

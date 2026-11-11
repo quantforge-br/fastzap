@@ -4,6 +4,10 @@ import type { Status } from "./Status";
 
 export type ChatSummary = { jid: string, name: string, ts: number, unread: number, preview: string, preview_kind: MessageKind, preview_from_me: boolean, 
 /**
+ * Duration of the newest message when it is an audio; 0 when unknown.
+ */
+preview_seconds: number, 
+/**
  * Delivery state of the newest message when it is ours.
  */
 preview_status: Status | null, is_group: boolean, archived: boolean, 

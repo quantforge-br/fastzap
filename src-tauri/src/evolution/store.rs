@@ -13,8 +13,8 @@ use ts_rs::TS;
 
 use super::client::ArchivedChat;
 use super::model::{
-    Change, Event, History, Message, MessageButton, MessageKind, Receipt, Status, is_lid, is_phone,
-    quote_of_raw, shown,
+    Change, Event, History, Message, MessageButton, MessageKind, Receipt, Status, audio_info,
+    is_lid, is_phone, quote_of_raw, shown,
 };
 
 pub type StoreResult<T> = Result<T, rusqlite::Error>;
@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS chats (
     preview TEXT NOT NULL DEFAULT '',
     preview_kind TEXT NOT NULL DEFAULT 'text',
     preview_from_me INTEGER NOT NULL DEFAULT 0,
-    archived INTEGER NOT NULL DEFAULT 0
+    archived INTEGER NOT NULL DEFAULT 0,
+    preview_seconds INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS messages (
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,6 +54,10 @@ CREATE TABLE IF NOT EXISTS messages (
     media_file TEXT NOT NULL DEFAULT '',
     -- JSON list of `MessageButton`.
     buttons TEXT NOT NULL DEFAULT '[]',
+    -- Audio: duration, WhatsApp waveform bytes and the voice message flag.
+    seconds INTEGER NOT NULL DEFAULT 0,
+    waveform BLOB NOT NULL DEFAULT x'',
+    voice INTEGER NOT NULL DEFAULT 0,
     UNIQUE (chat, id)
 );
 CREATE INDEX IF NOT EXISTS messages_by_time ON messages (chat, ts, seq);
@@ -122,6 +127,8 @@ pub struct ChatSummary {
     pub preview: String,
     pub preview_kind: MessageKind,
     pub preview_from_me: bool,
+    /// Duration of the newest message when it is an audio; 0 when unknown.
+    pub preview_seconds: u32,
     /// Delivery state of the newest message when it is ours.
     pub preview_status: Option<Status>,
     pub is_group: bool,
@@ -157,6 +164,12 @@ pub struct ChatMessage {
     pub file_name: String,
     pub mime: String,
     pub buttons: Vec<MessageButton>,
+    /// Audio duration; 0 when unknown or not an audio.
+    pub seconds: u32,
+    /// Audio loudness per bar (0–100); empty when unknown.
+    pub waveform: Vec<u8>,
+    /// An audio recorded as a voice message.
+    pub voice: bool,
     pub quote: Option<QuotedMessage>,
     pub status: Status,
     pub edited: bool,
@@ -253,7 +266,11 @@ impl ChatStore {
         if (1..5).contains(&version) {
             reread_unsupported(&conn)?;
         }
-        conn.pragma_update(None, "user_version", 5)?;
+        // Version 5 stores did not keep the duration and waveform of audios.
+        if (1..6).contains(&version) {
+            add_audio_info(&conn)?;
+        }
+        conn.pragma_update(None, "user_version", 6)?;
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -530,6 +547,7 @@ impl ChatStore {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT jid, unread, ts, preview, preview_kind, preview_from_me, archived,
+                preview_seconds,
                 CASE WHEN preview_from_me THEN (SELECT status FROM messages
                     WHERE chat = chats.jid AND from_me = 1 ORDER BY ts DESC, seq DESC LIMIT 1)
                 END
@@ -545,14 +563,15 @@ impl ChatStore {
                     r.get::<_, String>(4)?,
                     r.get(5)?,
                     r.get(6)?,
-                    r.get::<_, Option<i64>>(7)?,
+                    r.get(7)?,
+                    r.get::<_, Option<i64>>(8)?,
                 ))
             })?
             .collect::<StoreResult<Vec<_>>>()?;
         let own_jid = own_chat(&conn)?;
         rows.into_iter()
             .map(
-                |(jid, unread, ts, preview, kind, from_me, archived, status)| {
+                |(jid, unread, ts, preview, kind, from_me, archived, seconds, status)| {
                     let own = own_jid.as_deref() == Some(jid.as_str());
                     let preview_status = status.map(|rank| shown_status(rank_status(rank), own));
                     Ok(ChatSummary {
@@ -564,6 +583,7 @@ impl ChatStore {
                         preview,
                         preview_kind: MessageKind::parse(&kind),
                         preview_from_me: from_me,
+                        preview_seconds: seconds,
                         preview_status,
                         archived,
                         own,
@@ -897,6 +917,9 @@ fn row_to_message(r: &Row<'_>) -> rusqlite::Result<ChatMessage> {
         file_name: r.get("file_name")?,
         mime: r.get("mime")?,
         buttons: serde_json::from_str(&r.get::<_, String>("buttons")?).unwrap_or_default(),
+        seconds: r.get("seconds")?,
+        waveform: r.get("waveform")?,
+        voice: r.get("voice")?,
         quote: (!quote_id.is_empty())
             .then(|| -> rusqlite::Result<QuotedMessage> {
                 let participant: String = r.get("quote_participant")?;
@@ -1090,11 +1113,74 @@ fn reread_unsupported(conn: &Connection) -> StoreResult<()> {
     tx.commit()
 }
 
+/// Add the audio columns and fill them from the stored protos, in one
+/// transaction with the version bump.
+fn add_audio_info(conn: &Connection) -> StoreResult<()> {
+    let tx = conn.unchecked_transaction()?;
+    for (table, column, ddl) in [
+        (
+            "messages",
+            "seconds",
+            "ALTER TABLE messages ADD COLUMN seconds INTEGER NOT NULL DEFAULT 0",
+        ),
+        (
+            "messages",
+            "waveform",
+            "ALTER TABLE messages ADD COLUMN waveform BLOB NOT NULL DEFAULT x''",
+        ),
+        (
+            "messages",
+            "voice",
+            "ALTER TABLE messages ADD COLUMN voice INTEGER NOT NULL DEFAULT 0",
+        ),
+        (
+            "chats",
+            "preview_seconds",
+            "ALTER TABLE chats ADD COLUMN preview_seconds INTEGER NOT NULL DEFAULT 0",
+        ),
+    ] {
+        let exists: bool = tx.query_row(
+            "SELECT EXISTS (SELECT 1 FROM pragma_table_info(?1) WHERE name = ?2)",
+            params![table, column],
+            |r| r.get(0),
+        )?;
+        if !exists {
+            tx.execute_batch(ddl)?;
+        }
+    }
+    let mut found = Vec::new();
+    {
+        let mut select = tx.prepare("SELECT seq, raw FROM messages WHERE kind = 'audio'")?;
+        let mut rows = select.query([])?;
+        while let Some(row) = rows.next()? {
+            let raw: String = row.get(1)?;
+            if let Some(audio) = serde_json::from_str(&raw).ok().and_then(|v| audio_info(&v)) {
+                found.push((row.get::<_, i64>(0)?, audio));
+            }
+        }
+    }
+    for (seq, audio) in found {
+        tx.execute(
+            "UPDATE messages SET seconds = ?2, waveform = ?3, voice = ?4 WHERE seq = ?1",
+            params![seq, audio.seconds, audio.waveform, audio.voice],
+        )?;
+    }
+    let chats = tx
+        .prepare("SELECT jid FROM chats WHERE preview_kind = 'audio'")?
+        .query_map([], |r| r.get::<_, String>(0))?
+        .collect::<StoreResult<Vec<_>>>()?;
+    for chat in chats {
+        refresh_preview(&tx, &chat)?;
+    }
+    tx.pragma_update(None, "user_version", 6)?;
+    tx.commit()
+}
+
 /// Recompute a chat's preview from its newest message.
 fn refresh_preview(conn: &Connection, chat: &str) -> StoreResult<()> {
     conn.execute(
-        "UPDATE chats SET (preview, preview_kind, preview_from_me) = (
-            SELECT CASE WHEN revoked = 1 THEN '' ELSE body END, kind, from_me
+        "UPDATE chats SET (preview, preview_kind, preview_from_me, preview_seconds) = (
+            SELECT CASE WHEN revoked = 1 THEN '' ELSE body END, kind, from_me, seconds
             FROM messages WHERE chat = ?1 ORDER BY ts DESC, seq DESC LIMIT 1)
          WHERE jid = ?1 AND EXISTS (SELECT 1 FROM messages WHERE chat = ?1)",
         [chat],
@@ -1128,11 +1214,13 @@ fn apply_change(
     match &canonical_change(conn, change)? {
         Change::New(m) => {
             let quote = m.quote.as_ref();
+            let audio = audio_info(&m.raw).unwrap_or_default();
             let inserted = conn.execute(
                 "INSERT INTO messages (chat, id, sender, from_me, ts, kind, body, file_name,
                     mime, push_name, quote_id, quote_participant, quote_text, quote_kind,
-                    status, raw, buttons)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
+                    status, raw, buttons, seconds, waveform, voice)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
+                    ?18, ?19, ?20)
                  ON CONFLICT (chat, id) DO NOTHING",
                 params![
                     m.chat,
@@ -1152,6 +1240,9 @@ fn apply_change(
                     status_rank(m.status),
                     m.raw.to_string(),
                     json!(m.buttons).to_string(),
+                    audio.seconds,
+                    audio.waveform,
+                    audio.voice,
                 ],
             )? > 0;
             if !inserted {
@@ -1853,7 +1944,7 @@ CREATE TABLE IF NOT EXISTS meta (
             .unwrap()
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 5);
+        assert_eq!(version, 6);
     }
 
     #[test]
@@ -2087,6 +2178,92 @@ CREATE TABLE IF NOT EXISTS meta (
         // The album photo downloads although it was stored wrapped.
         let (raw, _) = store.media(CHAT, "P").unwrap().unwrap();
         assert!(crate::evolution::model::media_message(&raw).is_some());
+    }
+
+    /// `SCHEMA` before the audio columns (`user_version` 5).
+    fn schema_without_audio_info() -> String {
+        let columns = [
+            "    -- Audio: duration, WhatsApp waveform bytes and the voice message flag.\n    seconds INTEGER NOT NULL DEFAULT 0,\n    waveform BLOB NOT NULL DEFAULT x'',\n    voice INTEGER NOT NULL DEFAULT 0,\n",
+            ",\n    preview_seconds INTEGER NOT NULL DEFAULT 0",
+        ];
+        columns.iter().fold(SCHEMA.to_owned(), |schema, column| {
+            assert!(schema.contains(column));
+            schema.replace(column, "")
+        })
+    }
+
+    fn voice_note(seconds: u32) -> Value {
+        json!({"audioMessage": {"PTT": true, "mimetype": "audio/ogg; codecs=opus",
+            "seconds": seconds, "waveform": "AAJkMg==", "directPath": "/a"}})
+    }
+
+    #[test]
+    fn version_5_stores_learn_the_duration_and_waveform_of_audios() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("chats.db");
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(&schema_without_audio_info()).unwrap();
+            for (ts, (id, kind, raw)) in [
+                ("T", "text", json!({"conversation": "hi"})),
+                ("V", "audio", voice_note(17)),
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                conn.execute(
+                    "INSERT INTO messages (chat, id, ts, kind, raw) VALUES (?1, ?2, ?3, ?4, ?5)",
+                    params![CHAT, id, ts as i64, kind, raw.to_string()],
+                )
+                .unwrap();
+            }
+            conn.execute(
+                "INSERT INTO chats (jid, ts, preview_kind) VALUES (?1, 1, 'audio')",
+                [CHAT],
+            )
+            .unwrap();
+            conn.pragma_update(None, "user_version", 5).unwrap();
+        }
+        let store = ChatStore::open(&path).unwrap();
+        let audio: Vec<_> = store
+            .messages(CHAT, None, 10)
+            .unwrap()
+            .into_iter()
+            .map(|m| (m.id, m.seconds, m.waveform, m.voice))
+            .collect();
+        assert_eq!(
+            audio,
+            [
+                ("T".into(), 0, vec![], false),
+                ("V".into(), 17, vec![0, 2, 100, 50], true)
+            ]
+        );
+        assert_eq!(store.chats().unwrap()[0].preview_seconds, 17);
+        drop(store);
+        // Opening again keeps the data and the version.
+        let store = ChatStore::open(&path).unwrap();
+        assert_eq!(store.messages(CHAT, None, 10).unwrap()[1].seconds, 17);
+    }
+
+    #[test]
+    fn new_audios_keep_their_duration_and_waveform() {
+        let store = ChatStore::in_memory().unwrap();
+        let m = Message {
+            kind: MessageKind::Audio,
+            raw: voice_note(9),
+            ..message("V", 1, false, "")
+        };
+        store.apply(&[Change::New(m)], true, None).unwrap();
+        let stored = &store.messages(CHAT, None, 10).unwrap()[0];
+        assert_eq!(
+            (stored.seconds, stored.waveform.as_slice(), stored.voice),
+            (9, [0, 2, 100, 50].as_slice(), true)
+        );
+        let chat = &store.chats().unwrap()[0];
+        assert_eq!(
+            (chat.preview_kind, chat.preview_seconds),
+            (MessageKind::Audio, 9)
+        );
     }
 
     #[test]

@@ -36,6 +36,9 @@ function message(id: string, ts: number, seq: number): ChatMessage {
     edited: false,
     revoked: false,
     reactions: [],
+    seconds: 0,
+    waveform: [],
+    voice: false,
   };
 }
 

@@ -73,6 +73,7 @@
       is_group: jid.endsWith("@g.us"),
       archived: false,
       preview_status: null,
+      preview_seconds: 0,
       own: false,
     };
   }

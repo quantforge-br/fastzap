@@ -4,6 +4,9 @@
 
 ### Added
 
+- Evolution Go stores keep the duration, waveform and voice message flag of
+  audios (schema version 6 fills them from the stored messages), and chat
+  summaries carry the duration of an audio preview.
 - Drag files into Evolution Go conversations to stage multiple attachments,
   remove individual files and confirm sending with an optional caption.
   Uploads reject non-regular files and files larger than 100 MB.
