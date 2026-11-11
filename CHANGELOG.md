@@ -4,6 +4,10 @@
 
 ### Added
 
+- Evolution Go voice messages play in a WhatsApp-style player: play/pause,
+  a waveform to click or drag for seeking, elapsed time, the sender's photo
+  with a microphone badge, 1×/1.5×/2× speed while playing, one audio at a
+  time, and the next consecutive audio starting on its own.
 - An empty JID asks `evo_avatar` for the account's own profile photo.
 - Evolution Go stores keep the duration, waveform and voice message flag of
   audios (schema version 6 fills them from the stored messages), and chat

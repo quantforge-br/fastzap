@@ -1,7 +1,7 @@
 <script lang="ts">
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
 
   import { t, uiLocale } from "$lib/i18n/index.svelte";
   import { evolution, type ChatMessage, type ChatSummary } from "$lib/ipc";
@@ -20,6 +20,8 @@
     statusIcon,
   } from "./format";
   import Icon, { type IconName } from "./Icon.svelte";
+  import VoiceMessage from "./VoiceMessage.svelte";
+  import { nextAudio } from "./voice";
 
   let {
     accountId,
@@ -368,6 +370,40 @@
     openUrl(url).catch((err) => (failure = errorMessage(err)));
   }
 
+  // Voice messages: one plays at a time and the next consecutive one follows.
+  let playingId = $state<string | null>(null);
+  let autostartId = $state<string | null>(null);
+
+  function audioEnded(m: ChatMessage) {
+    const next = nextAudio(messages, m.id);
+    playingId = next?.id ?? null;
+    autostartId = next?.id ?? null;
+  }
+
+  // Photos beside voice messages: the sender in groups, the contact otherwise,
+  // ours ("" asks the backend for the account's own photo) on our audios.
+  let photos = $state<Record<string, string | null>>({});
+  const photoKey = (m: ChatMessage) => (m.from_me ? "" : chat.is_group ? m.sender : null);
+
+  $effect(() => {
+    const keys = new Set(messages.filter((m) => m.kind === "audio").map(photoKey));
+    untrack(() => {
+      for (const key of keys) {
+        if (key === null || key in photos) continue;
+        photos[key] = null;
+        evolution
+          .avatar(accountId, key)
+          .then((url) => (photos[key] = url))
+          .catch(() => {});
+      }
+    });
+  });
+
+  const photoFor = (m: ChatMessage) => {
+    const key = photoKey(m);
+    return key === null ? avatar : (photos[key] ?? null);
+  };
+
   // Shown in the message itself: an expired file must not hide the chat.
   let mediaErrors = $state<Record<string, string>>({});
 
@@ -499,16 +535,18 @@
                   </button>
                 {/if}
               {:else if m.kind === "audio"}
-                {#if media[m.id]}
-                  <audio controls src={media[m.id]}></audio>
-                {:else}
-                  <button class="voice" onclick={() => loadMedia(m)}>
-                    <Icon name="play" size={28} />
-                    <span class="wave"></span>
-                    <Icon name="mic" size={20} />
-                  </button>
-                  {#if mediaErrors[m.id]}<span class="media-error">{mediaErrors[m.id]}</span>{/if}
-                {/if}
+                <VoiceMessage
+                  message={m}
+                  src={media[m.id]}
+                  error={mediaErrors[m.id]}
+                  avatar={photoFor(m)}
+                  active={playingId === m.id}
+                  autostart={autostartId === m.id}
+                  onload={() => loadMedia(m)}
+                  onplay={() => ((playingId = m.id), (autostartId = null))}
+                  onended={() => audioEnded(m)}
+                  {meta}
+                />
               {:else if m.kind === "document"}
                 <button class="doc" onclick={() => act(() => evolution.saveMedia(target, m.id))}>
                   <Icon name="document" size={30} />
@@ -525,6 +563,8 @@
                 <p class="text">
                   {#each linkParts(caption(m)) as part, p (p)}{#if part.url}<a href={part.url} onclick={(e) => openLink(e, part.url!)}>{part.text}</a>{:else}{part.text}{/if}{/each}{@render meta(m)}
                 </p>
+              {:else if m.kind === "audio"}
+                <!-- The player shows the time and status. -->
               {:else if visual(m) && !m.buttons.length}
                 <span class="overlay">{@render meta(m)}</span>
               {:else}
@@ -1035,29 +1075,6 @@
   .media-error {
     font-size: 12px;
     text-align: center;
-  }
-  .voice {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 260px;
-    padding: 6px 4px;
-    border: 0;
-    background: none;
-    color: var(--wa-secondary);
-    cursor: pointer;
-  }
-  .wave {
-    flex: 1;
-    height: 4px;
-    border-radius: 2px;
-    background: currentColor;
-    opacity: 0.5;
-  }
-  audio {
-    display: block;
-    width: 280px;
-    max-width: 100%;
   }
   .doc {
     display: flex;
