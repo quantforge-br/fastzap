@@ -175,8 +175,21 @@ impl Session {
         self.own_jid.lock().unwrap().clone()
     }
 
-    /// Profile picture URL, cached for a few hours.
+    /// Profile picture URL, cached for a few hours. An empty JID asks for the
+    /// account's own picture.
     pub async fn avatar(&self, jid: &str) -> Option<String> {
+        let own;
+        let jid = if jid.is_empty() {
+            // The linked JID carries the device ("5511…:12@s.whatsapp.net").
+            let owner = jid_owner(&self.own_jid()).to_owned();
+            if owner.is_empty() {
+                return None;
+            }
+            own = format!("{owner}@s.whatsapp.net");
+            own.as_str()
+        } else {
+            jid
+        };
         if let Some((at, url)) = self.avatars.lock().unwrap().get(jid)
             && at.elapsed() < AVATAR_TTL
         {

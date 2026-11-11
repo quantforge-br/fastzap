@@ -4,6 +4,7 @@
 
 ### Added
 
+- An empty JID asks `evo_avatar` for the account's own profile photo.
 - Evolution Go stores keep the duration, waveform and voice message flag of
   audios (schema version 6 fills them from the stored messages), and chat
   summaries carry the duration of an audio preview.
