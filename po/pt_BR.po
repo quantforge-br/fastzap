@@ -32,7 +32,7 @@ msgstr "Não pergunte novamente"
 #: zapzap/features/tray/sys_tray_manager.py:250
 #: zapzap/ui/components/floating_monitoring_panel.py:335
 msgid "Unmute"
-msgstr ""
+msgstr "Ativar som"
 
 #: zapzap/app/main_window_controller.py:282
 #: zapzap/features/shortcuts/model.py:29
@@ -2207,13 +2207,12 @@ msgid "Windows"
 msgstr "Windows"
 
 #: zapzap/features/settings/pages/appearance/view.py:25
-#, fuzzy
 msgid ""
 "Adjust interface chrome, quick access, theme, tray icon, grid view, and "
 "window decorations."
 msgstr ""
-"Ajuste a interface, o tema, o ícone da bandeja, a visualização em grade e as "
-"decorações da janela."
+"Ajuste a interface, o acesso rápido, o tema, o ícone da bandeja, a "
+"visualização em grade e as decorações da janela."
 
 #: zapzap/features/settings/pages/appearance/view.py:43
 msgid "Interface"
@@ -2818,14 +2817,12 @@ msgid "Ask where to save every time"
 msgstr "Perguntar onde salvar sempre"
 
 #: zapzap/features/settings/pages/language_downloads/controller.py:118
-#, fuzzy
 msgid "Preview in WhatsApp"
-msgstr "Integrado ao WhatsApp"
+msgstr "Visualizar no WhatsApp"
 
 #: zapzap/features/settings/pages/language_downloads/controller.py:119
-#, fuzzy
 msgid "Download directly (where supported)"
-msgstr "Diretório de downloads"
+msgstr "Baixar diretamente (quando suportado)"
 
 #: zapzap/features/settings/pages/language_downloads/controller.py:204
 #: zapzap/features/settings/pages/language_downloads/view.py:146
@@ -2858,13 +2855,15 @@ msgstr "Escolha o que acontece quando um download começa."
 
 #: zapzap/features/settings/pages/language_downloads/view.py:69
 msgid "PDF file clicks"
-msgstr ""
+msgstr "Cliques em arquivos PDF"
 
 #: zapzap/features/settings/pages/language_downloads/view.py:70
 msgid ""
 "Preview PDF files in WhatsApp or download them when the browser handles the "
 "PDF. WhatsApp's own preview may still open."
 msgstr ""
+"Visualize arquivos PDF no WhatsApp ou baixe-os quando o navegador cuidar "
+"do PDF. A visualização do próprio WhatsApp ainda pode abrir."
 
 #: zapzap/features/settings/pages/language_downloads/view.py:80
 msgid "Set a custom folder or restore the default download location."
@@ -3322,6 +3321,8 @@ msgid ""
 "May help with black screens, flickering, and GPU crashes.\n"
 "Restart required."
 msgstr ""
+"Evita buffers de quadro de vídeo na GPU.\nPode ajudar com telas pretas, "
+"cintilação e falhas da GPU.\nReinício necessário."
 
 #: zapzap/features/settings/pages/performance_experimental/controller.py:263
 msgid ""
@@ -3329,6 +3330,8 @@ msgid ""
 "May improve compatibility with some graphics drivers.\n"
 "Restart required."
 msgstr ""
+"Desativa transferências de buffer da GPU sem cópia.\nPode melhorar a "
+"compatibilidade com alguns drivers gráficos.\nReinício necessário."
 
 #: zapzap/features/settings/pages/performance_experimental/controller.py:270
 msgid ""
@@ -3485,34 +3488,37 @@ msgstr ""
 
 #: zapzap/features/settings/pages/performance_experimental/view.py:58
 msgid "Rendering profile"
-msgstr ""
+msgstr "Perfil de renderização"
 
 #: zapzap/features/settings/pages/performance_experimental/view.py:60
 msgid ""
 "Choose a predefined rendering configuration or customize individual options."
 msgstr ""
+"Escolha uma configuração de renderização predefinida ou personalize "
+"opções individuais."
 
 #: zapzap/features/settings/pages/performance_experimental/view.py:66
 msgid "Compatibility"
-msgstr ""
+msgstr "Compatibilidade"
 
 #: zapzap/features/settings/pages/performance_experimental/view.py:67
 msgid "Manual"
-msgstr ""
+msgstr "Manual"
 
 #: zapzap/features/settings/pages/performance_experimental/view.py:69
 msgid "Recommended settings with hardware acceleration enabled."
-msgstr ""
+msgstr "Configurações recomendadas com aceleração de hardware ativada."
 
 #: zapzap/features/settings/pages/performance_experimental/view.py:71
 msgid ""
 "Improves stability on systems with video, flickering or GPU rendering issues."
 msgstr ""
+"Melhora a estabilidade em sistemas com problemas de vídeo, cintilação ou "
+"renderização por GPU."
 
 #: zapzap/features/settings/pages/performance_experimental/view.py:74
-#, fuzzy
 msgid "Use custom GPU and rendering options."
-msgstr "GPU e renderização"
+msgstr "Use opções personalizadas de GPU e renderização."
 
 #: zapzap/features/settings/pages/performance_experimental/view.py:97
 msgid "Cache"
@@ -3599,24 +3605,27 @@ msgstr "Use apenas para problemas gráficos."
 
 #: zapzap/features/settings/pages/performance_experimental/view.py:155
 msgid "Disable GPU memory buffer for video"
-msgstr ""
+msgstr "Desativar buffer de memória da GPU para vídeo"
 
 #: zapzap/features/settings/pages/performance_experimental/view.py:157
 msgid ""
 "Avoid GPU-backed video frame buffers. May help with black screens, "
 "flickering and GPU crashes."
 msgstr ""
+"Evita buffers de quadro de vídeo na GPU. Pode ajudar com telas pretas, "
+"cintilação e falhas da GPU."
 
 #: zapzap/features/settings/pages/performance_experimental/view.py:162
-#, fuzzy
 msgid "Disable zero-copy"
-msgstr "Desativar conta"
+msgstr "Desativar zero-copy"
 
 #: zapzap/features/settings/pages/performance_experimental/view.py:164
 msgid ""
 "Disable zero-copy GPU buffer transfers. May improve compatibility with some "
 "graphics drivers."
 msgstr ""
+"Desativa transferências de buffer da GPU sem cópia. Pode melhorar a "
+"compatibilidade com alguns drivers gráficos."
 
 #: zapzap/features/settings/pages/performance_experimental/view.py:169
 msgid "Use software video decoding"
@@ -3868,39 +3877,41 @@ msgstr "Usar o seletor de arquivos fornecido pelo ambiente de desktop."
 
 #: zapzap/features/settings/pages/system_startup/view.py:128
 msgid "Display backend"
-msgstr ""
+msgstr "Backend de exibição"
 
 #: zapzap/features/settings/pages/system_startup/view.py:130
 msgid ""
 "Automatic is recommended and uses the native backend for the current "
 "session. X11 is available as a compatibility fallback."
 msgstr ""
+"O modo automático é recomendado e usa o backend nativo da sessão atual. O "
+"X11 está disponível como alternativa de compatibilidade."
 
 #: zapzap/features/settings/pages/system_startup/view.py:143
 msgid "Recommended. Use Wayland in Wayland sessions and X11 in X11 sessions."
-msgstr ""
+msgstr "Recomendado. Use Wayland em sessões Wayland e X11 em sessões X11."
 
 #: zapzap/features/settings/pages/system_startup/view.py:148
 msgid "Wayland"
-msgstr ""
+msgstr "Wayland"
 
 #: zapzap/features/settings/pages/system_startup/view.py:150
-#, fuzzy
 msgid "Force the native Wayland backend."
-msgstr "Usar o backend Wayland quando disponível."
+msgstr "Forçar o backend nativo Wayland."
 
 #: zapzap/features/settings/pages/system_startup/view.py:153
 msgid "X11 / XWayland"
-msgstr ""
+msgstr "X11 / XWayland"
 
 #: zapzap/features/settings/pages/system_startup/view.py:156
 msgid "Use the X11 backend. In Wayland sessions, this runs through XWayland."
-msgstr ""
+msgstr "Usa o backend X11. Em sessões Wayland, isso roda pelo XWayland."
 
 #: zapzap/features/settings/pages/system_startup/view.py:172
-#, fuzzy
 msgid "Choose the Qt display backend. Changes require restart."
-msgstr "Usar o backend Wayland quando disponível. Requer reinício."
+msgstr ""
+"Escolha o backend de exibição do Qt. As alterações exigem "
+"reinicialização."
 
 #: zapzap/features/downloads/ui/download_dialog.py:101
 msgid "More"
@@ -3951,9 +3962,8 @@ msgid "Completed"
 msgstr "Concluído"
 
 #: zapzap/features/downloads/ui/downloads_menu.py:622
-#, fuzzy
 msgid "Delete file"
-msgstr "Selecionar arquivo"
+msgstr "Excluir arquivo"
 
 #: zapzap/features/downloads/ui/downloads_menu.py:655
 msgid "Remove from download history"
@@ -4053,9 +4063,8 @@ msgstr "Agora não"
 
 #: zapzap/features/browser/web/web_view.py:309
 #: zapzap/ui/components/integrated_account_selector.py:57
-#, fuzzy
 msgid "Account selector"
-msgstr "Lista de contas"
+msgstr "Seletor de contas"
 
 #: zapzap/features/browser/web/web_view.py:469
 msgid "Chat list width"
@@ -5067,12 +5076,11 @@ msgstr "Acesso rápido"
 
 #: zapzap/ui/components/floating_monitoring_panel.py:284
 msgid "No account activity to show yet."
-msgstr ""
+msgstr "Ainda não há atividade de conta para mostrar."
 
 #: zapzap/ui/components/floating_monitoring_panel.py:286
-#, fuzzy
 msgid "Monitoring panel"
-msgstr "Fixar painel"
+msgstr "Painel de monitoramento"
 
 #: zapzap/ui/components/floating_monitoring_panel.py:287
 #: zapzap/ui/components/floating_monitoring_panel.py:288
@@ -5082,7 +5090,767 @@ msgstr "Desbloquear posição"
 #: zapzap/ui/components/floating_monitoring_panel.py:291
 #: zapzap/ui/components/floating_monitoring_panel.py:292
 msgid "Audio"
+msgstr "Áudio"
+
+#: src-tauri/src/commands/customizations.rs
+msgid "Images"
+msgstr "Imagens"
+
+#: src-tauri/src/commands/evolution.rs
+msgid "Attach file"
+msgstr "Anexar arquivo"
+
+#: src-tauri/src/commands/evolution.rs
+msgid "Could not save the credentials in the keyring"
+msgstr "Não foi possível salvar as credenciais no chaveiro"
+
+#: src-tauri/src/commands/evolution.rs
+msgid "Enter a name for the new instance."
+msgstr "Digite um nome para a nova instância."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "Enter the phone number with country code."
+msgstr "Digite o número de telefone com o código do país."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "Enter the server's admin key."
+msgstr "Digite a chave de administrador do servidor."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "No passkey request is pending."
+msgstr "Não há solicitação de passkey pendente."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "Only failed text messages can be sent again."
+msgstr "Apenas mensagens de texto com falha podem ser reenviadas."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "Only regular files can be attached."
+msgstr "Apenas arquivos comuns podem ser anexados."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "Only text messages can be edited."
+msgstr "Apenas mensagens de texto podem ser editadas."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "Only your own sent messages can be changed."
+msgstr "Apenas mensagens enviadas por você podem ser alteradas."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "The file is larger than 100 MB."
+msgstr "O arquivo é maior que 100 MB."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "The instance has no token."
+msgstr "A instância não tem token."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "The message is empty or too long."
+msgstr "A mensagem está vazia ou é longa demais."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "The server did not confirm the message; it may have been sent."
+msgstr "O servidor não confirmou a mensagem; ela pode ter sido enviada."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "This account is not connected to Evolution Go."
+msgstr "Esta conta não está conectada ao Evolution Go."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "This media can only be opened on your phone."
+msgstr "Esta mídia só pode ser aberta no celular."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "This media is no longer available."
+msgstr "Esta mídia não está mais disponível."
+
+#: src-tauri/src/commands/evolution.rs
+msgid "WhatsApp is already linked to this instance."
+msgstr "O WhatsApp já está vinculado a esta instância."
+
+#: src-tauri/src/commands/spellcheck.rs
+msgid "Hunspell dictionaries (*.dic)"
+msgstr "Dicionários Hunspell (*.dic)"
+
+#: src-tauri/src/evolution/mod.rs
+msgid "Contact"
+msgstr "Contato"
+
+#: src-tauri/src/evolution/mod.rs
+msgid "Document"
+msgstr "Documento"
+
+#: src-tauri/src/evolution/mod.rs
+msgid "Poll"
+msgstr "Enquete"
+
+#: src-tauri/src/evolution/mod.rs
+msgid "Sticker"
+msgstr "Figurinha"
+
+#: src-tauri/src/evolution/mod.rs
+msgid "The Evolution Go server is unreachable."
+msgstr "O servidor Evolution Go está inacessível."
+
+#: src-tauri/src/evolution/mod.rs
+msgid "The server refused the admin key."
+msgstr "O servidor recusou a chave de administrador."
+
+#: src-tauri/src/evolution/mod.rs
+msgid "Unsupported message"
+msgstr "Mensagem não suportada"
+
+#: src-tauri/src/evolution/mod.rs
+msgid "Video"
+msgstr "Vídeo"
+
+#: src-tauri/src/evolution/mod.rs
+msgid "WhatsApp disconnected from the server."
+msgstr "O WhatsApp se desconectou do servidor."
+
+#: src/lib/accounts/AccountEditDialog.svelte
+msgid "The account could not be updated. Please try again."
+msgstr "Não foi possível atualizar a conta. Tente novamente."
+
+#: src/lib/components/MenuBar.svelte
+msgid "Account {number}"
+msgstr "Conta {number}"
+
+#: src/lib/evolution/ChatView.svelte
+msgid ""
+"Archived chats follow the phone; pinning, archiving and muting are not "
+"available through Evolution Go."
 msgstr ""
+"As conversas arquivadas seguem o celular; fixar, arquivar e silenciar não "
+"estão disponíveis pelo Evolution Go."
+
+#: src/lib/evolution/ChatView.svelte
+msgid ""
+"These chats stay archived when new messages arrive, as on your phone."
+msgstr ""
+"Estas conversas permanecem arquivadas quando chegam novas mensagens, como "
+"no celular."
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Archived"
+msgstr "Arquivadas"
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Chats appear here as messages arrive or history syncs."
+msgstr ""
+"As conversas aparecem aqui conforme as mensagens chegam ou o histórico é "
+"sincronizado."
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Chats"
+msgstr "Conversas"
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Clear search"
+msgstr "Limpar pesquisa"
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Groups"
+msgstr "Grupos"
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Messages go through your Evolution Go server."
+msgstr "As mensagens passam pelo seu servidor Evolution Go."
+
+#: src/lib/evolution/ChatView.svelte
+msgid "No archived chats."
+msgstr "Nenhuma conversa arquivada."
+
+#: src/lib/evolution/ChatView.svelte
+msgid "No chats match the search."
+msgstr "Nenhuma conversa corresponde à pesquisa."
+
+#: src/lib/evolution/ChatView.svelte
+msgid "No groups."
+msgstr "Nenhum grupo."
+
+#: src/lib/evolution/ChatView.svelte
+msgid "No unread chats."
+msgstr "Nenhuma conversa não lida."
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Phone number with country code"
+msgstr "Número de telefone com código do país"
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Reconnect"
+msgstr "Reconectar"
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Refresh contacts"
+msgstr "Atualizar contatos"
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Retry"
+msgstr "Tentar novamente"
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Search or start a new chat"
+msgstr "Pesquise ou inicie uma nova conversa"
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Select a chat to start messaging."
+msgstr "Selecione uma conversa para começar a enviar mensagens."
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Start chat"
+msgstr "Iniciar conversa"
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Syncing history… {progress}%"
+msgstr "Sincronizando histórico… {progress}%"
+
+#: src/lib/evolution/ChatView.svelte
+msgid "Unread"
+msgstr "Não lidas"
+
+#: src/lib/evolution/Conversation.svelte
+msgid ""
+"Older messages were requested from your phone and will appear when it "
+"answers."
+msgstr ""
+"As mensagens antigas foram solicitadas ao seu celular e aparecerão quando "
+"ele responder."
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Attachments"
+msgstr "Anexos"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Click this notice to load older messages from your phone."
+msgstr "Clique neste aviso para carregar mensagens antigas do celular."
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Close chat"
+msgstr "Fechar conversa"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Delete for everyone"
+msgstr "Apagar para todos"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Drop files to attach"
+msgstr "Solte arquivos para anexar"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Editing message"
+msgstr "Editando mensagem"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Emoji"
+msgstr "Emoji"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Load older messages from phone"
+msgstr "Carregar mensagens antigas do celular"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Menu"
+msgstr "Menu"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Message actions"
+msgstr "Ações da mensagem"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Offline: messages cannot be sent now"
+msgstr "Offline: não é possível enviar mensagens agora"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Quoted message"
+msgstr "Mensagem citada"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "React"
+msgstr "Reagir"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Remove attachment: {name}"
+msgstr "Remover anexo: {name}"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Remove reaction"
+msgstr "Remover reação"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Reply"
+msgstr "Responder"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Scroll to the newest message"
+msgstr "Ir para a mensagem mais recente"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Send again (it may already have been sent)"
+msgstr "Enviar novamente (pode já ter sido enviada)"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Send again"
+msgstr "Enviar novamente"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Send"
+msgstr "Enviar"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Sending attachment…"
+msgstr "Enviando anexo…"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "This message was deleted"
+msgstr "Esta mensagem foi apagada"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "Type a message"
+msgstr "Digite uma mensagem"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "You"
+msgstr "Você"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "edited"
+msgstr "editada"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "recording audio…"
+msgstr "gravando áudio…"
+
+#: src/lib/evolution/Conversation.svelte
+msgid "typing…"
+msgstr "digitando…"
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid ""
+"Check this account's Evolution Go connection in Settings → Accounts."
+msgstr ""
+"Verifique a conexão do Evolution Go desta conta em Configurações → "
+"Contas."
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid ""
+"On your phone, choose “Link with phone number instead” and enter this "
+"code."
+msgstr ""
+"No celular, escolha “Vincular com número de telefone” e digite este "
+"código."
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid ""
+"Open WhatsApp Web in your browser with the Evolution Go passkey helper to "
+"confirm the link."
+msgstr ""
+"Abra o WhatsApp Web no navegador com o auxiliar de passkey do Evolution "
+"Go para confirmar o vínculo."
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "Get code"
+msgstr "Obter código"
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "Go to Settings → Linked devices → Link a device."
+msgstr ""
+"Acesse Configurações → Dispositivos vinculados → Vincular dispositivo."
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "Link WhatsApp"
+msgstr "Vincular WhatsApp"
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "Link again"
+msgstr "Vincular novamente"
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "Link with phone number instead"
+msgstr "Vincular com número de telefone"
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "Loading…"
+msgstr "Carregando…"
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "No QR code yet."
+msgstr "Ainda não há código QR."
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "Number with country code"
+msgstr "Número com código do país"
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "Open WhatsApp on your phone."
+msgstr "Abra o WhatsApp no celular."
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "Open in browser"
+msgstr "Abrir no navegador"
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "Pairing code"
+msgstr "Código de pareamento"
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "QR code"
+msgstr "Código QR"
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "Refresh QR code"
+msgstr "Atualizar código QR"
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "Scan the code below."
+msgstr "Escaneie o código abaixo."
+
+#: src/lib/evolution/PairingPanel.svelte
+msgid "WhatsApp asked for a passkey"
+msgstr "O WhatsApp pediu uma passkey"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid ""
+"Connecting turns on the instance's WebSocket; its webhook and other "
+"integrations are kept."
+msgstr ""
+"Conectar ativa o WebSocket da instância; o webhook e outras integrações "
+"são mantidos."
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid ""
+"The key is kept in the system keyring and gives full access to the "
+"server. Use it only on your own computer."
+msgstr ""
+"A chave fica no chaveiro do sistema e dá acesso total ao servidor. Use-a "
+"apenas no seu próprio computador."
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "Add Evolution Go account"
+msgstr "Adicionar conta Evolution Go"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "Admin key"
+msgstr "Chave de administrador"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "Create a new instance on the server"
+msgstr "Criar uma nova instância no servidor"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "Current instance: {id}"
+msgstr "Instância atual: {id}"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "Evolution Go account"
+msgstr "Conta Evolution Go"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "Evolution Go connection"
+msgstr "Conexão Evolution Go"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "Instance"
+msgstr "Instância"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "Load instances"
+msgstr "Carregar instâncias"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "New instance name"
+msgstr "Nome da nova instância"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "Optional"
+msgstr "Opcional"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "Saved in the system keyring"
+msgstr "Salva no chaveiro do sistema"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "Server address"
+msgstr "Endereço do servidor"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "Type the admin key again to list the server's instances."
+msgstr ""
+"Digite a chave de administrador novamente para listar as instâncias do "
+"servidor."
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "Use an existing instance"
+msgstr "Usar uma instância existente"
+
+#: src/lib/evolution/SetupDialog.svelte
+msgid "disconnected"
+msgstr "desconectada"
+
+#: src/lib/evolution/VoiceMessage.svelte
+msgid "Audio position"
+msgstr "Posição do áudio"
+
+#: src/lib/evolution/VoiceMessage.svelte
+msgid "Play"
+msgstr "Reproduzir"
+
+#: src/lib/evolution/VoiceMessage.svelte
+msgid "Playback speed"
+msgstr "Velocidade de reprodução"
+
+#: src/lib/evolution/format.ts
+msgid "Connected"
+msgstr "Conectado"
+
+#: src/lib/evolution/format.ts
+msgid "Connecting…"
+msgstr "Conectando…"
+
+#: src/lib/evolution/format.ts
+msgid "Not running"
+msgstr "Não está em execução"
+
+#: src/lib/evolution/format.ts
+msgid "Offline"
+msgstr "Offline"
+
+#: src/lib/evolution/format.ts
+msgid "Today"
+msgstr "Hoje"
+
+#: src/lib/evolution/format.ts
+msgid "Waiting for WhatsApp to be linked"
+msgstr "Aguardando o WhatsApp ser vinculado"
+
+#: src/lib/evolution/format.ts
+msgid "WhatsApp temporarily banned this number"
+msgstr "O WhatsApp baniu temporariamente este número"
+
+#: src/lib/evolution/format.ts
+msgid "WhatsApp was unlinked from this instance"
+msgstr "O WhatsApp foi desvinculado desta instância"
+
+#: src/lib/evolution/format.ts
+msgid "Yesterday"
+msgstr "Ontem"
+
+#: src/lib/reporting/ReportDialog.svelte
+msgid ""
+"Could not copy the report to the clipboard. It was saved locally; try "
+"again."
+msgstr ""
+"Não foi possível copiar o relatório para a área de transferência. Ele foi "
+"salvo localmente; tente novamente."
+
+#: src/lib/reporting/ReportDialog.svelte
+msgid ""
+"Could not open GitHub. The report is still copied to the clipboard. Open "
+"the official FastZap repository and paste it into a new issue."
+msgstr ""
+"Não foi possível abrir o GitHub. O relatório continua copiado na área de "
+"transferência. Abra o repositório oficial do FastZap e cole-o em uma nova "
+"issue."
+
+#: src/lib/reporting/ReportsDialog.svelte
+msgid "No local reports."
+msgstr "Nenhum relatório local."
+
+#: src/lib/reporting/format.ts
+msgid "Description"
+msgstr "Descrição"
+
+#: src/lib/reporting/format.ts
+msgid "Error details"
+msgstr "Detalhes do erro"
+
+#: src/lib/reporting/format.ts
+msgid "Error type"
+msgstr "Tipo de erro"
+
+#: src/lib/reporting/format.ts
+msgid "Expected result"
+msgstr "Resultado esperado"
+
+#: src/lib/reporting/format.ts
+msgid "Frequency"
+msgstr "Frequência"
+
+#: src/lib/reporting/format.ts
+msgid "Official FastZap repository on GitHub: quantforge-br/fastzap"
+msgstr "Repositório oficial do FastZap no GitHub: quantforge-br/fastzap"
+
+#: src/lib/reporting/format.ts
+msgid "Problem type"
+msgstr "Tipo de problema"
+
+#: src/lib/settings/pages/About.svelte
+msgid ""
+"FastZap is free software licensed under GNU General Public License v3.0 "
+"(GPL-3.0-or-later)."
+msgstr ""
+"O FastZap é um software livre licenciado sob a GNU General Public License "
+"v3.0 (GPL-3.0-or-later)."
+
+#: src/lib/settings/pages/About.svelte
+msgid ""
+"Thanks to everyone who contributes translations, code, testing, and "
+"feedback."
+msgstr ""
+"Agradecemos a todas as pessoas que contribuem com traduções, código, "
+"testes e feedback."
+
+#: src/lib/settings/pages/About.svelte
+msgid "Web view"
+msgstr "Web view"
+
+#: src/lib/settings/pages/Accounts.svelte
+msgid ""
+"Use WhatsApp through your own Evolution Go server instead of WhatsApp "
+"Web."
+msgstr ""
+"Use o WhatsApp pelo seu próprio servidor Evolution Go em vez do WhatsApp "
+"Web."
+
+#: src/lib/settings/pages/Accounts.svelte
+msgid "Evolution Go"
+msgstr "Evolution Go"
+
+#: src/lib/settings/pages/Appearance.svelte
+msgid ""
+"Turn off to hide the bar with the minimize, maximize and close buttons, "
+"as on tiling window managers."
+msgstr ""
+"Desative para ocultar a barra com os botões minimizar, maximizar e "
+"fechar, como em gerenciadores de janelas em mosaico."
+
+#: src/lib/settings/pages/Appearance.svelte
+msgid "Show title bar"
+msgstr "Mostrar barra de título"
+
+#: src/lib/settings/pages/Customizations.svelte
+msgid "Optional file name (e.g. 10-custom.css)"
+msgstr "Nome de arquivo opcional (ex.: 10-custom.css)"
+
+#: src/lib/settings/pages/Customizations.svelte
+msgid "Save and reload to apply changes."
+msgstr "Salve e recarregue para aplicar as alterações."
+
+#: src/lib/settings/pages/Debugging.svelte
+msgid ""
+"All preferences return to their defaults. Accounts and WhatsApp sessions "
+"are kept."
+msgstr ""
+"Todas as preferências voltam aos padrões. Contas e sessões do WhatsApp "
+"são mantidas."
+
+#: src/lib/settings/pages/Debugging.svelte
+msgid ""
+"FastZap does not send reports. After review, it copies the report and "
+"opens the official GitHub repository quantforge-br/fastzap. You need a "
+"GitHub account to publish the public issue."
+msgstr ""
+"O FastZap não envia relatórios. Após a revisão, ele copia o relatório e "
+"abre o repositório oficial no GitHub quantforge-br/fastzap. É necessário "
+"ter uma conta no GitHub para publicar a issue pública."
+
+#: src/lib/settings/pages/Debugging.svelte
+msgid ""
+"Reports may include the FastZap version, operating system, installation "
+"type, architecture, web view version, error details, and sanitized logs."
+msgstr ""
+"Os relatórios podem incluir a versão do FastZap, o sistema operacional, o "
+"tipo de instalação, a arquitetura, a versão da web view, detalhes do erro "
+"e registros sanitizados."
+
+#: src/lib/settings/pages/Debugging.svelte
+msgid "Enable"
+msgstr "Ativar"
+
+#: src/lib/settings/pages/Debugging.svelte
+msgid "Local reports deleted."
+msgstr "Relatórios locais excluídos."
+
+#: src/lib/settings/pages/Debugging.svelte
+msgid "Remove every diagnostic file?"
+msgstr "Remover todos os arquivos de diagnóstico?"
+
+#: src/lib/settings/pages/Debugging.svelte
+msgid "Restore every preference to its default value."
+msgstr "Restaurar todas as preferências para o valor padrão."
+
+#: src/lib/settings/pages/Debugging.svelte
+msgid "Settings restored to their defaults."
+msgstr "Configurações restauradas para os padrões."
+
+#: src/lib/settings/pages/LanguageDownloads.svelte
+msgid ""
+"On this platform the web engine uses the system spell checker and its "
+"languages."
+msgstr ""
+"Nesta plataforma, o motor web usa o corretor ortográfico do sistema e "
+"seus idiomas."
+
+#: src/lib/settings/pages/LanguageDownloads.svelte
+msgid ""
+"Select Hunspell dictionaries and the languages used for spell checking."
+msgstr ""
+"Selecione dicionários Hunspell e os idiomas usados na verificação "
+"ortográfica."
+
+#: src/lib/settings/pages/LanguageDownloads.svelte
+msgid "Check spelling in the message box with the selected dictionaries."
+msgstr ""
+"Verifique a ortografia na caixa de mensagem com os dicionários "
+"selecionados."
+
+#: src/lib/settings/pages/LanguageDownloads.svelte
+msgid "Spell checking is handled by the system"
+msgstr "A verificação ortográfica é feita pelo sistema"
+
+#: src/lib/settings/pages/NetworkPrivacy.svelte
+msgid ""
+"The system web view cannot authenticate to proxies; credentials are kept "
+"but not used."
+msgstr ""
+"A web view do sistema não consegue autenticar em proxies; as credenciais "
+"são mantidas, mas não usadas."
+
+#: src/lib/settings/pages/NetworkPrivacy.svelte
+msgid "Disables WebRTC so it cannot bypass the proxy."
+msgstr "Desativa o WebRTC para que ele não possa contornar o proxy."
+
+#: src/lib/settings/pages/NetworkPrivacy.svelte
+msgid "disabled"
+msgstr "desativado"
+
+#: src/lib/settings/pages/Notifications.svelte
+msgid "Configure notifications and privacy."
+msgstr "Configure notificações e privacidade."
+
+#: src/lib/settings/pages/Performance.svelte
+msgid "Not available with the system web view."
+msgstr "Indisponível com a web view do sistema."
+
+#: src/lib/spellcheck/DictionaryManager.svelte
+msgid ""
+"Install Hunspell dictionaries for spell checking. Dictionaries found on "
+"the system are used too."
+msgstr ""
+"Instale dicionários Hunspell para a verificação ortográfica. Dicionários "
+"encontrados no sistema também são usados."
+
+#: src/lib/spellcheck/DictionaryManager.svelte
+msgid "Dictionary operation failed: {msg}"
+msgstr "Falha na operação do dicionário: {msg}"
+
+#: src/lib/spellcheck/DictionaryManager.svelte
+msgid "Downloading…"
+msgstr "Baixando…"
+
+#: src/lib/spellcheck/DictionaryManager.svelte
+msgid "Filter"
+msgstr "Filtrar"
 
 #~ msgid ""
 #~ "Show only chat avatars at a fixed width. Resizing is unavailable while "
@@ -5739,9 +6507,6 @@ msgstr ""
 
 #~ msgid "Network"
 #~ msgstr "Rede"
-
-#~ msgid "Description"
-#~ msgstr "Descrição"
 
 #~ msgid ""
 #~ "Prevents websites from discovering your network address using WebRTC."

@@ -4,6 +4,9 @@
 
 ### Added
 
+- The Brazilian Portuguese catalog is complete: every interface string used
+  by the Svelte frontend and by the native Rust surfaces has a translation,
+  and the fuzzy and empty entries inherited from ZapZap are fixed.
 - `pnpm i18n:coverage [po/code.po]` reports strings used by the code that
   are missing from a catalog and exits nonzero, so a locale can be checked
   in CI.
