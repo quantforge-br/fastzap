@@ -4,6 +4,9 @@
 
 ### Added
 
+- `pnpm i18n:coverage [po/code.po]` reports strings used by the code that
+  are missing from a catalog and exits nonzero, so a locale can be checked
+  in CI.
 - The Evolution Go chat list previews audios by their duration (🎤 0:17).
 - Evolution Go voice messages play in a WhatsApp-style player: play/pause,
   a waveform to click or drag for seeking, elapsed time, the sender's photo
