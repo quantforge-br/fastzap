@@ -6,6 +6,7 @@ use super::CommandResult;
 use crate::app::actions;
 use crate::app::events::LAYOUT_CHANGED;
 use crate::app::state::AppState;
+use crate::i18n::tr;
 use crate::webview::deeplink::{self, ChatTarget, RegionCallingCode};
 use crate::webview::manager::{LayoutState, Rect};
 use crate::webview::scripts;
@@ -75,7 +76,7 @@ pub fn open_chat_by_number(
     let target = deeplink::validate_chat_target(&target)?;
     let id = account_id
         .or_else(|| state.webviews.active())
-        .ok_or("no active account")?;
+        .ok_or(tr("no active account"))?;
     state
         .webviews
         .navigate(&app, id, deeplink::open_chat_url(&target));

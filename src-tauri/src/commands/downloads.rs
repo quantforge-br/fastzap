@@ -4,6 +4,7 @@ use super::CommandResult;
 use crate::app::effects;
 use crate::app::state::AppState;
 use crate::downloads::{DOWNLOADS_CHANGED, DownloadDecision, DownloadItem, same_path};
+use crate::i18n::tr;
 
 #[tauri::command]
 pub fn downloads_list(state: State<'_, AppState>) -> Vec<DownloadItem> {
@@ -33,7 +34,7 @@ fn known(state: &AppState, path: &str) -> CommandResult<()> {
     {
         Ok(())
     } else {
-        Err("not a download".into())
+        Err(tr("not a download").into())
     }
 }
 

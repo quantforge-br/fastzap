@@ -5972,6 +5972,90 @@ msgstr "falha de E/S das configurações: {error}"
 msgid "invalid settings: {error}"
 msgstr "configurações inválidas: {error}"
 
+#: src-tauri/src/commands/accounts.rs
+msgid "the default account cannot be removed"
+msgstr "a conta padrão não pode ser removida"
+
+#: src-tauri/src/commands/bridge.rs
+msgid "action is not allowed from the page"
+msgstr "ação não é permitida pela página"
+
+#: src-tauri/src/commands/bridge.rs
+msgid "no profile photo available"
+msgstr "nenhuma foto de perfil disponível"
+
+#: src-tauri/src/commands/bridge.rs
+msgid "not an account webview"
+msgstr "não é uma webview de conta"
+
+#: src-tauri/src/commands/bridge.rs
+msgid "paste is not allowed from the page"
+msgstr "colar não é permitido pela página"
+
+#: src-tauri/src/commands/downloads.rs
+msgid "not a download"
+msgstr "não é um download"
+
+#: src-tauri/src/commands/evolution.rs
+msgid "message not found"
+msgstr "mensagem não encontrada"
+
+#: src-tauri/src/commands/evolution.rs
+msgid "not an Evolution Go account"
+msgstr "não é uma conta Evolution Go"
+
+#: src-tauri/src/commands/reporting.rs
+msgid "report not found"
+msgstr "relatório não encontrado"
+
+#: src-tauri/src/commands/webview.rs
+msgid "no active account"
+msgstr "nenhuma conta ativa"
+
+#: src-tauri/src/evolution/client.rs
+msgid "missing instance id"
+msgstr "ID da instância ausente"
+
+#: src-tauri/src/evolution/client.rs
+msgid "missing media"
+msgstr "mídia ausente"
+
+#: src-tauri/src/evolution/client.rs
+msgid "missing pairing code"
+msgstr "código de pareamento ausente"
+
+#: src-tauri/src/evolution/client.rs
+msgid "server address cannot take a path"
+msgstr "o endereço do servidor não pode conter caminho"
+
+#: src-tauri/src/evolution/client.rs
+msgid "use an https:// address"
+msgstr "use um endereço https://"
+
+#: src-tauri/src/evolution/client.rs
+msgid "use only scheme, host and path"
+msgstr "use apenas esquema, host e caminho"
+
+#: src-tauri/src/evolution/mod.rs
+msgid "invalid server address"
+msgstr "endereço de servidor inválido"
+
+#: src-tauri/src/evolution/mod.rs
+msgid "local storage unavailable"
+msgstr "armazenamento local indisponível"
+
+#: src-tauri/src/evolution/mod.rs
+msgid "missing credentials"
+msgstr "credenciais ausentes"
+
+#: src-tauri/src/evolution/mod.rs
+msgid "no instance"
+msgstr "nenhuma instância"
+
+#: src-tauri/src/evolution/mod.rs
+msgid "not running"
+msgstr "não está em execução"
+
 #~ msgid ""
 #~ "Show only chat avatars at a fixed width. Resizing is unavailable while "
 #~ "enabled."
@@ -5979,11 +6063,9 @@ msgstr "configurações inválidas: {error}"
 #~ "Mostre apenas os avatares das conversas com largura fixa. O "
 #~ "redimensionamento fica indisponível enquanto ativado."
 
-#, fuzzy
 #~ msgid "No accounts yet"
 #~ msgstr "Minhas contas"
 
-#, fuzzy
 #~ msgid "Compact account navigation integrated into WhatsApp Web"
 #~ msgstr "Mostre a navegação de contas na estrutura do navegador."
 
@@ -6011,15 +6093,13 @@ msgstr "configurações inválidas: {error}"
 #~ msgid "Always visible"
 #~ msgstr "Sempre visível"
 
-#, fuzzy
 #~ msgid "Accounts and quick actions"
 #~ msgstr "Ações da conta"
 
-#, fuzzy
 #~ msgid "Current account"
 #~ msgstr "Conta atual: {}"
 
-#, fuzzy, python-brace-format
+#, python-brace-format
 #~ msgid "Unread messages: {count}"
 #~ msgstr "Contador de não lidas"
 

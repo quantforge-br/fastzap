@@ -5,6 +5,7 @@ use crate::accounts::{Account, AccountPatch, NewAccount, user_agent};
 use crate::app::effects;
 use crate::app::events::ACCOUNTS_CHANGED;
 use crate::app::state::AppState;
+use crate::i18n::tr;
 
 fn changed(app: &AppHandle, state: &AppState) -> CommandResult<Vec<Account>> {
     let list = state.accounts.list()?;
@@ -61,7 +62,7 @@ pub async fn accounts_delete(
 ) -> CommandResult<()> {
     // Account 1 is ZapZap's `storage-whats`, the default account.
     if id == crate::accounts::DEFAULT_ACCOUNT_ID {
-        return Err("the default account cannot be removed".into());
+        return Err(tr("the default account cannot be removed").into());
     }
     state.accounts.delete(id)?;
     crate::evolution::stop(&app, id);

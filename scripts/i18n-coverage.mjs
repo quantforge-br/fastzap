@@ -37,6 +37,8 @@ const CALL = /(?<![\w.])(tr_args|tn|t|tr)\(\s*"((?:[^"\\]|\\.)*)"/g;
 // t(NAME) or t(NAME[...]) reads a literal declared elsewhere in the file.
 const INDIRECT = /(?<![\w.])(?:tn|t)\(\s*([A-Za-z_$][\w$]*)\s*(?:\[|[),])/g;
 const ERROR = /#\[error\("((?:[^"\\]|\\.)*)"\)/g;
+const RETURNED_ERROR = /\bErr\(\s*"((?:[^"\\]|\\.)*)"\s*\.into\(\)\)/g;
+const OK_OR = /\.ok_or\(\s*"((?:[^"\\]|\\.)*)"\s*\)/g;
 const TRANSLATABLE_ATTR = /\b(?:title|aria-label|aria-description|placeholder|alt|label)="([^"]*)"/g;
 
 // Literal strings that a named constant can hold (object values, ternaries).
@@ -115,6 +117,11 @@ function extract(path) {
     for (const m of text.matchAll(ERROR)) {
       const id = unescape(m[1]);
       if (!/[{}]/.test(id)) found.push({ id, where: relative(root, path) });
+    }
+    // Raw literals returned to the frontend are translated by CommandError;
+    // they still need an entry in the catalog.
+    for (const m of [...text.matchAll(RETURNED_ERROR), ...text.matchAll(OK_OR)]) {
+      found.push({ id: unescape(m[1]), where: relative(root, path) });
     }
   }
   if (!isRust) {

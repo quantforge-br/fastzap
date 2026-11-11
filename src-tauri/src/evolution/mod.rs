@@ -156,7 +156,7 @@ impl Evolution {
         match self.session(account_id) {
             Some(s) => s.connection(),
             None => Connection::Stopped {
-                reason: "not running".into(),
+                reason: tr("not running"),
             },
         }
     }
@@ -300,7 +300,7 @@ fn start(app: &AppHandle, account: &Account) {
         );
     };
     let Some((base, instance_id)) = config_key(account) else {
-        return stopped("no instance");
+        return stopped(&tr("no instance"));
     };
     let state = app.state::<AppState>();
     let secret = |key: String| state.secrets.get(&key).ok().flatten();
@@ -308,18 +308,18 @@ fn start(app: &AppHandle, account: &Account) {
         secret(secrets::evolution_admin_key(id)),
         secret(secrets::evolution_instance_token(id)),
     ) else {
-        return stopped("missing credentials");
+        return stopped(&tr("missing credentials"));
     };
     let built = client::parse_base_url(&base).and_then(Client::new);
     let Ok(client) = built else {
-        return stopped("invalid server address");
+        return stopped(&tr("invalid server address"));
     };
     let dir = state.paths.evolution_dir(id);
     let store = match ChatStore::open(&dir.join("chats.db")) {
         Ok(store) => store,
         Err(e) => {
             log::warn!("evolution store for account {id} failed to open: {e}");
-            return stopped("local storage unavailable");
+            return stopped(&tr("local storage unavailable"));
         }
     };
     let media_dir = dir.join("media");
@@ -329,7 +329,7 @@ fn start(app: &AppHandle, account: &Account) {
         Ok(false) => {}
         Err(e) => {
             log::warn!("evolution store for account {id} failed to open: {e}");
-            return stopped("local storage unavailable");
+            return stopped(&tr("local storage unavailable"));
         }
     }
     let (stop_tx, stop_rx) = watch::channel(false);

@@ -5,6 +5,7 @@ use ts_rs::TS;
 
 use super::CommandResult;
 use crate::app::state::AppState;
+use crate::i18n::tr;
 use crate::reporting::document::{self, ProblemForm};
 use crate::reporting::sanitize;
 use crate::reporting::session;
@@ -87,7 +88,7 @@ pub fn report_copied(state: State<'_, AppState>, id: String) -> CommandResult<()
 #[tauri::command]
 pub fn report_open_github(state: State<'_, AppState>, id: String) -> CommandResult<bool> {
     let store = store(&state);
-    let record = store.get(&id).ok_or("report not found")?;
+    let record = store.get(&id).ok_or(tr("report not found"))?;
     let opened =
         tauri_plugin_opener::open_url(document::issue_url(&record.document), None::<&str>).is_ok();
     if opened {

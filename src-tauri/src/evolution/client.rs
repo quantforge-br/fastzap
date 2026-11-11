@@ -7,6 +7,7 @@
 
 use std::time::Duration;
 
+use crate::i18n::tr;
 use reqwest::{Method, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -90,7 +91,7 @@ pub fn parse_base_url(input: &str) -> EvoResult<Url> {
     match url.scheme() {
         "https" => {}
         "http" if loopback => {}
-        _ => return Err(EvoError::BadUrl("use an https:// address".into())),
+        _ => return Err(EvoError::BadUrl(tr("use an https:// address"))),
     }
     if url.host_str().is_none_or(str::is_empty)
         || url.query().is_some()
@@ -98,7 +99,7 @@ pub fn parse_base_url(input: &str) -> EvoResult<Url> {
         || !url.username().is_empty()
         || url.password().is_some()
     {
-        return Err(EvoError::BadUrl("use only scheme, host and path".into()));
+        return Err(EvoError::BadUrl(tr("use only scheme, host and path")));
     }
     Ok(url)
 }
@@ -493,7 +494,7 @@ impl Client {
         data.get("id")
             .and_then(Value::as_str)
             .map(str::to_owned)
-            .ok_or_else(|| EvoError::Invalid("missing instance id".into()))
+            .ok_or_else(|| EvoError::Invalid(tr("missing instance id")))
     }
 
     /// Start the instance's WhatsApp client again from its stored device.
@@ -504,7 +505,7 @@ impl Client {
     pub async fn force_reconnect(&self, admin: &AdminKey, id: &str, number: &str) -> EvoResult<()> {
         let mut url = self.url("/instance/forcereconnect");
         url.path_segments_mut()
-            .map_err(|()| EvoError::Invalid("server address cannot take a path".into()))?
+            .map_err(|()| EvoError::Invalid(tr("server address cannot take a path")))?
             .push(id);
         let body = json!({ "number": number });
         self.call_url(Method::POST, url, &admin.0, Some(&body))
@@ -552,7 +553,7 @@ impl Client {
         data.get("PairingCode")
             .and_then(Value::as_str)
             .map(str::to_owned)
-            .ok_or_else(|| EvoError::Invalid("missing pairing code".into()))
+            .ok_or_else(|| EvoError::Invalid(tr("missing pairing code")))
     }
 
     pub async fn logout(&self, token: &InstanceToken) -> EvoResult<()> {
@@ -710,7 +711,7 @@ impl Client {
         data.get("base64")
             .and_then(Value::as_str)
             .map(str::to_owned)
-            .ok_or_else(|| EvoError::Invalid("missing media".into()))
+            .ok_or_else(|| EvoError::Invalid(tr("missing media")))
     }
 
     /// Profile picture URL; `None` when the contact has none.

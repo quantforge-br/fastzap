@@ -13,7 +13,7 @@ use crate::webview::manager::account_id_from_label;
 use crate::webview::{scripts, unread};
 
 fn caller(webview: &Webview) -> CommandResult<i64> {
-    Ok(account_id_from_label(webview.label()).ok_or("not an account webview")?)
+    Ok(account_id_from_label(webview.label()).ok_or(tr("not an account webview"))?)
 }
 
 #[tauri::command]
@@ -63,10 +63,10 @@ pub fn wa_shortcut(app: AppHandle, webview: Webview, action: String) -> CommandR
     if action == "paste_plain_text" {
         let focused = !cfg!(target_os = "linux") && webview.window().is_focused().unwrap_or(false);
         if !focused {
-            return Err("paste is not allowed from the page".into());
+            return Err(tr("paste is not allowed from the page").into());
         }
     } else if !remote_action_allowed(&action) {
-        return Err("action is not allowed from the page".into());
+        return Err(tr("action is not allowed from the page").into());
     }
     actions::dispatch_for(&app, &action, Some(id));
     Ok(())
@@ -246,7 +246,7 @@ pub async fn wa_profile_photo(
     url: Option<String>,
 ) -> CommandResult<()> {
     let id = caller(&webview)?;
-    let url = url.ok_or("no profile photo available")?;
+    let url = url.ok_or(tr("no profile photo available"))?;
     let photo = crate::accounts::avatar::download(&url).await?;
     let state = app.state::<AppState>();
     let current = state.accounts.get(id)?.icon;

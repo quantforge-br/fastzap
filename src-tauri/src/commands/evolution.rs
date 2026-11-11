@@ -126,7 +126,7 @@ pub async fn evo_setup(
     let account = match setup.account_id {
         Some(id) => {
             if state.accounts.get(id)?.kind != AccountKind::EvolutionGo {
-                return Err("not an Evolution Go account".into());
+                return Err(tr("not an Evolution Go account").into());
             }
             state.accounts.update(
                 id,
@@ -458,7 +458,7 @@ pub async fn evo_retry(
 ) -> CommandResult<()> {
     let session = session(&app, account_id)?;
     let Some(message) = session.store.message(&chat, &id)? else {
-        return Err("message not found".into());
+        return Err(tr("message not found").into());
     };
     if !message.from_me
         || message.kind != MessageKind::Text
@@ -621,7 +621,7 @@ pub async fn evo_react(
 ) -> CommandResult<()> {
     let session = session(&app, account_id)?;
     let Some(target) = session.store.message(&chat, &id)? else {
-        return Err("message not found".into());
+        return Err(tr("message not found").into());
     };
     let participant = if store::is_group(&chat) && !target.from_me {
         target.sender.clone()
@@ -731,7 +731,7 @@ fn cache_bytes(
 /// The message's media as `(mime, bytes)`, downloading it once.
 async fn media_bytes(session: &Session, chat: &str, id: &str) -> CommandResult<(String, Vec<u8>)> {
     let Some((raw, file)) = session.store.media(chat, id)? else {
-        return Err("message not found".into());
+        return Err(tr("message not found").into());
     };
     if !file.is_empty() && !file.contains(['/', '\\']) {
         let path = session.media_dir.join(&file);
