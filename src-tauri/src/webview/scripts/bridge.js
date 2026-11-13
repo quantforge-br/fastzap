@@ -353,11 +353,26 @@
     return bytes;
   };
 
-  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const replayDrop = async (files, x, y) => {
     const dataTransfer = new DataTransfer();
     for (const file of files) dataTransfer.items.add(file);
+    // WebKit pins effectAllowed and dropEffect of a constructed DataTransfer
+    // to "none", and WhatsApp rejects such a drop: report a copy instead.
+    let dropEffect = "copy";
+    Object.defineProperty(dataTransfer, "effectAllowed", {
+      configurable: true,
+      get: () => "all",
+      set: () => {},
+    });
+    Object.defineProperty(dataTransfer, "dropEffect", {
+      configurable: true,
+      get: () => dropEffect,
+      set: (value) => {
+        dropEffect = value;
+      },
+    });
     const fire = (type, target) =>
       target.dispatchEvent(
         new DragEvent(type, {
@@ -370,18 +385,22 @@
         }),
       );
     const targetAt = () => document.elementFromPoint(x, y) || document.body;
-    const entered = targetAt();
-    fire("dragenter", entered);
-    fire("dragover", entered);
-    // WhatsApp shows a drop zone on dragenter; let it render, then drop on it.
-    await nextFrame();
-    await nextFrame();
-    const target = targetAt();
-    if (target !== entered) {
-      fire("dragleave", entered);
-      fire("dragenter", target);
+    // Replay a short hover the way a browser does (dragover every 50 ms, the
+    // new element entered before the old one is left): WhatsApp shows its
+    // drop zone over the conversation and only accepts the drop there.
+    let target = targetAt();
+    fire("dragenter", target);
+    for (let tick = 0; ; tick++) {
+      const current = targetAt();
+      if (current !== target) {
+        fire("dragenter", current);
+        fire("dragleave", target);
+        target = current;
+      }
+      fire("dragover", target);
+      if (tick === 8) break;
+      await delay(50);
     }
-    fire("dragover", target);
     fire("drop", target);
   };
 

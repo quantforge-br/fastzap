@@ -85,8 +85,11 @@ objetos `File` (`dataTransfer.files` vazio, só `text/uri-list`); por isso, no
 Linux, o handler fica ativo e `webview/file_drop.rs` recebe os caminhos, lê
 cada arquivo (`upload::read_upload`, limite de 100 MB), envia-o à página em
 blocos base64 via `eval`, e `__FASTZAP__.dropEnd` em `bridge.js` repete
-`dragenter`/`dragover`/`drop` no ponto do drop com arquivos reais. Nenhum
-comando do bridge é usado. A webview `ui` mantém os eventos Tauri para anexos
+um breve hover (`dragover` a cada 50 ms, para o WhatsApp mostrar sua zona de
+drop) e o `drop` no ponto do drop com arquivos reais. O WebKit fixa
+`effectAllowed`/`dropEffect` de um `DataTransfer` construído em `none`, que o
+WhatsApp rejeita; por isso o replay informa uma cópia. Nenhum comando do
+bridge é usado. A webview `ui` mantém os eventos Tauri para anexos
 do chat Evolution Go.
 
 O frontend informa a área livre (à direita da sidebar) via
