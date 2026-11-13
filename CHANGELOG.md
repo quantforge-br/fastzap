@@ -449,6 +449,8 @@
 
 ### Changed
 
+- The upload size cap, file reading and MIME table live in the `upload`
+  module, shared by Evolution Go attachments and WhatsApp Web drops.
 - docs/parity.md declares that Windows and macOS notifications are not
   replaced, withdrawn or removed on exit.
 - Account icons use ZapZap's generated SVG icon and its icon profile format,

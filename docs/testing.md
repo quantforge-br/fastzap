@@ -106,7 +106,7 @@ de teste autorizados.
   offline, edição e envio em andamento também não aceitam novos anexos.
 - Confira escala da interface e HiDPI, saída do arraste sem soltar, pastas,
   arquivo ausente, arquivo vazio e limite de 100 MB. Testes Rust de
-  `commands::evolution::upload_tests` cobrem os limites de leitura.
+  `upload::tests` cobrem os limites de leitura.
 - Com servidor mock, provoque falha no primeiro de vários arquivos: os
   seguintes permanecem pendentes e o tentado não é reenviado automaticamente.
   Troque/feche a conversa durante o envio: os próximos arquivos não saem e

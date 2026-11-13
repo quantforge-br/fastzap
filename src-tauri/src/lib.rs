@@ -19,6 +19,7 @@ pub mod settings;
 pub mod spellcheck;
 pub mod tray;
 pub mod update;
+pub mod upload;
 pub mod webview;
 
 use commands::{
