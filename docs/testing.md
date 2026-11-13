@@ -98,7 +98,9 @@ de teste autorizados.
 ### Anexos por arraste
 
 - WhatsApp Web: solte arquivos do gerenciador na conversa; confira a prévia
-  da página, sem navegação para o arquivo, inclusive depois de trocar de conta.
+  da página, sem navegação para o arquivo, inclusive depois de trocar de
+  conta, com vários arquivos, com zoom na conta (posição do drop) e com uma
+  pasta ou um arquivo acima de 100 MB (aviso na página, nada é anexado).
 - Evolution Go: arraste vários arquivos sobre a conversa; confira o destaque,
   nomes e remoção individual. Soltar não envia: Enviar confirma, com legenda
   opcional. Repetir o mesmo caminho não duplica o anexo.

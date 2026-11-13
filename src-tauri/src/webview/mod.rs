@@ -1,5 +1,7 @@
 pub mod clipboard;
 pub mod deeplink;
+#[cfg(target_os = "linux")]
+pub mod file_drop;
 pub mod manager;
 pub mod navigation;
 pub mod scripts;

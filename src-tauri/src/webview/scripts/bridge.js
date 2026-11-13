@@ -340,6 +340,70 @@
     return image ? image.currentSrc || image.src : null;
   };
 
+  // ---- File drops replayed from the native side (Linux). ----
+  // WebKitGTK gives the page OS file drops without File objects, so the
+  // native side sends each dropped file in base64 chunks (webview/file_drop.rs)
+  // and the drop is dispatched again here with real files.
+  const fileDrops = new Map();
+
+  const decodeBase64 = (data) => {
+    const binary = atob(data);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+    return bytes;
+  };
+
+  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
+  const replayDrop = async (files, x, y) => {
+    const dataTransfer = new DataTransfer();
+    for (const file of files) dataTransfer.items.add(file);
+    const fire = (type, target) =>
+      target.dispatchEvent(
+        new DragEvent(type, {
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+          clientX: x,
+          clientY: y,
+          dataTransfer,
+        }),
+      );
+    const targetAt = () => document.elementFromPoint(x, y) || document.body;
+    const entered = targetAt();
+    fire("dragenter", entered);
+    fire("dragover", entered);
+    // WhatsApp shows a drop zone on dragenter; let it render, then drop on it.
+    await nextFrame();
+    await nextFrame();
+    const target = targetAt();
+    if (target !== entered) {
+      fire("dragleave", entered);
+      fire("dragenter", target);
+    }
+    fire("dragover", target);
+    fire("drop", target);
+  };
+
+  const dropBegin = (token) => {
+    fileDrops.set(token, []);
+  };
+  const dropFile = (token, name, type) => {
+    fileDrops.get(token)?.push({ name, type, parts: [] });
+  };
+  const dropChunk = (token, data) => {
+    const files = fileDrops.get(token);
+    files?.[files.length - 1]?.parts.push(decodeBase64(data));
+  };
+  const dropEnd = (token, x, y, errors) => {
+    const pending = fileDrops.get(token);
+    fileDrops.delete(token);
+    if (errors && errors.length) showToast(errors.join("\n"), 4000);
+    if (!pending || !pending.length) return;
+    const files = pending.map(({ name, type, parts }) => new File(parts, name, { type }));
+    replayDrop(files, x, y).catch((error) => console.warn("[FastZap] file drop", error));
+  };
+
   // ---- QWebChannel shim so the ported theme controller keeps its contract. ----
   const zapZapBridge = {
     on_theme_controller_injection_success: () => invoke("wa_theme_event", { event: "ready" }),
@@ -361,6 +425,10 @@
     openDeepLink,
     showToast,
     readProfilePhoto,
+    dropBegin,
+    dropFile,
+    dropChunk,
+    dropEnd,
     closeConversation: () => dispatchKey({ key: "Escape" }),
     newChat: () => dispatchKey({ key: "n", code: "KeyN", ctrlKey: true, altKey: true }),
     notificationClicked(id) {

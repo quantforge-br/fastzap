@@ -78,9 +78,16 @@ habilitada, `webview::manager` cria um child webview com `Window::add_child`
   conclusão vem de `downloads::linux`);
 - `proxy_url` quando o proxy global está ativo.
 
-O handler de drag-and-drop do Tauri fica desativado nas contas `wa-*`, para
-que o WhatsApp Web receba os arquivos pelo mecanismo HTML nativo. A webview
-`ui` mantém os eventos Tauri para anexos do chat Evolution Go.
+No Windows e no macOS, o handler de drag-and-drop do Tauri fica desativado
+nas contas `wa-*`, para que o WhatsApp Web receba os arquivos pelo mecanismo
+HTML nativo. O WebKitGTK entrega à página drops de arquivos do sistema sem
+objetos `File` (`dataTransfer.files` vazio, só `text/uri-list`); por isso, no
+Linux, o handler fica ativo e `webview/file_drop.rs` recebe os caminhos, lê
+cada arquivo (`upload::read_upload`, limite de 100 MB), envia-o à página em
+blocos base64 via `eval`, e `__FASTZAP__.dropEnd` em `bridge.js` repete
+`dragenter`/`dragover`/`drop` no ponto do drop com arquivos reais. Nenhum
+comando do bridge é usado. A webview `ui` mantém os eventos Tauri para anexos
+do chat Evolution Go.
 
 O frontend informa a área livre (à direita da sidebar) via
 `layout_set_bounds`; o manager posiciona a conta ativa nessa área e oculta as

@@ -203,9 +203,6 @@ impl WebviewManager {
             .initialization_script(scripts::document_start(&settings))
             .zoom_hotkeys_enabled(false)
             .devtools(true)
-            // Without this Tauri swallows OS file drops for its own drag-drop
-            // event; WhatsApp Web needs the native HTML5 drop to attach files.
-            .disable_drag_drop_handler()
             // As in ZapZap, other hosts are only blocked: WhatsApp also loads
             // background frames (e.g. flows.whatsapp.net cache management)
             // that must not reach the browser. Links the user opens arrive
@@ -229,6 +226,15 @@ impl WebviewManager {
                     on_page_ready(&webview);
                 }
             });
+
+        // Tauri's drag-drop handler swallows OS file drops. WebView2 and
+        // WKWebView hand them to the page natively, so it is turned off there;
+        // WebKitGTK drops lack `File` objects, so on Linux the handler stays
+        // on and `file_drop` replays the drop inside the page.
+        #[cfg(not(target_os = "linux"))]
+        {
+            builder = builder.disable_drag_drop_handler();
+        }
 
         if let Some(script) = scripts::all_frames(&settings) {
             builder = builder.initialization_script_for_all_frames(script);
@@ -273,6 +279,8 @@ impl WebviewManager {
         crate::spellcheck::install_context_menu(&webview);
         #[cfg(target_os = "linux")]
         crate::downloads::linux::install(&webview, account.id);
+        #[cfg(target_os = "linux")]
+        super::file_drop::install(&webview);
         #[cfg(target_os = "linux")]
         reload_after_crash(&webview, account.id);
         Ok(webview)

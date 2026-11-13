@@ -27,7 +27,7 @@
 - Drag files into Evolution Go conversations to stage multiple attachments,
   remove individual files and confirm sending with an optional caption.
   Uploads reject non-regular files and files larger than 100 MB.
-- WhatsApp Web receives native file drops directly for its attachment preview.
+- WhatsApp Web receives file drops for its attachment preview.
 - `make install` builds the current working tree and updates the local Arch
   Linux installation through pacman, with a timestamped local package and
   unprivileged compilation, without publishing commits or touching user data.
@@ -211,6 +211,12 @@
 
 ### Fixed
 
+- Files dragged onto a WhatsApp Web account on Linux open its attachment
+  preview again. WebKitGTK hands OS file drops to the page as a
+  `text/uri-list` string with an empty `dataTransfer.files`, so WhatsApp Web
+  ignored them; these webviews now keep Tauri's drag-drop handler, read the
+  dropped files (100 MB each) and replay the drop in the page with real
+  `File` objects. Windows and macOS keep the native drop.
 - Audio has sound again on Linux in WhatsApp Web and Evolution Go accounts.
   WirePlumber saved a muted page's stream volume (0%) under FastZap's
   application name and restored it on every new stream, so voice messages
