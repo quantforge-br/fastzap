@@ -84,12 +84,15 @@ HTML nativo. O WebKitGTK entrega à página drops de arquivos do sistema sem
 objetos `File` (`dataTransfer.files` vazio, só `text/uri-list`); por isso, no
 Linux, o handler fica ativo e `webview/file_drop.rs` recebe os caminhos, lê
 cada arquivo (`upload::read_upload`, limite de 100 MB), envia-o à página em
-blocos base64 via `eval`, e `__FASTZAP__.dropEnd` em `bridge.js` repete
-um breve hover (`dragover` a cada 50 ms, para o WhatsApp mostrar sua zona de
-drop) e o `drop` no ponto do drop com arquivos reais. O WebKit fixa
+blocos base64 via `eval`, e `__FASTZAP__.dropEnd` em `bridge.js` dispara o
+`drop` no ponto do drop com arquivos reais. O WebKit fixa
 `effectAllowed`/`dropEffect` de um `DataTransfer` construído em `none`, que o
-WhatsApp rejeita; por isso o replay informa uma cópia. Nenhum comando do
-bridge é usado. A webview `ui` mantém os eventos Tauri para anexos
+WhatsApp rejeita; por isso o replay informa uma cópia. O hover chega à
+página como `text/uri-list` sem `Files`, então `bridge.js` intercepta esses
+`dragenter`/`dragover` nativos e os espelha com um arquivo provisório, o que
+faz o WhatsApp mostrar sua zona de drop durante o arraste; o evento `Leave`
+do wry (arraste que sai sem soltar) chama `__FASTZAP__.dragLeave`. Nenhum
+comando do bridge é usado. A webview `ui` mantém os eventos Tauri para anexos
 do chat Evolution Go.
 
 O frontend informa a área livre (à direita da sidebar) via

@@ -97,7 +97,8 @@ de teste autorizados.
 
 ### Anexos por arraste
 
-- WhatsApp Web: solte arquivos do gerenciador na conversa; confira a prévia
+- WhatsApp Web: solte arquivos do gerenciador na conversa; confira que a zona
+  de drop aparece durante o arraste e some quando ele sai sem soltar, a prévia
   da página, sem navegação para o arquivo, inclusive depois de trocar de
   conta, com vários arquivos, com zoom na conta (posição do drop) e com uma
   pasta ou um arquivo acima de 100 MB (aviso na página, nada é anexado).

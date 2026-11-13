@@ -216,9 +216,11 @@
   `text/uri-list` string with an empty `dataTransfer.files`, so WhatsApp Web
   ignored them; these webviews now keep Tauri's drag-drop handler, read the
   dropped files (100 MB each) and replay the drop in the page with real
-  `File` objects, as a short hover (so WhatsApp Web shows its drop zone)
-  with a copy effect: WebKit pins a constructed `DataTransfer` to `none`,
-  which WhatsApp Web rejects. Windows and macOS keep the native drop.
+  `File` objects and a copy effect (WebKit pins a constructed
+  `DataTransfer` to `none`, which WhatsApp Web rejects). While a file is
+  dragged over the page, the hover is mirrored with a placeholder file, so
+  WhatsApp Web shows its drop zone before the file is released. Windows and
+  macOS keep the native drop.
 - Audio has sound again on Linux in WhatsApp Web and Evolution Go accounts.
   WirePlumber saved a muted page's stream volume (0%) under FastZap's
   application name and restored it on every new stream, so voice messages

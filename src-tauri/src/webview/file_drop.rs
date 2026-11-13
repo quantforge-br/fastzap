@@ -26,10 +26,18 @@ static NEXT_DROP: AtomicU64 = AtomicU64::new(1);
 pub fn install<R: Runtime>(webview: &Webview<R>) {
     let target = webview.clone();
     webview.on_webview_event(move |event| {
-        if let WebviewEvent::DragDrop(DragDropEvent::Drop { paths, position }) = event {
-            let webview = target.clone();
-            let (paths, position) = (paths.clone(), *position);
-            tauri::async_runtime::spawn(async move { deliver(webview, paths, position).await });
+        match event {
+            WebviewEvent::DragDrop(DragDropEvent::Drop { paths, position }) => {
+                let webview = target.clone();
+                let (paths, position) = (paths.clone(), *position);
+                tauri::async_runtime::spawn(async move { deliver(webview, paths, position).await });
+            }
+            // The page mirrors the hover of a file drag (`bridge.js`); wry
+            // reports a drag that leaves without dropping.
+            WebviewEvent::DragDrop(DragDropEvent::Leave) => {
+                eval(&target, "window.__FASTZAP__?.dragLeave()".to_owned());
+            }
+            _ => {}
         }
     });
 }
@@ -43,6 +51,7 @@ async fn deliver<R: Runtime>(
     // files are dropped.
     let paths: Vec<PathBuf> = paths.into_iter().filter(|p| p.exists()).collect();
     if paths.is_empty() {
+        eval(&webview, "window.__FASTZAP__?.dragLeave()".to_owned());
         return;
     }
     // wry reports GTK widget coordinates; the page works in CSS pixels.
@@ -51,11 +60,7 @@ async fn deliver<R: Runtime>(
         .filter(|z| *z > 0.0)
         .unwrap_or(1.0);
     let token = NEXT_DROP.fetch_add(1, Ordering::Relaxed);
-    let eval = |script: String| {
-        if let Err(e) = webview.eval(script) {
-            log::warn!("failed to deliver a dropped file: {e}");
-        }
-    };
+    let eval = |script: String| eval(&webview, script);
     let mut errors = Vec::new();
     eval(format!("window.__FASTZAP__?.dropBegin({token})"));
     for path in paths {
@@ -94,6 +99,12 @@ async fn deliver<R: Runtime>(
         position.y / zoom,
         json(&errors),
     ));
+}
+
+fn eval<R: Runtime>(webview: &Webview<R>, script: String) {
+    if let Err(e) = webview.eval(script) {
+        log::warn!("failed to deliver a dropped file: {e}");
+    }
 }
 
 async fn zoom_level<R: Runtime>(webview: &Webview<R>) -> Option<f64> {

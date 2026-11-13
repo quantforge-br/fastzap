@@ -355,7 +355,7 @@
 
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  const replayDrop = async (files, x, y) => {
+  const fileTransfer = (files) => {
     const dataTransfer = new DataTransfer();
     for (const file of files) dataTransfer.items.add(file);
     // WebKit pins effectAllowed and dropEffect of a constructed DataTransfer
@@ -373,35 +373,88 @@
         dropEffect = value;
       },
     });
-    const fire = (type, target) =>
-      target.dispatchEvent(
-        new DragEvent(type, {
-          bubbles: true,
-          cancelable: true,
-          composed: true,
-          clientX: x,
-          clientY: y,
-          dataTransfer,
-        }),
-      );
-    const targetAt = () => document.elementFromPoint(x, y) || document.body;
-    // Replay a short hover the way a browser does (dragover every 50 ms, the
-    // new element entered before the old one is left): WhatsApp shows its
-    // drop zone over the conversation and only accepts the drop there.
-    let target = targetAt();
-    fire("dragenter", target);
-    for (let tick = 0; ; tick++) {
-      const current = targetAt();
-      if (current !== target) {
-        fire("dragenter", current);
-        fire("dragleave", target);
-        target = current;
-      }
-      fire("dragover", target);
-      if (tick === 8) break;
-      await delay(50);
+    return dataTransfer;
+  };
+
+  const fireDrag = (type, target, x, y, dataTransfer) =>
+    target.dispatchEvent(
+      new DragEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        clientX: x,
+        clientY: y,
+        dataTransfer,
+      }),
+    );
+
+  const elementAt = (x, y) => document.elementFromPoint(x, y) || document.body;
+
+  // Moves a synthetic drag to (x, y) the way a browser does: the new element
+  // is entered before the old one is left, then gets a dragover.
+  const dragTo = (state, x, y) => {
+    const current = elementAt(x, y);
+    if (current !== state.target) {
+      fireDrag("dragenter", current, x, y, state.dataTransfer);
+      if (state.target) fireDrag("dragleave", state.target, x, y, state.dataTransfer);
+      state.target = current;
     }
-    fire("drop", target);
+    fireDrag("dragover", state.target, x, y, state.dataTransfer);
+  };
+
+  // An OS file drag hovering the page. WebKitGTK reports it as text/uri-list
+  // without "Files", so WhatsApp would show its drop zone only once the drop
+  // is replayed; mirror the hover with a placeholder file instead. The real
+  // files arrive from the native side on drop (dropEnd); the native side
+  // also reports a drag that leaves without a drop (dragLeave), since GTK
+  // leaves the page right before a drop as well.
+  let hover = null;
+  let pageDrag = false;
+
+  const isOsFileDrag = (event) =>
+    event.isTrusted &&
+    !pageDrag &&
+    !!event.dataTransfer &&
+    event.dataTransfer.types.includes("text/uri-list") &&
+    !event.dataTransfer.types.includes("Files");
+
+  const dragLeave = () => {
+    if (hover?.target) fireDrag("dragleave", hover.target, hover.x, hover.y, hover.dataTransfer);
+    hover = null;
+  };
+
+  const onOsDrag = (event) => {
+    if (!isOsFileDrag(event)) return;
+    event.stopImmediatePropagation();
+    if (event.type === "dragleave") return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    if (!hover) hover = { dataTransfer: fileTransfer([new File([], "file")]), target: null };
+    hover.x = event.clientX;
+    hover.y = event.clientY;
+    dragTo(hover, hover.x, hover.y);
+  };
+
+  window.addEventListener("dragstart", () => (pageDrag = true), true);
+  window.addEventListener("dragend", () => (pageDrag = false), true);
+  for (const type of ["dragenter", "dragover", "dragleave"]) {
+    window.addEventListener(type, onOsDrag, true);
+  }
+
+  const replayDrop = async (files, x, y) => {
+    const state = { dataTransfer: fileTransfer(files), target: hover?.target ?? null };
+    hover = null;
+    if (!state.target) {
+      // No hover was mirrored: replay a short one (dragover every 50 ms) so
+      // WhatsApp shows its drop zone, which is the only place it accepts
+      // the drop.
+      for (let tick = 0; tick < 8; tick++) {
+        dragTo(state, x, y);
+        await delay(50);
+      }
+    }
+    dragTo(state, x, y);
+    fireDrag("drop", state.target, x, y, state.dataTransfer);
   };
 
   const dropBegin = (token) => {
@@ -418,7 +471,10 @@
     const pending = fileDrops.get(token);
     fileDrops.delete(token);
     if (errors && errors.length) showToast(errors.join("\n"), 4000);
-    if (!pending || !pending.length) return;
+    if (!pending || !pending.length) {
+      dragLeave();
+      return;
+    }
     const files = pending.map(({ name, type, parts }) => new File(parts, name, { type }));
     replayDrop(files, x, y).catch((error) => console.warn("[FastZap] file drop", error));
   };
@@ -448,6 +504,7 @@
     dropFile,
     dropChunk,
     dropEnd,
+    dragLeave,
     closeConversation: () => dispatchKey({ key: "Escape" }),
     newChat: () => dispatchKey({ key: "n", code: "KeyN", ctrlKey: true, altKey: true }),
     notificationClicked(id) {
