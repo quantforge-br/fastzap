@@ -2,84 +2,85 @@
 
 ## Project Overview
 
-FastZap é um cliente desktop multi-conta de WhatsApp (Tauri 2 + Rust +
-SvelteKit/Svelte 5), reescrita do ZapZap 7.5.2 (referência local em
-`~/dev/zapzap`). Há dois tipos de conta: **WhatsApp Web** (um webview nativo
-isolado por conta) e **Evolution Go** (chat nativo em Svelte sobre a API REST +
-WebSocket do servidor Evolution Go). Licença GPL-3.0-or-later.
+FastZap is a multi-account WhatsApp desktop client (Tauri 2 + Rust +
+SvelteKit/Svelte 5), a rewrite of ZapZap 7.5.2 (local reference at
+`~/dev/zapzap`). There are two account kinds: **WhatsApp Web** (one isolated
+native webview per account) and **Evolution Go** (native Svelte chat over the
+Evolution Go server's REST API + WebSocket). GPL-3.0-or-later license.
 
-Antes de alterar, leia `CHANGELOG.md`, `docs/architecture.md`,
-`docs/maintenance.md`, `docs/COMMIT_CONVENTION.md`, `docs/parity.md` e a seção
-pertinente de `docs/testing.md`. Os docs estão em pt-BR; código, comentários,
-`CHANGELOG.md` e commits são em inglês.
+Before changing anything, read `CHANGELOG.md`, `docs/architecture.md`,
+`docs/maintenance.md`, `docs/COMMIT_CONVENTION.md`, `docs/parity.md`, and the
+relevant section of `docs/testing.md`. Docs, code, comments, `CHANGELOG.md`,
+and commits are in English.
 
 ## Architecture & Data Flow
 
-- **Rust é dono do estado**: preferências, contas, segredos e integrações
-  nativas. O frontend só renderiza e chama comandos.
-- **Camadas** (`docs/architecture.md` §Visão geral): `settings`, `secrets`,
-  `paths` e `i18n` não dependem de módulos de feature. Features não dependem
-  entre si; coordenam-se por `app::state::AppState` ou por eventos. Só
-  `src-tauri/src/commands/` conhece o formato das chamadas IPC.
-- **Janelas e webviews** (`tauri.conf.json` tem `app.windows: []`; tudo é
-  criado em Rust):
-  - janela `main` com o webview filho `ui` (SPA, rota `/`) —
+- **Rust owns the state**: preferences, accounts, secrets, and native
+  integrations. The frontend only renders and invokes commands.
+- **Layers** (`docs/architecture.md` §Overview): `settings`, `secrets`,
+  `paths`, and `i18n` do not depend on any feature module. Features do not
+  depend on each other; they coordinate through `app::state::AppState` or via
+  events. Only `src-tauri/src/commands/` knows the IPC call format.
+- **Windows and webviews** (`tauri.conf.json` has `app.windows: []`; everything
+  is created in Rust):
+  - `main` window with the `ui` child webview (SPA, `/` route) —
     `app/window.rs`;
-  - janela `panel` (rota `/panel`, painel de acesso rápido) — `app/panel.rs`;
-  - um webview filho `wa-<id>` por conta WhatsApp Web habilitada —
-    `webview/manager.rs`; dados em `<data>/profiles/<id>` (macOS:
-    `data_store_identifier`); no Linux os filhos ficam num `GtkOverlay`
+  - `panel` window (`/panel` route, quick-access panel) — `app/panel.rs`;
+  - one `wa-<id>` child webview per enabled WhatsApp Web account —
+    `webview/manager.rs`; data in `<data>/profiles/<id>` (macOS:
+    `data_store_identifier`); on Linux the children live in a `GtkOverlay`
     (`webview/stage.rs`);
-  - popups `popup-N` sem IPC.
-- **Bootstrap** (`lib.rs::run`): logger e panic hook → plugins
-  (`single_instance` primeiro) → `.manage(...)` → `setup` com
-  `app/bootstrap.rs::init_state` (monta `AppState`, roda a importação do
-  ZapZap), janela, webviews, sessões Evolution, tray, painel, deep links,
-  checagem de atualização.
-- **Backend → UI**: eventos `domínio://evento` com **snapshots completos**
-  (não deltas): `settings://changed`, `accounts://changed`,
+  - `popup-N` popups with no IPC.
+- **Bootstrap** (`lib.rs::run`): logger and panic hook → plugins
+  (`single_instance` first) → `.manage(...)` → `setup` with
+  `app/bootstrap.rs::init_state` (builds `AppState`, runs the ZapZap
+  import), window, webviews, Evolution sessions, tray, panel, deep links,
+  update check.
+- **Backend → UI**: `domain://event` events with **full snapshots**
+  (not deltas): `settings://changed`, `accounts://changed`,
   `layout://changed`, `unread://changed`, `ui://action`,
   `downloads://{changed,prompt,saved}`, `permissions://request`,
   `spellcheck://changed`, `update://available`, `evolution://event`.
-  Constantes em `app/events.rs` e nos módulos de domínio; espelhadas à mão em
-  `events` de `src/lib/ipc/index.ts`.
-- **Evolution Go**: WebSocket (`evolution/ws.rs`) ou journal `/chat/events`
-  (retomado do cursor após cada reconexão) → `evolution/model.rs::parse` →
-  `ChatStore` (SQLite WAL em `<data>/evolution/<id>/chats.db`) →
-  `evolution://event` (`UiEvent` com `type`) → a UI refaz a leitura via
-  `evo_chats`/`evo_messages`.
-- **Ponte remota**: webviews `wa-*` em `https://web.whatsapp.com/*` só chamam
-  os comandos `wa_*` de `commands/bridge.rs`
-  (`capabilities/whatsapp-remote.json`). A conta chamadora vem **do rótulo do
-  webview, nunca dos argumentos**; `wa_shortcut` aceita só `REMOTE_ACTIONS`.
+  Constants in `app/events.rs` and the domain modules; mirrored by hand in
+  `events` in `src/lib/ipc/index.ts`.
+- **Evolution Go**: WebSocket (`evolution/ws.rs`) or `/chat/events` journal
+  (resumed from the cursor after each reconnection) →
+  `evolution/model.rs::parse` → `ChatStore` (SQLite WAL at
+  `<data>/evolution/<id>/chats.db`) → `evolution://event` (`UiEvent` with
+  `type`) → the UI re-reads via `evo_chats`/`evo_messages`.
+- **Remote bridge**: `wa-*` webviews at `https://web.whatsapp.com/*` only invoke
+  the `wa_*` commands in `commands/bridge.rs`
+  (`capabilities/whatsapp-remote.json`). The calling account comes **from the
+  webview label, never from the arguments**; `wa_shortcut` only accepts
+  `REMOTE_ACTIONS`.
 
 ## Key Directories
 
-| Caminho | Papel |
+| Path | Role |
 |---|---|
-| `src-tauri/src/app/` | ciclo de vida, janelas, painel, eventos, tema, CLI, D-Bus (Linux), `actions.rs` (destino de atalhos/ações) |
-| `src-tauri/src/commands/` | superfície IPC, um arquivo por domínio |
-| `src-tauri/src/webview/` | webviews WhatsApp Web, allowlist de navegação, scripts injetados (`scripts/*.js`), deep links, não lidas |
-| `src-tauri/src/evolution/` | `client.rs` (REST), `ws.rs`, `store.rs` (SQLite), `model.rs` (parser), `mod.rs` (sessões) |
-| `src-tauri/src/settings/` | `Settings` tipado + `store.rs` (JSON versionado) |
-| `src-tauri/src/migration/` | importação única do ZapZap (`ZapZap.conf`, `zapzap.db`, customizações) |
-| `src-tauri/src/accounts/` | `accounts.db`, ícones, avatares, presets de User-Agent |
-| `src/routes/` | `+page.svelte` (shell principal), `panel/+page.svelte` |
-| `src/lib/ipc/` | `index.ts` (wrappers `invoke`) e `generated/` (tipos ts-rs, versionados) |
-| `src/lib/components/` | componentes reutilizáveis (`settings/Row`, `SwitchRow`, `SelectRow`, `RestartBar`, `ConfirmDialog`, `MenuBar`) |
-| `src/lib/evolution/` | chat nativo: `ChatView`, `Conversation`, `PairingPanel`, `SetupDialog`, `format.ts` |
-| `src/lib/i18n/` | `index.svelte.ts` (`t`, `tn`), `plural.ts`, `catalogs/*.json` (gerados) |
-| `po/` | traduções (`*.po`, origem ZapZap); `LINGUAS` é só informativo |
-| `packaging/` | `common/*.sh`, template deb/rpm, Flatpak (+ submódulo `shared-modules`), snap, metainfo/desktop/ícones |
+| `src-tauri/src/app/` | lifecycle, windows, panel, events, theme, CLI, D-Bus (Linux), `actions.rs` (shortcut/action target) |
+| `src-tauri/src/commands/` | IPC surface, one file per domain |
+| `src-tauri/src/webview/` | WhatsApp Web webviews, navigation allowlist, injected scripts (`scripts/*.js`), deep links, unread counts |
+| `src-tauri/src/evolution/` | `client.rs` (REST), `ws.rs`, `store.rs` (SQLite), `model.rs` (parser), `mod.rs` (sessions) |
+| `src-tauri/src/settings/` | typed `Settings` + `store.rs` (versioned JSON) |
+| `src-tauri/src/migration/` | one-shot ZapZap import (`ZapZap.conf`, `zapzap.db`, customizations) |
+| `src-tauri/src/accounts/` | `accounts.db`, icons, avatars, User-Agent presets |
+| `src/routes/` | `+page.svelte` (main shell), `panel/+page.svelte` |
+| `src/lib/ipc/` | `index.ts` (`invoke` wrappers) and `generated/` (versioned ts-rs types) |
+| `src/lib/components/` | reusable components (`settings/Row`, `SwitchRow`, `SelectRow`, `RestartBar`, `ConfirmDialog`, `MenuBar`) |
+| `src/lib/evolution/` | native chat: `ChatView`, `Conversation`, `PairingPanel`, `SetupDialog`, `format.ts` |
+| `src/lib/i18n/` | `index.svelte.ts` (`t`, `tn`), `plural.ts`, `catalogs/*.json` (generated) |
+| `po/` | translations (`*.po`, ZapZap origin); `LINGUAS` is informational only |
+| `packaging/` | `common/*.sh`, deb/rpm template, Flatpak (+ `shared-modules` submodule), snap, metainfo/desktop/icons |
 | `.github/workflows/` | `quality.yml`, `build-*.yml`, `release-candidate.yml`, `release-deploy.yml` |
 
 ## Development Commands
 
 ```bash
 pnpm install && git submodule update --init
-pnpm tauri dev                       # Vite em 127.0.0.1:1420 (strictPort) + app
-RUST_LOG=debug pnpm tauri dev        # env_logger; padrão info
-pnpm build                           # SPA estática em build/ (exigida pelo build Rust)
+pnpm tauri dev                       # Vite at 127.0.0.1:1420 (strictPort) + app
+RUST_LOG=debug pnpm tauri dev        # env_logger; default info
+pnpm build                           # static SPA in build/ (required by the Rust build)
 pnpm tauri build --bundles deb,rpm,appimage
 
 pnpm check                           # svelte-kit sync + svelte-check
@@ -90,141 +91,142 @@ pnpm test -t "mirrors the backend rules"
 cargo fmt --manifest-path src-tauri/Cargo.toml --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path src-tauri/Cargo.toml [evolution::client]
-(cd src-tauri && cargo test)         # regenera src/lib/ipc/generated/ (ver abaixo)
+(cd src-tauri && cargo test)         # regenerates src/lib/ipc/generated/ (see below)
 git diff --check
 
 pnpm i18n                            # po/*.po -> src/lib/i18n/catalogs/*.json
-node scripts/hunspell-catalog.mjs <sha-40-hex>   # só para trocar o pin de dicionários
-packaging/common/version.sh --check  # versões + <release> do metainfo
+node scripts/hunspell-catalog.mjs <sha-40-hex>   # only to rotate the dictionary pin
+packaging/common/version.sh --check  # versions + metainfo <release>
 ```
 
 ## Code Conventions & Common Patterns
 
-### Regras obrigatórias
+### Mandatory rules
 
-- **Persistência**: preserve chaves e valores. Mudança de formato do
-  `settings.json` = incrementar `SETTINGS_VERSION` (`settings/mod.rs`) e
-  adicionar uma etapa em `settings::store::migrate` (hoje vazio), nunca mudar o
-  significado de um campo. Defaults e nomes espelham o ZapZap; ao mudar uma
-  chave, atualize `src-tauri/src/migration/`.
-- **Segredos** (senha do proxy, `AdminKey`, `InstanceToken`) só no keyring
-  (`secrets.rs`, trait `SecretStore`); nunca em JSON, logs, eventos ou
-  mensagens de erro. Nenhum comando devolve a chave admin. A URL do
-  WebSocket contém a chave admin: não a registre em log.
-- **ACL**: não amplie `capabilities/whatsapp-remote.json` sem justificar no
-  `CHANGELOG.md`.
-- **Evolution Go real** (criar instância, conectar, parear, enviar) só com
-  autorização explícita do usuário; testes usam servidores mock.
-- IDs persistidos separados de rótulos traduzidos (`settings/pages.ts`,
-  valores de `<select>`).
-- Mudança estrutural exige atualizar `docs/architecture.md` e
+- **Persistence**: preserve keys and values. A `settings.json` format change =
+  bump `SETTINGS_VERSION` (`settings/mod.rs`) and add a step in
+  `settings::store::migrate` (currently empty); never change the meaning of a
+  field. Defaults and names mirror ZapZap; when changing a key, update
+  `src-tauri/src/migration/`.
+- **Secrets** (proxy password, `AdminKey`, `InstanceToken`) only in the keyring
+  (`secrets.rs`, `SecretStore` trait); never in JSON, logs, events, or error
+  messages. No command returns the admin key. The WebSocket URL contains the
+  admin key: never log it.
+- **ACL**: do not widen `capabilities/whatsapp-remote.json` without justifying
+  it in `CHANGELOG.md`.
+- **Real Evolution Go** (create instance, connect, pair, send) only with the
+  user's explicit authorization; tests use mock servers.
+- Persisted IDs kept separate from translated labels (`settings/pages.ts`,
+  `<select>` values).
+- Structural changes require updating `docs/architecture.md` and
   `docs/parity.md`.
-- Toda mudança (código, docs, testes, deps, empacotamento, workflows) entra
-  na seção `In development` do `CHANGELOG.md` em `Added`/`Changed`/`Fixed`/
-  `Removed`: inglês, tempo presente descrevendo o resultado, ~80 colunas.
-- Versão idêntica em `package.json`, `src-tauri/Cargo.toml`,
-  `src-tauri/tauri.conf.json` e no primeiro `<release>` do metainfo.
-- Commits: `<type>(<scope>): <imperative description>` em inglês
-  (`docs/COMMIT_CONVENTION.md`); escopos usuais `evolution`, `webview`, `app`,
-  `settings`, `accounts`, `packaging`. Entregue sempre uma mensagem sugerida.
+- Every change (code, docs, tests, deps, packaging, workflows) goes into the
+  `In development` section of `CHANGELOG.md` under `Added`/`Changed`/`Fixed`/
+  `Removed`: English, present tense describing the result, ~80 columns.
+- Identical version in `package.json`, `src-tauri/Cargo.toml`,
+  `src-tauri/tauri.conf.json`, and the metainfo's first `<release>`.
+- Commits: `<type>(<scope>): <imperative description>` in English
+  (`docs/COMMIT_CONVENTION.md`); usual scopes `evolution`, `webview`, `app`,
+  `settings`, `accounts`, `packaging`. Always deliver a suggested message.
 
-### Novo comando IPC (todos os passos)
+### New IPC command (all steps)
 
-1. `#[tauri::command]` em `commands/<domínio>.rs`, retornando
-   `CommandResult<T>`; `async` se criar webview ou abrir diálogo (deadlock no
-   WebView2).
-2. Registrar em `generate_handler!` (`lib.rs`).
-3. Nome em `UI_COMMANDS` ou `BRIDGE_COMMANDS` (`build.rs`) → gera
-   `permissions/autogenerated/<nome>.toml`.
-4. Conceder `allow-<nome-kebab>` em `capabilities/default.json` (`ui`,
-   `panel`) ou `whatsapp-remote.json`.
-5. Tipos com `#[derive(TS)] #[ts(export)]`; regenerar com
+1. `#[tauri::command]` in `commands/<domain>.rs`, returning
+   `CommandResult<T>`; `async` if it creates a webview or opens a dialog
+   (deadlock on WebView2).
+2. Register in `generate_handler!` (`lib.rs`).
+3. Name in `UI_COMMANDS` or `BRIDGE_COMMANDS` (`build.rs`) → generates
+   `permissions/autogenerated/<name>.toml`.
+4. Grant `allow-<kebab-name>` in `capabilities/default.json` (`ui`,
+   `panel`) or `whatsapp-remote.json`.
+5. Types with `#[derive(TS)] #[ts(export)]`; regenerate with
    `(cd src-tauri && cargo test)`.
-6. Wrapper em `src/lib/ipc/index.ts`, ex.:
+6. Wrapper in `src/lib/ipc/index.ts`, e.g.:
    `chats: (accountId: number) => invoke<ChatSummary[]>("evo_chats", { accountId })`.
-   Argumentos de topo em camelCase no JS; campos de structs em snake_case.
+   Top-level arguments in camelCase in JS; struct fields in snake_case.
 
 ### Rust
 
-- Nomes de comando snake_case com prefixo de domínio: `evo_`, `wa_`,
-  `spell_`, `report_`, `custom_`, `accounts_`, `layout_`, `settings_`, `app_`.
-- Erros: `thiserror` por domínio (`EvoError`, `StoreError`, `AccountError`…),
-  `anyhow` só em orquestração. `CommandError { message }` tem
-  `From<E: Display>`, então `?` funciona nos comandos. Mensagens do servidor
-  são sanitizadas; `Secret` imprime `<redacted>` em `Debug`.
-- Async: `tauri::async_runtime::spawn`; `std::sync::{Mutex,RwLock}` para seções
-  curtas, `tokio::sync::Mutex` quando o lock atravessa `.await`.
-- Logs: macros `log` (`warn!`, `info!`), mensagens em minúsculas com `{e}`;
-  sem `println!`. Release usa `panic = "abort"`.
-- Enums persistidos em snake_case, **exceto `ProxyKind`** (`"NoProxy"`,
-  `"Socks5Proxy"`…). Não normalize.
-- Opções lidas na criação do webview (proxy, WebRTC estrito, engine) exigem
-  `recreate_all`; na UI usam `RestartBar` quando só valem no próximo início.
-- Evolution: `AdminKey` ≠ `InstanceToken` (tipos distintos, header `apikey`);
-  base URL `https` (ou `http` em loopback); envio expirado vira `Ambiguous` e
-  nunca é reenviado automaticamente; `GET /instance/qr` só com
+- snake_case command names with a domain prefix: `evo_`, `wa_`, `spell_`,
+  `report_`, `custom_`, `accounts_`, `layout_`, `settings_`, `app_`.
+- Errors: `thiserror` per domain (`EvoError`, `StoreError`, `AccountError`…),
+  `anyhow` only in orchestration. `CommandError { message }` has
+  `From<E: Display>`, so `?` works in commands. Server messages are
+  sanitized; `Secret` prints `<redacted>` in `Debug`.
+- Async: `tauri::async_runtime::spawn`; `std::sync::{Mutex,RwLock}` for short
+  sections, `tokio::sync::Mutex` when the lock is held across `.await`.
+- Logs: `log` macros (`warn!`, `info!`), lowercase messages with `{e}`;
+  no `println!`. Release uses `panic = "abort"`.
+- Persisted enums in snake_case, **except `ProxyKind`** (`"NoProxy"`,
+  `"Socks5Proxy"`…). Do not normalize.
+- Options read at webview creation (proxy, strict WebRTC, engine) require
+  `recreate_all`; in the UI they use `RestartBar` when they only apply at the
+  next start.
+- Evolution: `AdminKey` ≠ `InstanceToken` (distinct types, `apikey` header);
+  base URL `https` (or `http` on loopback); an expired send becomes `Ambiguous`
+  and is never retried automatically; `GET /instance/qr` only with
   `LoggedIn == false`.
-- `cfg` por plataforma: D-Bus, GTK stage, portal, WebKit permissions,
-  notificações freedesktop são Linux-only; autostart plugin fora do Linux.
+- Per-platform `cfg`: D-Bus, GTK stage, portal, WebKit permissions, and
+  freedesktop notifications are Linux-only; autostart plugin off Linux.
 
 ### Svelte / TypeScript
 
-- Só Svelte 5 runes: `$props()` tipado inline, `$state`, `$derived`,
-  `$effect`, `{@render}`/snippets, callbacks `onclose`/`onconfirm`. Nada de
-  `export let`, `on:`, `<slot>` ou `svelte/store`.
-- Estado de módulo em `*.svelte.ts` (`stores/settings.svelte.ts`:
-  `startSettings()`, `patchSettings(patch)`). Eventos substituem o estado
-  inteiro.
-- Snapshot inicial de props vira estado local com `untrack(() => prop)`
-  (`AccountEditDialog`, `ReportDialog`, `LanguagePicker`). Em `$effect`,
-  leituras incidentais (funções chamadas que leem outro `$state`) também vão
-  em `untrack`, senão viram dependências.
-- Eventos: `on<T>(events.x, handler)` retorna `Promise<UnlistenFn>`; limpeza
+- Svelte 5 runes only: inline-typed `$props()`, `$state`, `$derived`,
+  `$effect`, `{@render}`/snippets, `onclose`/`onconfirm` callbacks. No
+  `export let`, `on:`, `<slot>`, or `svelte/store`.
+- Module state in `*.svelte.ts` (`stores/settings.svelte.ts`:
+  `startSettings()`, `patchSettings(patch)`). Events replace the whole state.
+- Initial prop snapshots become local state with `untrack(() => prop)`
+  (`AccountEditDialog`, `ReportDialog`, `LanguagePicker`). In `$effect`,
+  incidental reads (called functions reading another `$state`) also go in
+  `untrack`, or they become dependencies.
+- Events: `on<T>(events.x, handler)` returns `Promise<UnlistenFn>`; cleanup
   `return () => unlisten.then((f) => f())`.
-- Erros de `invoke` chegam como objeto `{ message }`, não `Error`: leia
-  `.message`, não `String(e)`.
-- Diálogos e telas que cobrem o conteúdo chamam `layout.setOverlay(true)`
-  (webviews nativos ficam por cima do HTML); menus são nativos (`MenuBar`),
-  não HTML.
-- Estilo: `<style>` escopado por componente; tokens globais em `src/app.css`
-  (`--accent`, `--bg`, `--fg`, `--danger`) e classes `.btn`, `.muted`,
-  `.info-box`.
-- Nomes: componentes `PascalCase.svelte`; módulos `.ts` em lowercase/camelCase;
-  lógica pura em `.ts` ao lado do componente, com `*.test.ts` colocalizado.
-- i18n: `t("English text", { name })`, `tn(singular, plural, n)`; Rust usa
-  `i18n::tr("…")`. `msgid` é o texto em inglês e deve dizer "FastZap" (o
-  script renomeia ZapZap); `msgctxt` é descartado. Tabelas estáticas chamam
-  `t()` no render. Não há extrator: strings novas ficam em inglês até existir
-  entrada nos `.po`.
-- `patchSettings` aceita `unknown` e o backend ignora chaves desconhecidas:
-  chave digitada errada é no-op silencioso. Confira o campo Rust.
-- Atalhos vivem em vários lugares. `shortcutFor` de
-  `webview/scripts/bridge.js` e `src/lib/shell/shortcuts.ts` são mapas
-  idênticos, comparados por `src/lib/shell/shortcuts.test.ts`; um teste de
-  `commands/bridge.rs` exige que toda ação de `shortcutFor` em `bridge.js`
-  esteja em `REMOTE_ACTIONS`. Exceções: `Ctrl+Shift+V` (`paste_plain_text`)
-  só existe na página, e o filtro `e.repeat` só em `+page.svelte`. Ainda
-  sincronizados à mão: aceleradores de `MenuBar.svelte`,
-  `shortcuts/ShortcutsDialog.svelte` e `app/actions.rs::dispatch_for`.
+- `invoke` errors arrive as a `{ message }` object, not an `Error`: read
+  `.message`, not `String(e)`.
+- Dialogs and screens covering the content call `layout.setOverlay(true)`
+  (native webviews stay above the HTML); menus are native (`MenuBar`), not
+  HTML.
+- Style: per-component scoped `<style>`; global tokens in `src/app.css`
+  (`--accent`, `--bg`, `--fg`, `--danger`) and `.btn`, `.muted`,
+  `.info-box` classes.
+- Names: `PascalCase.svelte` components; lowercase/camelCase `.ts` modules;
+  pure logic in a `.ts` file next to the component, with a colocated
+  `*.test.ts`.
+- i18n: `t("English text", { name })`, `tn(singular, plural, n)`; Rust uses
+  `i18n::tr("…")`. `msgid` is the English text and must say "FastZap" (the
+  script renames ZapZap); `msgctxt` is discarded. Static tables call `t()` at
+  render time. There is no extractor: new strings stay in English until a
+  `.po` entry exists.
+- `patchSettings` accepts `unknown` and the backend ignores unknown keys:
+  a mistyped key is a silent no-op. Double-check the Rust field.
+- Shortcuts live in several places. `shortcutFor` in
+  `webview/scripts/bridge.js` and `src/lib/shell/shortcuts.ts` are identical
+  maps, compared by `src/lib/shell/shortcuts.test.ts`; a test in
+  `commands/bridge.rs` requires every `shortcutFor` action in `bridge.js` to
+  be in `REMOTE_ACTIONS`. Exceptions: `Ctrl+Shift+V` (`paste_plain_text`)
+  only exists in the page, and the `e.repeat` filter only in `+page.svelte`.
+  Still synced by hand: `MenuBar.svelte` accelerators,
+  `shortcuts/ShortcutsDialog.svelte`, and `app/actions.rs::dispatch_for`.
 
 ## Important Files
 
-- Entradas: `src-tauri/src/main.rs` → `lib.rs::run()`; `src/routes/+layout.ts`
+- Entries: `src-tauri/src/main.rs` → `lib.rs::run()`; `src/routes/+layout.ts`
   (`ssr = false`), `+layout.svelte`, `+page.svelte`, `panel/+page.svelte`.
-- `src-tauri/build.rs`: listas `UI_COMMANDS`/`BRIDGE_COMMANDS` (manifesto ACL)
-  e embute `src/lib/i18n/catalogs/*.json` (diretório ausente = zero idiomas,
-  sem erro).
+- `src-tauri/build.rs`: `UI_COMMANDS`/`BRIDGE_COMMANDS` lists (ACL manifest)
+  and embeds `src/lib/i18n/catalogs/*.json` (missing directory = zero
+  languages, no error).
 - `src-tauri/tauri.conf.json`: identifier `io.github.quantmind-br.fastzap`
-  (hífen); o `APP_ID` de runtime (`lib.rs`, pastas, D-Bus, keyring, Flatpak) é
-  `io.github.quantmind_br.fastzap` (underscore). IDs usam `quantmind`, URLs e
-  repositório oficial usam `quantforge-br/fastzap`. **Não unifique** —
-  mudaria pastas de dados dos usuários.
+  (hyphen); the runtime `APP_ID` (`lib.rs`, folders, D-Bus, keyring, Flatpak)
+  is `io.github.quantmind_br.fastzap` (underscore). IDs use `quantmind`, URLs
+  and the official repository use `quantforge-br/fastzap`. **Do not unify** —
+  it would move users' data folders.
 - `src-tauri/.cargo/config.toml`: `TS_RS_EXPORT_DIR = ../src/lib/ipc/generated`.
 - `src-tauri/src/app/state.rs` (`AppState`), `commands/mod.rs`
   (`CommandError`), `commands/bridge.rs`, `webview/navigation.rs`
   (allowlist), `settings/store.rs`, `secrets.rs`, `build_info.rs`
   (`FASTZAP_BUILD_*`), `update.rs`.
-- `src-tauri/resources/hunspell-catalog.json` (gerado, versionado, via
+- `src-tauri/resources/hunspell-catalog.json` (generated, versioned, via
   `include_str!`).
 - `packaging/common/version.sh`, `build-info.sh`, `release-upload.sh`;
   `packaging/flatpak/io.github.quantmind_br.fastzap.yml`;
@@ -232,59 +234,59 @@ packaging/common/version.sh --check  # versões + <release> do metainfo
 
 ## Runtime/Tooling Preferences
 
-- **pnpm** fixado em `packageManager` (`pnpm@12.9.1`); CI usa Node 24. Não use
-  npm/yarn nem altere o lockfile sem necessidade.
-- Rust edition 2024, `rust-version = 1.85`, toolchain stable no CI.
-- Linux precisa de `libwebkit2gtk-4.1-dev` (WebKitGTK ≥ 2.40),
+- **pnpm** pinned in `packageManager` (`pnpm@12.9.1`); CI uses Node 24. Do not
+  use npm/yarn or touch the lockfile without need.
+- Rust edition 2024, `rust-version = 1.85`, stable toolchain in CI.
+- Linux needs `libwebkit2gtk-4.1-dev` (WebKitGTK ≥ 2.40),
   `libayatana-appindicator3-dev`, `librsvg2-dev`, `libssl-dev`,
   `libdbus-1-dev`.
-- O build Rust embute `../build`: rode `pnpm build` antes de `cargo` num
-  clone novo (o CI faz isso).
-- **Bindings ts-rs**: o config de `src-tauri/.cargo/` só vale com o cwd em
-  `src-tauri/`. `cargo test --manifest-path src-tauri/Cargo.toml` na raiz
-  exporta para `src-tauri/bindings/` (ignorado) e **não** atualiza
-  `src/lib/ipc/generated/`. Mudou tipo exportado? Rode
-  `(cd src-tauri && cargo test)` e versione `generated/`. O job `rust` da CI
-  (Linux) falha quando `src/lib/ipc/generated/` ou
-  `src-tauri/permissions/autogenerated/` divergem depois de
+- The Rust build embeds `../build`: run `pnpm build` before `cargo` on a fresh
+  clone (CI does this).
+- **ts-rs bindings**: the `src-tauri/.cargo/` config only applies with the cwd
+  in `src-tauri/`. `cargo test --manifest-path src-tauri/Cargo.toml` from the
+  root exports to `src-tauri/bindings/` (ignored) and does **not** update
+  `src/lib/ipc/generated/`. Changed an exported type? Run
+  `(cd src-tauri && cargo test)` and commit `generated/`. The CI `rust` job
+  (Linux) fails when `src/lib/ipc/generated/` or
+  `src-tauri/permissions/autogenerated/` diverge after
   `(cd src-tauri && cargo test --locked)`.
-- Nenhuma outra worktree deve apontar `CARGO_TARGET_DIR` para
-  `src-tauri/target` desta checkout: o Cargo reaproveita o build script
-  compilado por ela (listas `UI_COMMANDS`/`BRIDGE_COMMANDS` e caminho dos
-  catálogos). `make install` roda `touch src-tauri/build.rs` antes do build.
-- Arquivos gerados e versionados: `src/lib/ipc/generated/`,
-  `src/lib/i18n/catalogs/` (não edite à mão; `pnpm i18n` apaga e recria),
-  `src-tauri/permissions/autogenerated/`. Ignorados: `build/`, `.svelte-kit/`,
-  `src-tauri/gen/schemas`, `src-tauri/bindings/`,
+- No other worktree may point `CARGO_TARGET_DIR` at this checkout's
+  `src-tauri/target`: Cargo reuses the build script compiled by it
+  (`UI_COMMANDS`/`BRIDGE_COMMANDS` lists and catalog path). `make install`
+  runs `touch src-tauri/build.rs` before building.
+- Generated and versioned files: `src/lib/ipc/generated/`,
+  `src/lib/i18n/catalogs/` (do not edit by hand; `pnpm i18n` wipes and
+  recreates), `src-tauri/permissions/autogenerated/`. Ignored: `build/`,
+  `.svelte-kit/`, `src-tauri/gen/schemas`, `src-tauri/bindings/`,
   `packaging/common/build-info.env`.
 
 ## Testing & QA
 
-- **Vitest** (`vite.config.js`: `src/**/*.test.ts`, ambiente Node, sem DOM e
-  sem mocks de Tauri): testa funções puras de `src/lib/`. Estilo
-  `describe("<módulo>")` + `it("<frase de comportamento>")`. Componentes Svelte
-  não têm testes.
-- **Rust**: `#[cfg(test)] mod tests` no fim do arquivo; nomes descrevem o
-  comportamento (`base_urls_require_https_except_loopback`); async com
+- **Vitest** (`vite.config.js`: `src/**/*.test.ts`, Node environment, no DOM
+  and no Tauri mocks): tests pure functions in `src/lib/`. Style
+  `describe("<module>")` + `it("<behavior sentence>")`. Svelte components
+  have no tests.
+- **Rust**: `#[cfg(test)] mod tests` at the end of the file; names describe the
+  behavior (`base_urls_require_https_except_loopback`); async with
   `#[tokio::test]`. Dev-deps: `wiremock`, `tempfile`.
-  - Evolution REST com `wiremock::MockServer` (confere o header `apikey` por
-    escopo); WebSocket contra `tokio-tungstenite` em `127.0.0.1:0`.
-  - Segredos com `secrets::MemoryStore`; SQLite com
-    `AccountStore::in_memory()`/`ChatStore::in_memory()`; arquivos em
-    `tempfile::tempdir()`. Não altere variáveis de ambiente em testes.
-- **CI** (`quality.yml`, push em `main` e PRs): `rust` (Ubuntu/Windows/macOS:
-  `pnpm build`, fmt, clippy `--locked -D warnings`, `cargo test --locked` com
-  cwd em `src-tauri/`; no Linux, falha se `src/lib/ipc/generated/` ou
-  `src-tauri/permissions/autogenerated/` divergirem do versionado),
-  `frontend` (`pnpm i18n` e falha se `src/lib/i18n/catalogs/` divergir,
-  `pnpm check`, `pnpm test`), `packaging` (`version.sh --check`,
-  `desktop-file-validate`, `appstreamcli validate --no-net`, `shellcheck`,
-  `actionlint`). Sem meta de cobertura; `git diff --check` só local.
-- **Manual** (`docs/testing.md` §Verificações manuais): webviews filhos,
-  foco, tray, notificações e compositor exigem `pnpm tauri dev` com duas
-  contas WhatsApp Web, deep link `xdg-open "whatsapp://send?phone=..."`,
-  downloads, tema e grade. Sem teste automatizado: watchdog de 65 s do
-  WebSocket, scripts injetados em `webview/scripts/` (só o mapa
-  `shortcutFor` de `bridge.js` é testado).
-- Antes de entregar: `pnpm check`, `pnpm test`, `cargo fmt … --check`,
+  - Evolution REST with `wiremock::MockServer` (checks the `apikey` header per
+    scope); WebSocket against `tokio-tungstenite` at `127.0.0.1:0`.
+  - Secrets with `secrets::MemoryStore`; SQLite with
+    `AccountStore::in_memory()`/`ChatStore::in_memory()`; files in
+    `tempfile::tempdir()`. Do not mutate environment variables in tests.
+- **CI** (`quality.yml`, pushes to `main` and PRs): `rust` (Ubuntu/Windows/
+  macOS: `pnpm build`, fmt, clippy `--locked -D warnings`,
+  `cargo test --locked` with cwd in `src-tauri/`; on Linux, fails if
+  `src/lib/ipc/generated/` or `src-tauri/permissions/autogenerated/` diverge
+  from the committed files), `frontend` (`pnpm i18n` and fails if
+  `src/lib/i18n/catalogs/` diverges, `pnpm check`, `pnpm test`), `packaging`
+  (`version.sh --check`, `desktop-file-validate`,
+  `appstreamcli validate --no-net`, `shellcheck`, `actionlint`). No coverage
+  target; `git diff --check` local only.
+- **Manual** (`docs/testing.md` §Manual checks): child webviews, focus, tray,
+  notifications, and the composer require `pnpm tauri dev` with two WhatsApp
+  Web accounts, deep link `xdg-open "whatsapp://send?phone=..."`, downloads,
+  theme, and grid. No automated test: 65 s WebSocket watchdog, injected scripts
+  in `webview/scripts/` (only the `shortcutFor` map in `bridge.js` is tested).
+- Before delivering: `pnpm check`, `pnpm test`, `cargo fmt … --check`,
   `cargo clippy … -D warnings`, `cargo test …`, `git diff --check`.

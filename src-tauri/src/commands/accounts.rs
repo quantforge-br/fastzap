@@ -109,7 +109,7 @@ pub async fn account_photo_pick(app: AppHandle, title: String) -> CommandResult<
         .dialog()
         .file()
         .set_title(title)
-        .add_filter("Images", &["png", "jpg", "jpeg", "webp", "gif", "bmp"])
+        .add_filter(tr("Images"), &["png", "jpg", "jpeg", "webp", "gif", "bmp"])
         .blocking_pick_file()
         .and_then(|p| p.into_path().ok())
     else {

@@ -1,25 +1,26 @@
 # FastZap
 
-Cliente desktop multi-conta para WhatsApp escrito em Rust + Tauri v2, sucessor
-em espírito do [ZapZap](https://github.com/rafatosta/zapzap). Cada conta pode
-ser de dois tipos:
+Multi-account desktop client for WhatsApp written in Rust + Tauri v2, a
+spiritual successor to [ZapZap](https://github.com/rafatosta/zapzap). Each account
+can be one of two kinds:
 
-- **WhatsApp Web** — o web.whatsapp.com num webview isolado por conta
-  (cookies, sessão e cache próprios);
-- **Evolution Go** — login numa instância do
-  [Evolution Go](https://github.com/EvolutionAPI/evolution-go), com pareamento
-  por QR ou código de telefone e uma interface de chat nativa.
+- **WhatsApp Web** — web.whatsapp.com in a per-account isolated webview
+  (own cookies, session, and cache);
+- **Evolution Go** — login to an
+  [Evolution Go](https://github.com/EvolutionAPI/evolution-go) instance, with
+  QR or phone-code pairing and a native chat interface.
 
-## Instalação
+## Installation
 
-Os pacotes (deb, rpm, AppImage, Flatpak, snap, instaladores do Windows e dmg
-do macOS) são anexados às releases do GitHub. Para gerar localmente, veja
-[`docs/maintenance.md`](docs/maintenance.md#empacotamento).
+Packages (deb, rpm, AppImage, Flatpak, snap, Windows installers, and macOS
+dmg) are attached to GitHub releases. To build them locally, see
+[`docs/maintenance.md`](docs/maintenance.md#packaging).
 
-## Desenvolvimento
+## Development
 
-Requisitos: Rust estável, Node 24+, pnpm (versão em `packageManager`) e as dependências de sistema do Tauri
-(no Linux: `webkit2gtk-4.1`, `libsoup-3.0`, `libappindicator`/`ayatana`).
+Requirements: stable Rust, Node 24+, pnpm (version in `packageManager`), and the Tauri
+system dependencies
+(on Linux: `webkit2gtk-4.1`, `libsoup-3.0`, `libappindicator`/`ayatana`).
 
 ```bash
 git submodule update --init
@@ -27,9 +28,9 @@ pnpm install
 pnpm tauri dev
 ```
 
-Documentação técnica em [`docs/`](docs/README.md).
+Technical documentation in [`docs/`](docs/README.md).
 
-## Licença
+## License
 
-GPL-3.0-or-later. Scripts de integração com o WhatsApp Web foram portados do
-ZapZap, que usa a mesma licença.
+GPL-3.0-or-later. WhatsApp Web integration scripts were ported from
+ZapZap, which uses the same license.

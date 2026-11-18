@@ -1,560 +1,553 @@
-# Arquitetura do FastZap
+# FastZap Architecture
 
-## Visão geral
+## Overview
 
-FastZap é um aplicativo Tauri v2. O processo Rust (`src-tauri/`) é a autoridade
-sobre estado, preferências, contas, segredos e integrações nativas. A interface
-local é uma SPA SvelteKit (`src/`, `adapter-static`) carregada no webview
-`ui` da janela `main`. Cada conta do tipo WhatsApp Web é um **child webview** separado,
-carregando `https://web.whatsapp.com/`, posicionado dentro da mesma janela.
+FastZap is a Tauri v2 application. The Rust process (`src-tauri/`) is the authority
+over state, preferences, accounts, secrets, and native integrations. The local
+UI is a SvelteKit SPA (`src/`, `adapter-static`) loaded in the `ui` webview
+of the `main` window. Each WhatsApp Web account is a separate **child webview**,
+loading `https://web.whatsapp.com/`, positioned inside the same window.
 
 ```text
 src-tauri/src/main.rs
         |
         v
-lib.rs::run()               plugins, setup, eventos de ciclo de vida
+lib.rs::run()               plugins, setup, lifecycle events
         |
-        +--> app/            CLI, single instance, D-Bus, sinais, janela, atalhos
-        +--> settings/       domínios tipados + store JSON versionado
-        +--> migration/      importação única do ZapZap
-        +--> accounts/       contas (SQLite) e avatares
-        +--> webview/        child webviews, scripts injetados, ponte remota
-        +--> evolution/      cliente REST, WebSocket, store de mensagens
-        +--> notifications/  política + backends por plataforma
+        +--> app/            CLI, single instance, D-Bus, signals, window, shortcuts
+        +--> settings/       typed domains + versioned JSON store
+        +--> migration/      one-shot ZapZap import
+        +--> accounts/       accounts (SQLite) and avatars
+        +--> webview/        child webviews, injected scripts, remote bridge
+        +--> evolution/      REST client, WebSocket, message store
+        +--> notifications/  policy + per-platform backends
         +--> tray/ downloads/ permissions/ proxy/ customizations/
              spellcheck/ reporting/ update/ autostart/ i18n/
         |
         v
-commands/                   superfície IPC invocada pelo frontend
+commands/                   IPC surface invoked by the frontend
 ```
 
-Regras de dependência:
+Dependency rules:
 
-- `settings`, `secrets`, `paths` e `i18n` não dependem de nenhum outro módulo
-  de feature.
-- Features dependem de `settings`/`accounts`, nunca umas das outras
-  diretamente; a coordenação acontece em `app::state::AppState` ou via eventos.
-- `commands/` é a única camada que conhece o formato das chamadas IPC.
+- `settings`, `secrets`, `paths`, and `i18n` do not depend on any other
+  feature module.
+- Features depend on `settings`/`accounts`, never directly on each other;
+  coordination happens in `app::state::AppState` or via events.
+- `commands/` is the only layer that knows the IPC call format.
 
-## Estado compartilhado
+## Shared state
 
-`app::state::AppState` é registrado com `app.manage()` e reúne:
+`app::state::AppState` is registered with `app.manage()` and holds:
 
-- `SettingsStore` (`RwLock<Settings>` + caminho do JSON);
+- `SettingsStore` (`RwLock<Settings>` + JSON path);
 - `AccountStore` (SQLite `accounts.db`);
-- `UnreadRegistry` (contagem por conta → tray, badge e sidebar);
+- `UnreadRegistry` (per-account count → tray, badge, and sidebar);
 - `DownloadHistory`.
 
-`evolution::Evolution` é registrado à parte (`app.manage`) e guarda uma
-`evolution::Session` por conta Evolution Go ativa.
+`evolution::Evolution` is registered separately (`app.manage`) and holds one
+`evolution::Session` per active Evolution Go account.
 
-Mudanças de estado relevantes para a UI são emitidas como eventos Tauri com
-nomes estáveis (`settings://changed`, `accounts://changed`,
-`unread://changed`, `evolution://event`, `downloads://changed`).
+UI-relevant state changes are emitted as Tauri events with stable names
+(`settings://changed`, `accounts://changed`, `unread://changed`,
+`evolution://event`, `downloads://changed`).
+## Main window and WhatsApp Web accounts
 
-## Janela principal e contas WhatsApp Web
+The `main` window is created in `app::window` with a full-screen local webview
+(sidebar, overlays, settings, native chat). For each enabled WhatsApp Web
+account, `webview::manager` creates a child webview with `Window::add_child`
+(Tauri `unstable` feature):
 
-A janela `main` é criada em `app::window` com um webview local de tela cheia
-(sidebar, overlays, configurações, chat nativo). Para cada conta WhatsApp Web
-habilitada, `webview::manager` cria um child webview com `Window::add_child`
-(feature `unstable` do Tauri):
+- dedicated `data_directory` at `<app_data>/profiles/<account-id>` (Linux and
+  Windows) or a `data_store_identifier` derived from the ID on macOS. The bundle
+  requires macOS 14 (`bundle.macOS.minimumSystemVersion`), because earlier
+  versions ignore the identifier and the proxy (`macos-proxy`) and would share
+  the session across accounts;
+- Chrome `user_agent` (WhatsApp Web rejects plain WebKit) or the per-account
+  User-Agent;
+- `initialization_script` with the bridge (`webview/scripts/bridge.js`) and the
+  optional scripts ported from ZapZap;
+- `on_navigation`/`on_new_window` enforcing the host allowlist. As in ZapZap,
+  `on_navigation` only blocks outside hosts (WhatsApp loads background frames
+  such as `flows.whatsapp.net`); user-opened links arrive via `on_new_window`
+  and go to the browser. Popups for allowed hosts open in a related `popup-<n>`
+  window, with the same allowlist and no command access;
+- `on_download` forwarding to `downloads` (on Linux only the destination; the
+  completion comes from `downloads::linux`);
+- `proxy_url` when the global proxy is active.
 
-- `data_directory` exclusivo em `<app_data>/profiles/<account-id>` (Linux e
-  Windows) ou `data_store_identifier` derivado do ID no macOS. O bundle
-  exige macOS 14 (`bundle.macOS.minimumSystemVersion`), porque versões
-  anteriores ignoram o identificador e o proxy (`macos-proxy`) e
-  compartilhariam a sessão entre contas;
-- `user_agent` de Chrome (o WhatsApp Web recusa o WebKit puro) ou o
-  User-Agent escolhido por conta;
-- `initialization_script` com a ponte (`webview/scripts/bridge.js`) e os
-  scripts opcionais portados do ZapZap;
-- `on_navigation`/`on_new_window` aplicando a allowlist de hosts. Como no
-  ZapZap, `on_navigation` só bloqueia hosts de fora (o WhatsApp carrega
-  frames de fundo, como `flows.whatsapp.net`); links abertos pelo usuário
-  chegam por `on_new_window` e vão para o navegador. Popups
-  para hosts permitidos abrem numa janela `popup-<n>` relacionada, com a mesma
-  allowlist e sem acesso a comandos;
-- `on_download` encaminhando para `downloads` (no Linux só o destino; a
-  conclusão vem de `downloads::linux`);
-- `proxy_url` quando o proxy global está ativo.
+On Windows and macOS, Tauri's drag-and-drop handler is disabled on `wa-*`
+accounts so WhatsApp Web receives files through the native HTML mechanism.
+WebKitGTK passes OS file drops to the page without `File` objects
+(`dataTransfer.files` is empty, only `text/uri-list` arrives), so on Linux the
+handler stays on and `webview/file_drop.rs` takes the dropped paths, reads
+each file (`upload::read_upload`, 100 MB cap), pushes it into the page in
+base64 chunks through `eval`, and `__FASTZAP__.dropEnd` in `bridge.js`
+dispatches the `drop` at the drop point with real files. WebKit pins a
+constructed `DataTransfer`'s `effectAllowed`/`dropEffect` to `none`, which
+WhatsApp rejects, so the replay reports a copy. The hover reaches the page
+as `text/uri-list` without `Files`, so `bridge.js` intercepts those native
+`dragenter`/`dragover` events and mirrors them with a placeholder file,
+which makes WhatsApp show its drop zone during the drag; wry's `Leave` event
+(a drag that leaves without dropping) calls `__FASTZAP__.dragLeave`. No
+bridge command is involved. The `ui` webview keeps Tauri events for Evolution
+Go chat attachments.
 
-No Windows e no macOS, o handler de drag-and-drop do Tauri fica desativado
-nas contas `wa-*`, para que o WhatsApp Web receba os arquivos pelo mecanismo
-HTML nativo. O WebKitGTK entrega à página drops de arquivos do sistema sem
-objetos `File` (`dataTransfer.files` vazio, só `text/uri-list`); por isso, no
-Linux, o handler fica ativo e `webview/file_drop.rs` recebe os caminhos, lê
-cada arquivo (`upload::read_upload`, limite de 100 MB), envia-o à página em
-blocos base64 via `eval`, e `__FASTZAP__.dropEnd` em `bridge.js` dispara o
-`drop` no ponto do drop com arquivos reais. O WebKit fixa
-`effectAllowed`/`dropEffect` de um `DataTransfer` construído em `none`, que o
-WhatsApp rejeita; por isso o replay informa uma cópia. O hover chega à
-página como `text/uri-list` sem `Files`, então `bridge.js` intercepta esses
-`dragenter`/`dragover` nativos e os espelha com um arquivo provisório, o que
-faz o WhatsApp mostrar sua zona de drop durante o arraste; o evento `Leave`
-do wry (arraste que sai sem soltar) chama `__FASTZAP__.dragLeave`. Nenhum
-comando do bridge é usado. A webview `ui` mantém os eventos Tauri para anexos
-do chat Evolution Go.
+The frontend reports the free area (right of the sidebar) via
+`layout_set_bounds`; the manager positions the active account in that area and
+hides the others. Grid mode is ZapZap's accounts overview: all child webviews
+stay hidden and the local UI (`AccountsOverview.svelte`) shows one card per
+account, WhatsApp Web or Evolution Go, including disabled ones, in `grid_cols`
+columns; the card activates the account (a disabled one asks before
+re-activating). When a local screen must cover the content (settings, dialogs),
+the frontend calls `layout_set_overlay(true)` and the child webviews are
+hidden. With grid or overlay, keyboard focus goes to the `ui` webview.
 
-O frontend informa a área livre (à direita da sidebar) via
-`layout_set_bounds`; o manager posiciona a conta ativa nessa área e oculta as
-demais. O modo grade é a visão geral de contas do ZapZap: todos os child
-webviews ficam ocultos e a UI local (`AccountsOverview.svelte`) mostra um
-cartão por conta, WhatsApp Web ou Evolution Go, inclusive desativada, em
-`grid_cols` colunas; o cartão ativa a conta (desativada pergunta antes de
-reativar). Quando uma tela local precisa cobrir o conteúdo (configurações,
-diálogos), o frontend chama `layout_set_overlay(true)` e os child webviews são
-ocultados. Com grade ou overlay, o foco do teclado vai para o webview `ui`.
+On Linux, Tauri stacks child webviews in a vertical `GtkBox` and ignores
+`set_position`. `webview::stage` inserts a `GtkOverlay` into the window: the
+`ui` webview is the main child (filling the whole window) and each account is
+an overlay child positioned via margins and `size_request`.
 
-No Linux o Tauri empilha child webviews num `GtkBox` vertical e ignora
-`set_position`. `webview::stage` insere um `GtkOverlay` na janela: o webview
-`ui` é o filho principal (ocupa a janela inteira) e cada conta é um filho de
-overlay posicionado por margens e `size_request`.
+If an account's web process ends unrequested (crash or memory limit), the
+`web-process-terminated` signal reloads the page after 1 s, like ZapZap's
+`_on_render_crash`; without it the account stayed blank until the webview was
+recreated. Linux only.
 
-Se o processo web de uma conta termina sem ter sido pedido (travamento ou
-limite de memória), o sinal `web-process-terminated` recarrega a página
-depois de 1 s, como o `_on_render_crash` do ZapZap; sem isso a conta ficava
-em branco até a webview ser recriada. Só no Linux.
+### Remote bridge
 
-### Ponte remota
+`build.rs` declares every app command in an `AppManifest`, so Tauri's ACL
+requires an explicit permission for each one. `capabilities/default.json`
+grants the local commands only to the `ui` webview;
+`capabilities/whatsapp-remote.json` lets `wa-*` webviews at
+`https://web.whatsapp.com/*` invoke only the `wa_*` commands in
+`commands::bridge` (title, shortcuts, theme events, account switcher, and
+profile photo; notifications join with the desktop-integration phase). The
+calling account is always derived from the webview label, never from
+arguments. `wa_shortcut` only accepts the shortcuts listed in `REMOTE_ACTIONS`
+and applies them to the calling account; paste-as-plain-text reads the
+clipboard, so on Linux it is handled in WebKitGTK's native `key-press-event`
+and on other platforms it requires the focused window. `wa_profile_photo` only
+downloads from `*.whatsapp.net`, without following redirects and with a byte
+cap. The built-in switcher opens a native menu with the other enabled
+accounts. Settings captured at webview creation (init scripts and proxy)
+recreate the accounts when they change. The bridge script replaces
+`window.Notification` and watches `document.title` to extract the unread
+count, as ZapZap did via the page title.
 
-`build.rs` declara todos os comandos do app em um `AppManifest`, então o ACL
-do Tauri exige permissão explícita para cada um. `capabilities/default.json`
-libera os comandos locais apenas para o webview `ui`;
-`capabilities/whatsapp-remote.json` permite que webviews `wa-*` em
-`https://web.whatsapp.com/*` invoquem apenas os comandos `wa_*` de
-`commands::bridge` (título, atalhos, eventos do tema, seletor de contas e foto
-de perfil; notificações entram com a fase de integração com o desktop). A
-conta chamadora é sempre derivada do rótulo do webview, nunca de argumentos.
-`wa_shortcut` aceita só os atalhos listados em `REMOTE_ACTIONS` e os aplica à
-conta chamadora; colar como texto simples lê o clipboard, então no Linux é
-tratado no `key-press-event` nativo do WebKitGTK e nas demais plataformas
-exige a janela em foco. `wa_profile_photo` só baixa de `*.whatsapp.net`, sem
-seguir redirects e com teto de bytes. O seletor integrado abre um menu nativo
-com as outras contas habilitadas. Configurações capturadas na criação do
-webview (scripts de inicialização e proxy) recriam as contas quando mudam. O script de ponte
-substitui `window.Notification` e observa `document.title` para extrair a
-contagem de não lidas, como o ZapZap fazia pelo título da página.
+### Quick-access panel
 
-### Painel de acesso rápido
+`app::panel` creates the hidden `panel` window at startup (`/panel` route,
+fixed 320 px width, off the taskbar) and decides visibility like ZapZap:
+`always`, `when_hidden` (main window hidden or minimized), or `on_demand`
+(only via `show_panel`, from the tray). Closing dismisses the panel until the
+mode or the main window state changes. `window::show` and `window::hide`
+report the main window visibility, because tao queues the requests and
+`is_visible` only reflects the change afterwards. Off Wayland, the default
+position is the desktop's top-right corner (−15/+16), it is remembered after
+500 ms without movement and, with `lock_position`, restored on every `Moved`.
+The page uses the same account, unread, layout, and preference events as the
+main window, and the `default` capability covers the `ui` and `panel`
+webviews.
 
-`app::panel` cria na inicialização a janela oculta `panel` (rota `/panel`,
-largura fixa de 320 px, fora da barra de tarefas) e decide a visibilidade
-como o ZapZap: `always`, `when_hidden` (janela principal oculta ou
-minimizada) ou `on_demand` (só por `show_panel`, na bandeja). Fechar dispensa
-o painel até o modo ou o estado da janela principal mudar. `window::show` e
-`window::hide` informam a visibilidade da janela principal, porque o tao
-enfileira as requisições e `is_visible` só reflete a mudança depois. Fora do
-Wayland, a posição padrão fica no canto superior direito da área de trabalho
-(−15/+16), é lembrada após 500 ms sem movimento e, com `lock_position`, é
-restaurada a cada `Moved`. A página usa os mesmos eventos de contas, não
-lidas, layout e preferências da janela principal, e a capability `default`
-cobre as webviews `ui` e `panel`.
+### Client-side decorations (CSR)
 
-### Decorações do cliente (CSR)
+With `appearance.title_bar` off there is no title bar: neither native
+decoration nor `TitleBar.svelte` (`window::native_decorations`), useful in
+tiling window managers.
 
-Com `appearance.title_bar` desligado não há barra de título: nem decoração
-nativa nem `TitleBar.svelte` (`window::native_decorations`), útil em
-gerenciadores de janela lado a lado.
+With `appearance.csr`, the window loses its native decorations
+(`set_decorations`) and the UI draws `TitleBar.svelte`: dragging and double
+click via `data-tauri-drag-region`, buttons with ZapZap's themes (an empty or
+unknown theme follows `XDG_CURRENT_DESKTOP`, read by `app_desktop`) and, when
+not maximized, a 4 px frame with `startResizeDragging` edges. Because the UI
+reports the content-area bounds, account webviews move below the bar with no
+Rust-side math.
 
-Com `appearance.csr`, a janela perde as decorações nativas
-(`set_decorations`) e a UI desenha `TitleBar.svelte`: arrasto e duplo clique
-via `data-tauri-drag-region`, botões com os temas do ZapZap (o tema vazio ou
-desconhecido segue `XDG_CURRENT_DESKTOP`, lido por `app_desktop`) e, fora da
-maximização, uma moldura de 4 px com bordas `startResizeDragging`. Como a UI
-informa os limites da área de conteúdo, as webviews das contas descem abaixo
-da barra sem cálculo no Rust.
+### Theme
 
-### Tema
+`app::theme` resolves the effective scheme. In `auto`, the
+`org.freedesktop.appearance color-scheme` key of the Settings portal wins when
+it states a preference, with `SettingChanged` watched (`monitor_system`);
+without a preference, the window theme reported by the toolkit applies
+(`WindowEvent::ThemeChanged`). The theme is applied to the window (decorations
+and the UI's `prefers-color-scheme`) and to pages via `theme_controller.js`.
 
-`app::theme` resolve o esquema efetivo. Em `auto`, a chave
-`org.freedesktop.appearance color-scheme` do portal Settings prevalece quando
-indica preferência, com `SettingChanged` monitorado (`monitor_system`); sem
-preferência, vale o tema da janela informado pelo toolkit
-(`WindowEvent::ThemeChanged`). O tema é aplicado à janela (decorações e
-`prefers-color-scheme` da UI) e às páginas pelo `theme_controller.js`.
+## Settings and menu bar
 
-## Configurações e barra de menus
+`src/lib/stores/settings.svelte.ts` keeps a reactive copy of the preferences
+(`settings_get` + `settings-changed` event) and saves with `settings_patch`.
+`src/lib/settings/` holds the navigation (`pages.ts`, in ZapZap's order),
+`SettingsView.svelte`, and one page per domain in `pages/`; shared controls
+live in `src/lib/components/settings/`. Preferences read only at startup show
+`RestartBar`, which invokes the `restart` action. `commands::app` exposes build
+information (`build_info`, filled by `FASTZAP_BUILD_*`), the proxy password in
+the keyring, defaults restoration, file/folder dialogs, and path opening.
 
-`src/lib/stores/settings.svelte.ts` mantém uma cópia reativa das
-preferências (`settings_get` + evento `settings-changed`) e grava com
-`settings_patch`. `src/lib/settings/` reúne a navegação (`pages.ts`, na
-ordem do ZapZap), `SettingsView.svelte` e uma página por domínio em
-`pages/`; os controles comuns ficam em `src/lib/components/settings/`.
-Preferências lidas só na inicialização mostram `RestartBar`, que chama a
-ação `restart`. `commands::app` expõe informações do build (`build_info`,
-preenchido por `FASTZAP_BUILD_*`), senha do proxy no keyring, restauração
-dos padrões, diálogos de arquivo/pasta e abertura de caminhos.
+The Accounts page and the sidebar context menu use `src/lib/accounts/`.
+Icons follow ZapZap's format (`accounts::icon` / `icon.ts`): generated SVG
+with random colors, a 256 px PNG photo cropped to a circle, or the
+`zapzap-account-image:v1:` profile holding both choices. The chosen photo goes
+through `account_photo_pick`, which opens the dialog and normalizes the image
+in Rust, without exposing the path to the UI. Account 1 (`storage-whats` in
+ZapZap) cannot be removed.
 
-A página Contas e o menu de contexto da sidebar usam `src/lib/accounts/`.
-Ícones seguem o formato do ZapZap (`accounts::icon` / `icon.ts`): SVG
-gerado com cores aleatórias, foto PNG de 256 px recortada em círculo ou o
-perfil `zapzap-account-image:v1:` que guarda as duas escolhas. A foto
-escolhida passa por `account_photo_pick`, que abre o diálogo e normaliza a
-imagem no Rust, sem expor o caminho à UI. A conta 1 (`storage-whats` no
-ZapZap) não pode ser removida.
-
-`MenuBar.svelte` reproduz os menus Arquivo/Exibir/Chat/Usuários/Ajuda com
-menus nativos (`@tauri-apps/api/menu`), porque menus HTML ficariam sob as
-webviews nativas das contas. A escala da interface vira zoom da webview
-`ui` e multiplica o zoom de cada conta; a UI converte os limites que
-informa para pixels lógicos da janela. `webview::manager::EngineOptions`
-aplica no WebKitGTK a política de aceleração de hardware, a rolagem suave e
-o WebRTC do proxy estrito; `disable_animations.js` entra nos scripts de
-início quando `performance.disable_animations` está ativo.
+`MenuBar.svelte` reproduces the File/View/Chat/Users/Help menus with native
+menus (`@tauri-apps/api/menu`), because HTML menus would render under the
+accounts' native webviews. The interface scale becomes zoom of the `ui` webview
+and multiplies each account's zoom; the UI converts the bounds it reports to
+window logical pixels. `webview::manager::EngineOptions` applies the hardware
+acceleration policy, smooth scrolling, and strict-proxy WebRTC on WebKitGTK;
+`disable_animations.js` joins the init scripts when
+`performance.disable_animations` is on.
 
 ## Downloads
 
-`downloads` recebe o `on_download` de cada conta. O motor grava o arquivo
-em `cache/download-staging/<seq>/`; só ao terminar valem as regras do
-ZapZap: a pergunta de vários downloads (o primeiro da sessão sempre passa),
-depois o comportamento (`dialog` via evento `downloads://prompt` e comando
-`download_answer`, `automatic` ou `ask_every_time` com o diálogo nativo).
-O arquivo vai para a pasta configurada com nome saneado
-(`downloads::naming`) e sufixo ` (N)` quando o nome existe, entra no
-histórico (`downloads.recent`, 100 entradas) e abre sozinho se
-`downloads::sniff` confirmar PDF ou imagem pelo conteúdo e pela extensão.
-Os comandos de abrir, revelar e excluir só aceitam caminhos do histórico.
+`downloads` receives each account's `on_download`. The engine writes the file
+to `cache/download-staging/<seq>/`; only on completion do ZapZap's rules
+apply: the multiple-downloads question (the session's first one always passes),
+then the behavior (`dialog` via the `downloads://prompt` event and the
+`download_answer` command, `automatic`, or `ask_every_time` with the native
+dialog). The file goes to the configured folder with a sanitized name
+(`downloads::naming`) and an ` (N)` suffix when the name exists, enters the
+history (`downloads.recent`, 100 entries), and opens on its own if
+`downloads::sniff` confirms a PDF or image by content and extension. The
+open, reveal, and delete commands only accept history paths.
 
-No Linux o Tauri mantém o contexto WebKit de cada conta pela vida do app, e
-o wry conecta seus sinais de download de novo a cada webview recriada: a
-mesma conclusão chegava uma vez por registro, e cada registro guarda um
-único indicador de falha que nunca volta a falso, então depois de um
-download falho ou cancelado (inclusive bloqueado) todos os seguintes da
-conta eram dados como falhos e descartados. Por isso, no Linux, o
-`on_download` só decide o destino (`Requested`); a conclusão do wry é
-ignorada e `downloads::linux` observa o contexto uma vez por conta, com
-estado de falha por download, e reporta a conclusão pelo caminho de
-staging. Só um download ainda em recebimento casa com uma conclusão.
+On Linux, Tauri keeps each account's WebKit context for the app's lifetime,
+and wry re-connects its download signals on every recreated webview: the same
+completion arrived once per registration, and each registration holds a single
+failure flag that never flips back to false, so after one failed or cancelled
+download (blocked ones included) every following download of the account was
+reported as failed and discarded. Hence, on Linux, `on_download` only decides
+the destination (`Requested`); wry's completion is ignored and
+`downloads::linux` observes the context once per account, with per-download
+failure state, and reports completion via the staging path. Only a download
+still being received matches a completion.
 
-Mídias do chat Evolution Go (`evo_save_media`, clique no documento ou
-"Download" no menu da mensagem) entram pelo mesmo fluxo com
-`downloads::save_native`: os bytes são preparados no staging e seguem
-comportamento, pasta, histórico e abertura automática. Como o download parte
-de um clique do usuário, a pergunta de vários downloads não se aplica.
+Evolution Go chat media (`evo_save_media`, document click, or "Download" in
+the message menu) enter the same flow via `downloads::save_native`: the bytes
+are staged and follow behavior, folder, history, and auto-open. Because the
+download starts from a user click, the multiple-downloads question does not
+apply.
 
-## Permissões
+## Permissions
 
-`permissions` conecta o sinal `permission-request` do WebKitGTK em cada
-webview de conta. Notificações são sempre concedidas; câmera, microfone,
-tela, localização e bloqueio do ponteiro seguem `permissions.auto_grant`;
-o resto pergunta à UI pelo evento `permissions://request`. O pedido
-(GObject) fica numa tabela `thread_local` da thread GTK até
-`permission_answer`, que responde via `run_on_main_thread`. Um "Sim" fica
-em `AppState::permissions` (memória, por conta) e é esquecido quando a
-webview é recriada. Outros tipos de pedido recebem a negação padrão.
+`permissions` connects WebKitGTK's `permission-request` signal on each account
+webview. Notifications are always granted; camera, microphone, screen,
+geolocation, and pointer lock follow `permissions.auto_grant`; the rest asks
+the UI via the `permissions://request` event. The request (a GObject) sits in
+a `thread_local` table on the GTK thread until `permission_answer`, which
+answers via `run_on_main_thread`. A "Yes" stays in `AppState::permissions`
+(in memory, per account) and is forgotten when the webview is recreated. Other
+request types get the default denial.
 
-## Customizações
+## Customizations
 
-`customizations` mantém a árvore do ZapZap em `data/customizations/`
-(`global/` e `accounts/<chave>/`, com a conta 1 em `storage-whats`), cada
-uma com `css/`, `js/` e `previews/css/`. Ao terminar cada carga da página,
-`apply_to_webview` troca as tags `<style data-zapzap-custom-css>` e roda
-cada JS com `sourceURL`. Os arquivos globais valem quando a categoria está
-ativa; uma conta que não herda acrescenta os seus depois deles.
-`normalize_userstyle` mantém só blocos `@-moz-document` de whatsapp.com
-(estrito ao criar, editar e importar). `customizations::files` faz as
-operações com lista branca de nomes e verificação de caminho; a importação
-por URL aceita só HTTPS, 15 s e 2 MB, com prévia do userstyles.world. A
-página `Customizations.svelte` grava arquivos na hora e as chaves de
-ativação e herança só em Salvar.
+`customizations` keeps ZapZap's tree in `data/customizations/` (`global/` and
+`accounts/<key>/`, with account 1 at `storage-whats`), each with `css/`, `js/`,
+and `previews/css/`. When each page load finishes, `apply_to_webview` swaps
+the `<style data-zapzap-custom-css>` tags and runs each JS with `sourceURL`.
+Global files apply when the category is active; an account that does not
+inherit adds its own after them. `normalize_userstyle` keeps only
+whatsapp.com `@-moz-document` blocks (strict on create, edit, and import).
+`customizations::files` operates with a name allowlist and path verification;
+URL import accepts HTTPS only, 15 s, and 2 MB, with a userstyles.world preview.
+The `Customizations.svelte` page writes files immediately and the activation
+and inheritance keys only on Save.
 
-## Corretor ortográfico
+## Spell checker
 
-`spellcheck` usa Enchant + Hunspell do WebKitGTK. `lib.rs` define
-`ENCHANT_CONFIG_DIR` como `<data>/dictionaries` antes do GTK iniciar, e os
-dicionários do app ficam em `<data>/dictionaries/hunspell/<tag>.{aff,dic}`;
-`/usr/share/hunspell` e `/usr/share/myspell` são listados como somente
-leitura. As tags seguem a normalização do Enchant (`pt-PT` → `pt_PT`).
+`spellcheck` uses WebKitGTK's Enchant + Hunspell. `lib.rs` sets
+`ENCHANT_CONFIG_DIR` to `<data>/dictionaries` before GTK starts, and the app
+dictionaries live in `<data>/dictionaries/hunspell/<tag>.{aff,dic}`;
+`/usr/share/hunspell` and `/usr/share/myspell` are listed read-only. Tags
+follow Enchant normalization (`pt-PT` → `pt_PT`).
 
-- `catalog`: catálogo embutido (`src-tauri/resources/hunspell-catalog.json`,
-  gerado por `scripts/hunspell-catalog.mjs` a partir de um commit fixo do
-  `wooorm/dictionaries`). Cada arquivo é conferido pelo tamanho e pelo SHA-1
-  de blob do git antes de ser gravado via `.part` + rename.
-- Seleção: até 10 idiomas, mapeados para tags instaladas (exata, depois
-  idioma); vazia, cai no dicionário do locale do sistema e depois no primeiro
-  instalado. Recentes: até 4, novos primeiro.
-- `provision` instala uma vez o dicionário do locale do sistema
-  (`spellcheck.provisioned_locale`); falhas são tentadas de novo no próximo
-  início.
-- `apply_all` aplica idiomas e estado ao `WebContext` de cada conta; roda na
-  criação do webview, em mudanças de `spellcheck` e após instalar/remover.
-- O menu de contexto (`linux.rs`) remove itens de navegação e inspeção e
-  acrescenta "Verificar ortografia" (ação `GAction` com estado) e
-  "Idiomas…", que emite a ação de UI `spellcheck_languages`.
-- UI: seção da página Idioma e Download, `LanguagePicker` e
-  `DictionaryManager`; o evento `spellcheck://changed` atualiza ambos.
+- `catalog`: embedded catalog (`src-tauri/resources/hunspell-catalog.json`,
+  generated by `scripts/hunspell-catalog.mjs` from a pinned
+  `wooorm/dictionaries` commit). Each file is verified by size and git-blob
+  SHA-1 before being written via `.part` + rename.
+- Selection: up to 10 languages, mapped to installed tags (exact match, then
+  language); empty falls back to the system locale dictionary and then to the
+  first installed one. Recents: up to 4, newest first.
+- `provision` installs the system locale dictionary once
+  (`spellcheck.provisioned_locale`); failures are retried at the next start.
+- `apply_all` applies languages and state to each account's `WebContext`; runs
+  at webview creation, on `spellcheck` changes, and after install/remove.
+- The context menu (`linux.rs`) removes navigation and inspect items and adds
+  "Check spelling" (stateful `GAction`) and "Languages…", which emits the
+  `spellcheck_languages` UI action.
+- UI: Language page and Download section, `LanguagePicker`, and
+  `DictionaryManager`; the `spellcheck://changed` event updates both.
 
-## Relatórios de problemas
+## Problem reports
 
-`reporting` segue o `core/reporting` do ZapZap; nada sai do dispositivo sem
-revisão do usuário.
+`reporting` follows ZapZap's `core/reporting`; nothing leaves the device without
+user review.
 
-- `sanitize`: remove caminhos pessoais, query/fragmento de URLs, e-mails, IDs
-  de chat, tokens, cookies, UUIDs e telefones; em documentos JSON descarta
-  chaves com cara de segredo e preserva IDs, versões e horários bem formados.
-- `document`: relatório manual (`manual_problem`), pânico
-  (`automatic_crash`) e sessão anterior não encerrada
-  (`unexpected_shutdown`); Markdown em inglês e URL
-  `github.com/quantforge-br/fastzap/issues/new?title=…` (só o título).
-- `store`: `<data>/reports/<id>.json`, no máximo 20 e 30 dias; status
+- `sanitize`: strips personal paths, URL query/fragment, emails, chat IDs,
+  tokens, cookies, UUIDs, and phones; in JSON documents it drops secret-looking
+  keys and preserves well-formed IDs, versions, and timestamps.
+- `document`: manual report (`manual_problem`), panic (`automatic_crash`), and
+  unclean previous session (`unexpected_shutdown`); English Markdown and URL
+  `github.com/quantforge-br/fastzap/issues/new?title=…` (title only).
+- `store`: `<data>/reports/<id>.json`, at most 20 reports and 30 days; statuses
   `pending`, `pending_review`, `copied`, `opened_on_github`.
-- `session`: `.session-active` com fases `startup`/`running`/`shutdown`
-  (`crashed` após um pânico); removido no `RunEvent::Exit`. Um marcador
-  sobrando vira relatório na próxima execução quando
-  `reporting.crash_prompts` está ligado. O `TeeLogger` mantém avisos e erros
-  da sessão (16 kB) para a opção de logs; o panic hook guarda o último pânico.
-- UI: página Relatar um problema (`debugging`), `ReportDialog` (formulário e
-  revisão; a UI copia o Markdown e o backend abre o GitHub),
-  `ReportsDialog` e o aviso de inicialização (só após o onboarding).
+- `session`: `.session-active` with `startup`/`running`/`shutdown` phases
+  (`crashed` after a panic); removed on `RunEvent::Exit`. A leftover marker
+  becomes a report on the next run when `reporting.crash_prompts` is on. The
+  `TeeLogger` keeps the session's warnings and errors (16 kB) for the logs
+option; the panic hook stores the last panic.
+- UI: Report a problem page (`debugging`), `ReportDialog` (form and review;
+  the UI copies the Markdown and the backend opens GitHub), `ReportsDialog`,
+  and the startup notice (only after onboarding).
 
-## Verificação de atualizações
+## Update check
 
-`update` consulta `releases/latest` de `quantforge-br/fastzap` uma vez por
-processo (timeout de 5 s, falhas silenciosas) e só quando `build_info` indica
-build oficial do GitHub Actions do repositório oficial empacotado como DEB,
-macOS ou Windows exe; Flatpak, AppImage, RPM, Snap e builds locais nunca
-consultam. Rascunhos e pré-lançamentos são ignorados, versões são comparadas
-numericamente e o link de notas só é aceito sob
-`github.com/quantforge-br/fastzap/releases/`. O resultado fica em
-`UpdateState` (`update_info`) e no evento `update://available`; a UI mostra
-o botão ⬆ na barra lateral, que abre um diálogo (um popover ficaria sob os
-webviews das contas), e uma linha na página Sobre.
+`update` queries `releases/latest` of `quantforge-br/fastzap` once per process
+(5 s timeout, silent failures) and only when `build_info` indicates an official
+GitHub Actions build of the official repository packaged as DEB, macOS, or
+Windows exe; Flatpak, AppImage, RPM, Snap, and local builds never query.
+Drafts and pre-releases are ignored, versions are compared numerically, and the
+notes link is only accepted under `github.com/quantforge-br/fastzap/releases/`.
+The result stays in `UpdateState` (`update_info`) and the `update://available`
+event; the UI shows the ⬆ button in the sidebar, which opens a dialog (a
+popover would render under the accounts' webviews), and a line on the About
+page.
 
-## Onboarding e diálogos auxiliares
+## Onboarding and helper dialogs
 
-Ao carregar as preferências, `+page.svelte` decide uma vez por execução:
-`onboarding.completed` falso abre `src/lib/onboarding/Onboarding.svelte`
-(seis passos do `InitialSetupDialog` do ZapZap sobre um rascunho local,
-`draft.ts`); "Pular" só marca `completed` e "Concluir" grava tudo num
-`settings_patch`, forçando "Sair" ao fechar quando a bandeja fica
-desligada. O FastZap não exibe pedido de doação. As ações
-`open_chat_by_number` (`src/lib/chat/`, validação espelhando
-`webview::deeplink`) e `show_shortcuts` (`src/lib/shortcuts/`) abrem
-diálogos. Todos contam como sobreposição, porque as webviews nativas
-ficariam por cima do HTML.
+When loading the preferences, `+page.svelte` decides once per run: a false
+`onboarding.completed` opens `src/lib/onboarding/Onboarding.svelte` (six steps
+of ZapZap's `InitialSetupDialog` over a local draft, `draft.ts`); "Skip" only
+marks `completed` and "Finish" writes everything in one `settings_patch`,
+forcing "Quit" on close when the tray stays off. FastZap shows no donation
+prompt. The `open_chat_by_number` (`src/lib/chat/`, validation mirroring
+`webview::deeplink`) and `show_shortcuts` (`src/lib/shortcuts/`) actions open
+dialogs. All count as overlay, because native webviews would render above the
+HTML.
 
-## Traduções
+## Translations
 
-`po/*.po` vem do ZapZap (mesmo domínio e idiomas). `pnpm i18n`
-(`scripts/po2json.mjs`) gera `src/lib/i18n/catalogs/<locale>.json`, versionados:
-`{plural, messages, plurals}`, sem entradas `fuzzy`, com "ZapZap" trocado por
-"FastZap". O Rust embute os catálogos no build (`build.rs`) e usa `i18n::tr`
-na bandeja, menus e notificações; a UI usa `t`/`tn` de `$lib/i18n`, com
-`Plural-Forms` avaliado sem `eval` (`plural.ts`). O comando `app_locale`
-resolve `system` para o locale do SO; o layout troca o catálogo ao vivo
-quando `interface_language` muda.
+`po/*.po` comes from ZapZap (same domain and languages). `pnpm i18n`
+(`scripts/po2json.mjs`) generates versioned
+`src/lib/i18n/catalogs/<locale>.json`: `{plural, messages, plurals}`, no `fuzzy`
+entries, with "ZapZap" replaced by "FastZap". Rust embeds the catalogs at
+build time (`build.rs`) and uses `i18n::tr` in the tray, menus, and
+notifications; the UI uses `t`/`tn` from `$lib/i18n`, with `Plural-Forms`
+evaluated without `eval` (`plural.ts`). The `app_locale` command resolves
+`system` to the OS locale; the layout swaps the catalog live when
+`interface_language` changes.
 
-## Bandeja e badge
+## Tray and badge
 
-`tray` renderiza com `resvg` os SVGs do ZapZap (`default`, `symbolic_light`,
-`symbolic_dark`) a 128 px, com o contador vermelho (máximo `999`). O total soma
-só contas habilitadas e vira zero com `notification_counter` desligado; o mesmo
-valor alimenta `Window::set_badge_count` (Linux/macOS); no Windows, onde o
-badge não existe, vira um ícone de sobreposição na barra de tarefas (disco
-vermelho de 32 px, `99+` acima de 99). O menu é reconstruído quando idioma,
-mudo ou painel flutuante mudam. Em bandejas StatusNotifierItem (Linux) cliques
-no ícone não chegam ao app; só o menu.
+`tray` renders ZapZap's SVGs with `resvg` (`default`, `symbolic_light`,
+`symbolic_dark`) at 128 px, with the red counter (max `999`). The total sums
+only enabled accounts and becomes zero with `notification_counter` off; the same
+value feeds `Window::set_badge_count` (Linux/macOS); on Windows, where the badge
+does not exist, it becomes a taskbar overlay icon (32 px red disc, `99+` above
+99). The menu is rebuilt when the language, mute, or floating panel changes. On
+StatusNotifierItem trays (Linux), icon clicks never reach the app; only the
+menu.
 
-## Notificações
+## Notifications
 
-`bridge.js` substitui `window.Notification` e envia `wa_notify`/
-`wa_notification_close`. `notifications::policy` aplica `notifications.*`, o
-DND da conta e o modo silencioso (`sound` desligado ou `audio_muted`). O
-backend é escolhido como no ZapZap: portal no Flatpak,
-`org.freedesktop.Notifications` (via `zbus`, com `ActionInvoked` e
-`ActivationToken`) nas demais instalações Linux e `tauri-plugin-notification`
-em Windows/macOS, que não informa cliques. Uma notificação nova com a mesma
-`tag` fecha as anteriores. O clique mostra a janela com o token de ativação,
-ativa a conta e chama `notificationClicked` na página, que abre a conversa.
-Fotos circulares ficam em `<cache>/notification-images/`.
+`bridge.js` replaces `window.Notification` and sends `wa_notify`/
+`wa_notification_close`. `notifications::policy` applies `notifications.*`, the
+account DND, and silent mode (`sound` off or `audio_muted`). The backend is
+chosen as in ZapZap: portal on Flatpak, `org.freedesktop.Notifications` (via
+`zbus`, with `ActionInvoked` and `ActivationToken`) on other Linux installs,
+and `tauri-plugin-notification` on Windows/macOS, which does not report clicks.
+A new notification with the same `tag` closes the previous ones. Clicking shows
+the window with the activation token, activates the account, and calls
+`notificationClicked` in the page, which opens the conversation. Circular
+photos live in `<cache>/notification-images/`.
 
-## Contas Evolution Go
+## Evolution Go accounts
 
-Contas do tipo Evolution Go não criam webview remoto: a área de conteúdo
-mostra `src/lib/evolution/ChatView.svelte` (pareamento, lista de chats e
-conversa), que conversa com o backend pelos comandos `evo_*` e pelo evento
-`evolution://event` (`EvolutionEvent`).
-O layout segue o WhatsApp Web: `ChatView` define as cores `--wa-*` (claro e
-escuro por `prefers-color-scheme`) herdadas por `Conversation.svelte`,
-`Avatar.svelte` e `Icon.svelte` (caminhos Material Icons); agrupamento de
-balões, rótulos de dia, links e cores de remetente ficam em `format.ts`. O
-`ChatSummary` traz `preview_status` (ticks da última mensagem nossa) e `own`
-(conversa consigo mesmo); recibos e o fim de cada envio reemitem `Chats` para
-atualizar os ticks.
+Evolution Go accounts create no remote webview: the content area shows
+`src/lib/evolution/ChatView.svelte` (pairing, chat list, and conversation),
+which talks to the backend through the `evo_*` commands and the
+`evolution://event` event (`EvolutionEvent`). The layout follows WhatsApp Web:
+`ChatView` defines the `--wa-*` colors (light and dark via
+`prefers-color-scheme`) inherited by `Conversation.svelte`, `Avatar.svelte`,
+and `Icon.svelte` (Material Icons paths); bubble grouping, day labels, links,
+and sender colors live in `format.ts`. `ChatSummary` carries `preview_status`
+(ticks of our last message) and `own` (self-chat); receipts and the end of each
+send re-emit `Chats` to update the ticks.
 
-- `evolution::client`: adaptador REST. `AdminKey` e `InstanceToken` são tipos
-  distintos; respostas não-2xx viram `EvoError` antes de abrir
-  `{message, data}` e mensagens do servidor passam por
-  `reporting::sanitize`. Envios que expiram depois de sair viram
-  `Ambiguous` e nunca são repetidos automaticamente.
-- `evolution::ws`: um socket por instância (`/ws?token=<admin>&instanceId=`),
-  ping a cada 20 s (65 s sem nenhum frame, nem pong, derrubam o socket;
-  escritas e fechamento têm prazo de 10 s), backoff de 1 s a 60 s, frames
-  sem limite de tamanho,
-  decodificação dupla `{queue, payload}` e remoção de `instanceToken`. A URL
-  carrega a chave admin e nunca é registrada. Um pedido de renovação
-  (`Notify`) fecha o socket, espera o servidor encerrar a conexão (ele
-  desregistra a instância logo antes) e reconecta sem `Down` nem backoff.
-- `evolution::model`: converte eventos whatsmeow (mensagens, histórico,
-  recibos, presença, conexão) em `Change`/`Event`, desembrulhando
-  `ephemeralMessage`/`viewOnce`/`editedMessage`/`associatedChildMessage` e
-  removendo miniaturas. Mensagens comerciais (`templateMessage`,
-  `interactiveMessage`, `buttonsMessage`, `listMessage`) viram texto (título,
-  corpo e rodapé), mídia do cabeçalho e `buttons` (`MessageButton`: só links
-  `http(s)` abrem; respostas rápidas, linhas de lista e opções de enquete são
-  rótulos); enquetes (`pollCreationMessage*`) são `poll`; respostas a botões
-  e listas, texto; `ptvMessage`, vídeo. A mensagem de abertura de um álbum
-  (`albumMessage`) não é guardada: as fotos chegam como mensagens próprias, e
-  uma resposta ao álbum o cita como foto ou vídeo. O download envia ao
-  servidor só o proto da mídia (`{"imageMessage": …}`) e só quando há
-  `directPath`; a mídia que o WhatsApp serve apenas por `staticURL` (anúncios
-  da conta oficial) o servidor não baixa.
-- `evolution::store`: SQLite por conta em `<data>/evolution/<id>/chats.db`
-  (chats, mensagens com chave `(chat, id)`, reações, contatos, meta). Status
-  de entrega só avança (uma falha de envio tardia não rebaixa uma mensagem já
-  confirmada). Cada página do journal é aplicada em ordem numa única
-  transação junto com o cursor. O banco guarda em `meta` a origem
-  (`bind:server` = servidor + instância, `bind:owner` = número pareado);
-  quando ela muda, chats, mensagens, cursor e o cache de mídia são
-  descartados. Mídia baixada fica em `<data>/evolution/<id>/media/`.
-  `chats.archived` (schema 2) espelha `GET /chat/settings`, lido a cada
-  conexão do socket e a cada 5 min. Chats arquivados ficam na pasta
-  "Arquivadas", mesmo sem mensagens, e não entram no contador de não lidas.
-  `lid_map` (schema 3) guarda pares LID → número aprendidos de
-  `phoneNumberToLidMappings` e `pnJID`/`lidJID` do HistorySync e do
-  `phoneJid` de `/chat/settings`; chats, remetentes, recibos e "digitando"
-  que citam um LID conhecido são gravados sob o número, e aprender um par
-  funde no chat do número o que estava sob o LID. Um HistorySync sob demanda
-  (`syncType` 6) não sobrescreve não lidas. Ao migrar do schema 2 com chats
-  LID, o cursor do journal é apagado para reler o journal e fundir os pares.
-  `messages.quote_kind` (schema 4) guarda o tipo da mensagem citada; a
-  migração o preenche, com o texto, a partir do proto de cada resposta. Ao
-  ler uma página, a citação usa a mensagem citada quando ela está guardada
-  (texto atual, autor, documento pelo nome) e, senão, a cópia que a resposta
-  trouxe. `messages.buttons` (schema 5, JSON) guarda os botões; a migração
-  relê do proto as mensagens guardadas como não suportadas e as citações
-  delas, apaga as aberturas de álbum e refaz a prévia dos chats afetados.
-- `evolution` (sessão): `sync` inicia/para sessões conforme as contas
-  habilitadas, serializado por um lock de ciclo de vida; parar a sessão
-  cancela o trabalho em andamento. Cada sessão confere a instância pela listagem admin e só chama
-  `POST /instance/connect` quando o cliente está parado, o WebSocket está
-  desligado ou falta uma categoria; o payload preserva webhook, RabbitMQ, NATS
-  e eventos existentes. Depois de cada conexão do socket, lê
-  `GET /chat/events` a partir do cursor salvo (o journal privado cobre os
-  eventos perdidos com o socket fora); só um leitor por vez, 404 desliga o
-  journal, 503/rede/timeout tentam de novo com backoff de 30 s a 30 min, e
-  um backlog maior que 200 páginas continua em seguida. Com o socket de pé,
-  o journal também é lido a cada 30 s (pulado se outra leitura está em
-  curso; falhas esperam o próximo ciclo): o servidor guarda um socket por
-  instância e, quando a limpeza atrasada de um socket antigo remove o
-  registro do novo, o socket continua aberto (pongs chegam) sem receber
-  eventos. Se a leitura grava mensagens que o socket não entregou e nenhum
-  evento chegou desde a leitura anterior, a sessão pede um socket novo.
-  `LoggedIn` só vale enquanto o cliente está autenticado. Sem socket
-  (`Connected` falso), uma instância com JID pareado aparece como offline, e
-  não como pareamento: o servidor mantém, sem tentar de novo, o cliente que
-  não alcançou o WhatsApp ao iniciar, e não gera QR para ele (`logged_out`
-  continua até "Link again"). "Tentar de novo" reinicia esse cliente com
-  `POST /instance/forcereconnect/{id}` (chave admin, corpo com o número
-  pareado), porque `POST /instance/reconnect` recusa cliente desconectado; o
-  500 que o servidor devolve quando o cliente novo ainda não fez login 2 s
-  depois não é erro, e a atualização seguinte decide o estado. Não lidas
-  entram no `UnreadRegistry`
-  (chats com não lidas, como o título do WhatsApp Web) e mensagens novas
-  geram notificações pelo pipeline comum com `tag` = JID do chat; o clique
-  emite `open_chat`.
-- Segredos: a chave admin e o token da instância ficam só no keyring
-  (`evolution-admin-key:<id>`, `evolution-instance-token:<id>`). A chave admin
-  entra apenas por `evo_instances`/`evo_setup`; nenhum comando a devolve.
-- `GET /instance/qr` reinicia um cliente logado para gerar QR novo, então
-  QR e código por telefone só são pedidos com `LoggedIn` falso.
-- Anexos por arraste: `Conversation.svelte` escuta `onDragDropEvent` na
-  webview `ui`, converte as coordenadas físicas e aceita a soltura apenas
-  sobre a conversa visível, online e fora de edição/envio. Os caminhos ficam
-  numa fila local removível até confirmar em Enviar; trocar de conversa
-  descarta a fila. `evo_send_file` recebe `path` opcional (nulo abre o seletor
-  existente), valida arquivo regular e limite de 100 MB com leitura limitada
-  no Rust, e reutiliza cache, outbox e envio de mídia. Os arquivos são enviados
-  em sequência, com a mesma legenda e resposta; falha interrompe o lote e não
-  recoloca o arquivo tentado na fila, pois o servidor pode tê-lo recebido.
-  Sair da conversa interrompe os próximos envios, não o upload já iniciado.
+- `evolution::client`: REST adapter. `AdminKey` and `InstanceToken` are
+  distinct types; non-2xx responses become `EvoError` before opening
+  `{message, data}`, and server messages go through `reporting::sanitize`.
+  Sends that time out after leaving become `Ambiguous` and are never retried
+automatically.
+- `evolution::ws`: one socket per instance (`/ws?token=<admin>&instanceId=`),
+  ping every 20 s (65 s with no frame at all, not even pong, drops the socket;
+  writes and close have a 10 s deadline), 1 s to 60 s backoff, unbounded frame
+  size, double `{queue, payload}` decoding, and `instanceToken` stripping. The
+  URL carries the admin key and is never logged. A renewal request (`Notify`)
+  closes the socket, waits for the server to end the connection (it
+  unregisters the instance just before), and reconnects with no `Down` and no
+  backoff.
+- `evolution::model`: converts whatsmeow events (messages, history, receipts,
+  presence, connection) into `Change`/`Event`, unwrapping
+  `ephemeralMessage`/`viewOnce`/`editedMessage`/`associatedChildMessage` and
+  stripping thumbnails. Business messages (`templateMessage`,
+  `interactiveMessage`, `buttonsMessage`, `listMessage`) become text (title,
+  body, and footer), header media, and `buttons` (`MessageButton`: only
+  `http(s)` links open; quick replies, list rows, and poll options are labels);
+  polls (`pollCreationMessage*`) are `poll`; button and list replies, text;
+  `ptvMessage`, video. An album's opening message (`albumMessage`) is not
+  stored: the photos arrive as their own messages, and a reply to the album
+  quotes it as photo or video. Downloads send the server only the media proto
+  (`{"imageMessage": …}`) and only when there is a `directPath`; media that
+  WhatsApp serves only via `staticURL` (official-account ads) the server does
+  not download.
+- `evolution::store`: per-account SQLite at `<data>/evolution/<id>/chats.db`
+  (chats, messages keyed by `(chat, id)`, reactions, contacts, meta). Delivery
+  status only advances (a late send failure does not demote an already confirmed
+  message). Each journal page is applied in order in a single transaction along
+  with the cursor. The database stores the origin in `meta` (`bind:server` =
+  server + instance, `bind:owner` = paired number); when it changes, chats,
+  messages, cursor, and the media cache are discarded. Downloaded media lives in
+  `<data>/evolution/<id>/media/`. `chats.archived` (schema 2) mirrors
+  `GET /chat/settings`, read on every socket connection and every 5 min.
+  Archived chats stay in the "Archived" folder, even without messages, and do
+  not enter the unread count. `lid_map` (schema 3) stores learned LID → number
+  pairs from `phoneNumberToLidMappings` and the HistorySync and
+  `/chat/settings` `pnJID`/`lidJID`/`phoneJid`; chats, senders, receipts, and
+  "typing" referencing a known LID are stored under the number, and learning a
+  pair merges what sat under the LID into the number's chat. An on-demand
+  HistorySync (`syncType` 6) does not overwrite unreads. When migrating from
+  schema 2 with LID chats, the journal cursor is wiped to re-read the journal
+  and merge the pairs. `messages.quote_kind` (schema 4) stores the quoted
+  message's kind; the migration fills it, with the text, from each reply's
+  proto. When reading a page, the quote uses the quoted message when it is
+  stored (current text, author, document by name) and otherwise the copy the
+  reply brought. `messages.buttons` (schema 5, JSON) stores the buttons; the
+  migration re-reads from the proto the messages stored as unsupported and
+  their quotes, deletes album openings, and rebuilds the affected chats'
+  previews.
+- `evolution` (session): `sync` starts/stops sessions according to the enabled
+  accounts, serialized by a lifecycle lock; stopping the session cancels
+  in-flight work. Each session checks the instance via the admin listing and only
+  calls `POST /instance/connect` when the client is stopped, the WebSocket is
+  down, or a category is missing; the payload preserves webhook, RabbitMQ, NATS,
+  and existing events. After each socket connection, it reads `GET /chat/events`
+  from the saved cursor (the private journal covers events missed while the
+  socket was down); one reader at a time, 404 turns the journal off,
+  503/network/timeout retry with 30 s to 30 min backoff, and a backlog larger
+  than 200 pages continues right after. With the socket up, the journal is also
+  read every 30 s (skipped if another read is in flight; failures wait for the
+  next cycle): the server keeps one socket per instance and, when the delayed
+  cleanup of an old socket removes the new one's registration, the socket stays
+  open (pongs arrive) without receiving events. If the read stores messages the
+  socket did not deliver and no event arrived since the previous read, the
+  session asks for a new socket. `LoggedIn` only holds while the client is
+  authenticated. Without a socket (`Connected` false), an instance with a paired
+  JID shows as offline, not as pairing: the server keeps, without retrying, the
+  client that did not reach WhatsApp at startup, and generates no QR for it
+  (`logged_out` persists until "Link again"). "Try again" restarts that client
+  with `POST /instance/forcereconnect/{id}` (admin key, body with the paired
+  number), because `POST /instance/reconnect` refuses a disconnected client; the
+  500 the server returns when the new client has not logged in 2 s later is not
+  an error, and the next refresh decides the state. Unreads go into the
+  `UnreadRegistry` (chats with unreads, like the WhatsApp Web title) and new
+  messages raise notifications through the common pipeline with `tag` = the
+  chat's JID; clicking emits `open_chat`.
+- Secrets: the admin key and the instance token live only in the keyring
+  (`evolution-admin-key:<id>`, `evolution-instance-token:<id>`). The admin key
+  enters only via `evo_instances`/`evo_setup`; no command returns it.
+- `GET /instance/qr` restarts a logged-in client to generate a fresh QR, so QR
+  and phone code are only requested with `LoggedIn` false.
+- Drag-and-drop attachments: `Conversation.svelte` listens for `onDragDropEvent`
+  on the `ui` webview, converts the physical coordinates, and accepts the drop
+  only over the visible conversation, online and outside editing/sending. Paths
+  sit in a removable local queue until confirmed with Send; switching
+  conversations discards the queue. `evo_send_file` takes an optional `path`
+  (null opens the existing picker), validates regular file and 100 MB limit with
+  bounded reads in Rust, and reuses media cache, outbox, and sending. Files go
+  out in sequence, with the same caption and reply; a failure stops the batch and
+  does not requeue the attempted file, since the server may have received it.
+  Leaving the conversation stops the next sends, not the upload already started.
 
-## Inicialização e encerramento
+## Startup and shutdown
 
-1. `lib::run` interpreta a CLI (`app::cli`, no estilo `parse_known_args`:
-   `--setSettings CHAVE VALOR` com as chaves `grupo/chave` do ZapZap,
-   `--wayland`, `--hideStart`; os demais argumentos são links). Antes do GTK,
-   define `GDK_BACKEND` a partir de `--wayland`, de um `GDK_BACKEND` já
-   exportado ou de `system.display_backend` (lido sem reparar o arquivo).
-2. `tauri-plugin-single-instance` entrega os argumentos de um segundo
-   lançamento a `app::lifecycle::on_second_instance`: aplica `--setSettings`,
-   reinicia com `fastzap://restart`, abre o primeiro link `whatsapp:`/wa.me
-   válido e mostra a janela.
-3. `setup` carrega preferências, executa a migração do ZapZap uma única vez,
-   aplica `--setSettings`, cria janela, child webviews e tray e instala a
-   ponte de `SIGTERM`/`SIGINT` (`signal-hook` → `AppHandle::exit`). No
-   Flatpak, `app::dbus` assume o nome `io.github.quantmind_br.fastzap` e
-   exporta `org.freedesktop.Application` (`Activate`, `Open`,
-   `ActivateAction`) em `/io/github/quantmind_br/fastzap`, repassando o token
-   de ativação (`activation-token` ou `desktop-startup-id`) para a janela.
-4. A janela começa oculta com `start_background` ou `--hideStart`, exceto
-   enquanto a configuração inicial não foi concluída. Links do primeiro
-   lançamento esperam o carregamento da página (`eval_when_ready`).
-5. `tauri-plugin-window-state` restaura tamanho, posição e maximização da
-   janela `main` (nunca a visibilidade) e salva ao sair.
-6. Fechar a janela pede `app::lifecycle::request_close`: com
-   `confirm_on_close` a UI pergunta (com "Don't ask again", também para Sair
-   da bandeja e `Ctrl+Q`); depois a janela vai para a bandeja, ou o app sai se
-   `quit_on_close` estiver ativo ou se o pedido foi Sair.
-7. `system.start_system` é aplicado ao iniciar e a cada mudança
-   (`autostart`): no Flatpak, portal `Background` (`RequestBackground` com
-   `fastzap --hideStart`); em outros Linux, a entrada
-   `$XDG_CONFIG_HOME/autostart/io.github.quantmind_br.fastzap.desktop`
-   apontando para o AppImage ou o executável atual; no Windows e no macOS,
-   `tauri-plugin-autostart` (chave Run e LaunchAgent).
-8. Em `RunEvent::Exit` as notificações exibidas são removidas e o nome D-Bus
-   é liberado.
+1. `lib::run` parses the CLI (`app::cli`, in `parse_known_args` style:
+   `--setSettings KEY VALUE` with ZapZap's `group/key` keys, `--wayland`,
+   `--hideStart`; all other arguments are links). Before GTK, it sets
+   `GDK_BACKEND` from `--wayland`, an already exported `GDK_BACKEND`, or
+   `system.display_backend` (read without repairing the file).
+2. `tauri-plugin-single-instance` delivers a second launch's arguments to
+   `app::lifecycle::on_second_instance`: it applies `--setSettings`, restarts
+   with `fastzap://restart`, opens the first valid `whatsapp:`/wa.me link, and
+   shows the window.
+3. `setup` loads preferences, runs the ZapZap migration once, applies
+   `--setSettings`, creates window, child webviews, and tray, and installs the
+   `SIGTERM`/`SIGINT` bridge (`signal-hook` → `AppHandle::exit`). On Flatpak,
+   `app::dbus` claims the `io.github.quantmind_br.fastzap` name and exports
+   `org.freedesktop.Application` (`Activate`, `Open`, `ActivateAction`) at
+   `/io/github/quantmind_br/fastzap`, forwarding the activation token
+   (`activation-token` or `desktop-startup-id`) to the window.
+4. The window starts hidden with `start_background` or `--hideStart`, except
+   while initial setup is unfinished. First-launch links wait for the page to
+   load (`eval_when_ready`).
+5. `tauri-plugin-window-state` restores the `main` window's size, position, and
+   maximization (never visibility) and saves on exit.
+6. Closing the window calls `app::lifecycle::request_close`: with
+   `confirm_on_close` the UI asks (with "Don't ask again", also for tray Quit
+   and `Ctrl+Q`); then the window goes to the tray, or the app quits if
+   `quit_on_close` is on or the request was Quit.
+7. `system.start_system` is applied at startup and on every change
+   (`autostart`): on Flatpak, the `Background` portal (`RequestBackground` with
+   `fastzap --hideStart`); on other Linux, the
+   `$XDG_CONFIG_HOME/autostart/io.github.quantmind_br.fastzap.desktop` entry
+   pointing at the AppImage or the current executable; on Windows and macOS,
+   `tauri-plugin-autostart` (Run key and LaunchAgent).
+8. On `RunEvent::Exit` the shown notifications are removed and the D-Bus name
+   is released.
 
-## Empacotamento
+## Packaging
 
-- Identificadores: o App ID `io.github.quantmind_br.fastzap` nomeia Flatpak,
-  `.desktop`, AppStream, nome D-Bus (`app::dbus` e
-  `<APP_ID>.SingleInstance`), serviço do keyring e as pastas de
-  configuração, dados e cache (`AppPaths`). O `identifier` do Tauri é
-  `io.github.quantmind-br.fastzap`, porque o bundler recusa `_`; ele só
-  aparece no bundle ID do macOS, no AUMID do Windows e na pasta do
-  `tauri-plugin-window-state`. `enableGtkAppId` fica desligado, então o
-  app_id Wayland/WM_CLASS é `fastzap` (`StartupWMClass=fastzap`).
-- `pnpm tauri build` gera deb (`fast-zap`), rpm e AppImage no Linux, NSIS e
-  MSI no Windows (arm64 só NSIS) e dmg universal no macOS, com assinatura
-  ad-hoc e sem notarização. O `.desktop` de deb/rpm vem de
-  `packaging/linux/fastzap.desktop.hbs` (`FastZap.desktop`, ícone `fastzap`,
-  esquemas `whatsapp:` e `fastzap:`).
-- `make install` usa `packaging/arch/install.sh` e `packaging/arch/PKGBUILD`
-  para compilar a árvore local, converter o DEB em `dsr-fastzap-git` e
-  instalar via pacman. Só a transação de instalação usa sudo; o pacote
-  normaliza o lançador para `fastzap.desktop` e permanece separado do Flatpak.
-- `packaging/share/`: `.desktop`, metainfo AppStream e ícone SVG nomeados
-  pelo App ID, usados por Flatpak e snap; os ícones de `src-tauri/icons/`
-  são gerados a partir desse SVG com `pnpm tauri icon`.
-- `packaging/flatpak/`: manifesto sobre `org.gnome.Platform` 50 (WebKitGTK
-  4.1), extensões `rust-stable` e `node24`, e `libayatana-appindicator` do
-  submódulo `shared-modules` (o tray carrega a biblioteca em runtime). O
-  módulo do app baixa crates e pacotes npm (`--share=network`), então serve
-  para builds locais e de CI, não para o Flathub.
-  No Flatpak com driver NVIDIA, `platform::disable_dmabuf_renderer` define
-  `WEBKIT_DISABLE_DMABUF_RENDERER=1` antes do GTK; sem isso o Wayland derruba
-  a conexão (Error 71) e o app fecha.
-- `packaging/snap/`: `snapcraft.yaml` (core24, extensão `gnome`) copiado para
-  `snap/` por `prepare.sh`; o slot D-Bus cobre o nome do single-instance.
-- `packaging/common/`: `build-info.sh` marca builds oficiais
-  (`FASTZAP_BUILD_*`, lidas em tempo de compilação por `build_info`) e
-  `version.sh` imprime e confere a versão nos três manifestos.
-- Workflows: `build-{deb,rpm,appimage,flatpak,snap,windows,macos}.yml`
-  (manuais ou chamados), `release-candidate.yml` (tag `X.Y.Z-rc.N` e
-  pre-release) e `release-deploy.yml` (release publicada). O setup comum está
-  em `.github/actions/setup-build/`. O job `build` roda com `contents: read`
-  e sem credencial persistida; só o job `publish` tem escrita e anexa os
-  artefatos com `release-upload.sh`, que exige release existente e tag igual
-  à versão (`v` e `-rc.N` opcionais). Actions de terceiros ficam fixadas por
-  SHA.
+- Identifiers: the App ID `io.github.quantmind_br.fastzap` names the Flatpak,
+  `.desktop`, AppStream, D-Bus name (`app::dbus` and
+  `<APP_ID>.SingleInstance`), keyring service, and the configuration, data,
+  and cache folders (`AppPaths`). Tauri's `identifier` is
+  `io.github.quantmind-br.fastzap`, because the bundler rejects `_`; it only
+  appears in the macOS bundle ID, the Windows AUMID, and the
+  `tauri-plugin-window-state` folder. `enableGtkAppId` stays off, so the
+  Wayland/WM_CLASS app_id is `fastzap` (`StartupWMClass=fastzap`).
+- `pnpm tauri build` produces deb (`fast-zap`), rpm, and AppImage on Linux, NSIS
+  and MSI on Windows (arm64 NSIS only), and universal dmg on macOS, with ad-hoc
+  signing and no notarization. The deb/rpm `.desktop` comes from
+  `packaging/linux/fastzap.desktop.hbs` (`FastZap.desktop`, `fastzap` icon,
+  `whatsapp:` and `fastzap:` schemes).
+- `make install` uses `packaging/arch/install.sh` and `packaging/arch/PKGBUILD`
+  to compile the local tree, convert the DEB into `dsr-fastzap-git`, and
+  install via pacman. Only the install transaction uses sudo; the package
+  normalizes the launcher to `fastzap.desktop` and stays separate from the
+  Flatpak.
+- `packaging/share/`: `.desktop`, AppStream metainfo, and SVG icon named after
+  the App ID, used by Flatpak and snap; the `src-tauri/icons/` icons are
+  generated from that SVG with `pnpm tauri icon`.
+- `packaging/flatpak/`: manifest over `org.gnome.Platform` 50 (WebKitGTK 4.1),
+  `rust-stable` and `node24` extensions, and `libayatana-appindicator` from the
+  `shared-modules` submodule (the tray loads the library at runtime). The app
+  module downloads crates and npm packages (`--share=network`), so it suits
+  local and CI builds, not Flathub. On Flatpak with the NVIDIA driver,
+  `platform::disable_dmabuf_renderer` sets `WEBKIT_DISABLE_DMABUF_RENDERER=1`
+  before GTK; without it Wayland drops the connection (Error 71) and the app
+  closes.
+- `packaging/snap/`: `snapcraft.yaml` (core24, `gnome` extension) copied to
+  `snap/` by `prepare.sh`; the D-Bus slot covers the single-instance name.
+- `packaging/common/`: `build-info.sh` stamps official builds (`FASTZAP_BUILD_*`,
+  read at compile time by `build_info`) and `version.sh` prints and checks the
+  version across the three manifests.
+- Workflows: `build-{deb,rpm,appimage,flatpak,snap,windows,macos}.yml` (manual
+  or called), `release-candidate.yml` (`X.Y.Z-rc.N` tag and pre-release), and
+  `release-deploy.yml` (published release). Shared setup lives in
+  `.github/actions/setup-build/`. The `build` job runs with `contents: read`
+  and no persisted credential; only the `publish` job has write access and
+  attaches artifacts with `release-upload.sh`, which requires an existing
+  release and a tag matching the version (optional `v` and `-rc.N`). Third-party
+  Actions stay pinned by SHA.

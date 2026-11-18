@@ -1268,7 +1268,16 @@
   "local storage unavailable": "armazenamento local indisponível",
   "missing credentials": "credenciais ausentes",
   "no instance": "nenhuma instância",
-  "not running": "não está em execução"
+  "not running": "não está em execução",
+  "Architecture": "Arquitetura",
+  "Desktop environment": "Ambiente gráfico",
+  "FastZap version": "Versão do FastZap",
+  "Operating system": "Sistema operacional",
+  "Package type": "Tipo de pacote",
+  "Session type": "Tipo de sessão",
+  "The previous FastZap process did not finish cleanly.": "O processo anterior do FastZap não foi encerrado corretamente.",
+  "Unexpected termination": "Encerramento inesperado",
+  "Web view version": "Versão do web view"
  },
  "plurals": {
   "{count} crash report": [

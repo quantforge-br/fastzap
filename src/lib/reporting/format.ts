@@ -71,14 +71,36 @@ export function previewText(view: ReportView): string {
   const info = doc.system_information as Record<string, unknown> | undefined;
   if (info) {
     lines.push("", t("Application information"));
-    for (const key of ["fastzap_version", "package_type", "operating_system", "desktop_environment", "session_type", "architecture", "webview_version"]) {
-      if (text(info[key])) lines.push(`${key.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase())}: ${text(info[key])}`);
+    // Labels keyed by the stored ids; the JSON keys themselves stay English.
+    const infoLabels: Record<string, string> = {
+      fastzap_version: t("FastZap version"),
+      package_type: t("Package type"),
+      operating_system: t("Operating system"),
+      desktop_environment: t("Desktop environment"),
+      session_type: t("Session type"),
+      architecture: t("Architecture"),
+      webview_version: t("Web view version"),
+    };
+    for (const [key, label] of Object.entries(infoLabels)) {
+      if (text(info[key])) lines.push(label + ": " + text(info[key]));
     }
   }
   const error = doc.error_information as Record<string, unknown> | undefined;
   if (error) {
-    lines.push("", t("Error information"), `${t("Error type")}: ${text(error.type)}`);
-    if (text(error.message)) lines.push(`${t("Error details")}: ${text(error.message)}`);
+    // Known ids and static messages are shown in the interface language;
+    // anything else (a panic payload, for instance) stays as written.
+    const typeLabels: Record<string, string> = {
+      UnexpectedTermination: t("Unexpected termination"),
+      panic: t("Unexpected Error"),
+    };
+    const messageLabels: Record<string, string> = {
+      "The previous FastZap process did not finish cleanly.":
+        t("The previous FastZap process did not finish cleanly."),
+    };
+    const type = text(error.type);
+    const message = text(error.message);
+    lines.push("", t("Error information"), t("Error type") + ": " + (typeLabels[type] ?? type));
+    if (message) lines.push(t("Error details") + ": " + (messageLabels[message] ?? message));
   }
   if (text(doc.sanitized_logs)) lines.push("", t("Sanitized logs are included in the technical information."));
   lines.push(

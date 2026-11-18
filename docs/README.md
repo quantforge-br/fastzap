@@ -1,8 +1,7 @@
-# Documentação do FastZap
+# FastZap Documentation
 
-- [Arquitetura](architecture.md): camadas, módulos e fluxos principais.
-- [Paridade com o ZapZap](parity.md): mapeamento de funcionalidades,
-  equivalências e lacunas conhecidas.
-- [Manutenção](maintenance.md): versões, changelog e empacotamento.
-- [Testes](testing.md): como executar e o que cada suíte cobre.
-- [Convenção de commits](COMMIT_CONVENTION.md).
+- [Architecture](architecture.md): layers, modules, and main flows.
+- [Parity with ZapZap](parity.md): feature mapping, equivalences, and known gaps.
+- [Maintenance](maintenance.md): versions, changelog, and packaging.
+- [Testing](testing.md): how to run tests and what each suite covers.
+- [Commit convention](COMMIT_CONVENTION.md).

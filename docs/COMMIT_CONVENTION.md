@@ -1,42 +1,42 @@
-# Convenção de commits
+# Commit convention
 
-O FastZap usa [Conventional Commits](https://www.conventionalcommits.org/pt-br/v1.0.0/).
+FastZap uses [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
-## Formato
+## Format
 
 ```text
 <type>(<scope>): <description>
 ```
 
-O escopo é opcional. Escreva a descrição em inglês, no imperativo, de forma
-curta e específica, sem ponto final.
+The scope is optional. Write the description in English, in the imperative mood,
+short and specific, without a trailing period.
 
-## Tipos
+## Types
 
-- `feat`: nova funcionalidade;
-- `fix`: correção;
-- `refactor`: alteração interna sem mudança funcional intencional;
-- `perf`: desempenho ou eficiência;
-- `test`: testes;
-- `docs`: documentação;
-- `build`: dependências, ferramentas e infraestrutura de build;
-- `ci`: workflows e integração contínua;
-- `style`: formatação sem mudança de comportamento;
-- `chore`: manutenção que não se enquadra nos tipos anteriores;
-- `revert`: reversão.
+- `feat`: new feature;
+- `fix`: bug fix;
+- `refactor`: internal change with no intentional functional change;
+- `perf`: performance or efficiency;
+- `test`: tests;
+- `docs`: documentation;
+- `build`: dependencies, tooling, and build infrastructure;
+- `ci`: workflows and continuous integration;
+- `style`: formatting with no behavior change;
+- `chore`: maintenance that does not fit the other types;
+- `revert`: revert.
 
-## Escopos sugeridos
+## Suggested scopes
 
 `app`, `accounts`, `webview`, `evolution`, `settings`, `migration`, `ui`,
 `chat`, `notifications`, `tray`, `dictionaries`, `downloads`, `permissions`,
 `proxy`, `customizations`, `reporting`, `i18n`, `packaging`, `flatpak`,
-`appimage`, `snap`, `windows`, `macos`, `release` e `docs`.
+`appimage`, `snap`, `windows`, `macos`, `release`, and `docs`.
 
-Use um escopo somente quando ele identificar claramente a área principal da
-mudança. Não combine vários nomes em um escopo genérico; quando alterações
-independentes puderem ser separadas, proponha commits distintos.
+Use a scope only when it clearly identifies the main area of the change. Do not
+combine several names into a generic scope; when independent changes can be
+split apart, propose separate commits.
 
-## Exemplos
+## Examples
 
 ```text
 feat(evolution): pair accounts by phone code
@@ -47,9 +47,9 @@ docs(architecture): describe the child webview layout
 ci(windows): validate native runner architecture
 ```
 
-## Commits não triviais
+## Non-trivial commits
 
-Use o corpo para registrar o contexto e os testes realmente executados:
+Use the body to record the context and the tests actually run:
 
 ```text
 fix(webview): preserve disabled account state
@@ -62,38 +62,36 @@ Tests:
 - pnpm check
 ```
 
-Não registre como aprovado um teste que falhou ou não foi executado. Quando uma
-validação não puder ser concluída, descreva a limitação fora da mensagem
-sugerida, na entrega da tarefa.
+Do not record a test as passing if it failed or was not run. When a
+validation cannot be completed, describe the limitation outside the suggested
+message, in the task delivery.
 
-## Mudanças incompatíveis
+## Breaking changes
 
-Use `type!:` ou `type(scope)!:` e acrescente um rodapé `BREAKING CHANGE:` com o
-impacto e a migração necessária. Registre a mudança também na seção numérica
-marcada `In development` de `CHANGELOG.md`.
+Use `type!:` or `type(scope)!:` and add a `BREAKING CHANGE:` footer with the
+impact and the required migration. Also record the change in the numbered
+section marked `In development` in `CHANGELOG.md`.
 
-## Codex e outros agentes
+## Codex and other agents
 
-Ao concluir uma unidade lógica, o agente deve revisar `git status` e `git diff`,
-executar as verificações aplicáveis, atualizar `CHANGELOG.md` e produzir uma
-mensagem Conventional Commit adequada. Toda resposta final após modificar
-arquivos do repositório deve incluir pelo menos uma mensagem sugerida, mesmo
-para mudanças pequenas.
+When finishing a logical unit, the agent must review `git status` and `git diff`,
+run the applicable checks, update `CHANGELOG.md`, and produce a suitable
+Conventional Commit message. Every final response after modifying repository
+files must include at least one suggested message, even for small changes.
 
-Alterações independentes devem receber mensagens separadas. Mudanças não
-triviais devem incluir também um corpo opcional com contexto e os testes
-realmente executados. O agente não deve reescrever histórico publicado sem instrução
-explícita.
+Independent changes must get separate messages. Non-trivial changes must also
+include an optional body with context and the tests actually run. The agent must
+not rewrite published history without explicit instruction.
 
-## Relação com o changelog
+## Relation to the changelog
 
-A mensagem de commit descreve uma unidade lógica de trabalho; o changelog
-mantém o histórico curado do ciclo de versão. Uma não substitui a outra. Toda
-mudança ou adição continua obrigada a atualizar `CHANGELOG.md`, conforme o
-contrato de [manutenção](maintenance.md).
+The commit message describes one logical unit of work; the changelog keeps the
+curated history of the release cycle. One does not replace the other. Every
+change or addition is still required to update `CHANGELOG.md`, as per the
+[maintenance](maintenance.md) contract.
 
-## Validação
+## Validation
 
-A convenção é atualmente verificada durante a revisão. Um validador local ou de
-CI deve ser introduzido em uma mudança própria, com testes de exemplos aceitos
-e rejeitados, antes de ser tratado como requisito automatizado do projeto.
+The convention is currently verified during review. A local or CI validator must
+be introduced in its own change, with tests for accepted and rejected examples,
+before being treated as an automated project requirement.

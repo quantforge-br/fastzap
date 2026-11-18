@@ -8,8 +8,9 @@
   by the Svelte frontend and by the native Rust surfaces has a translation,
   the fuzzy and empty entries inherited from ZapZap are fixed, and strings
   the panel, title bar and close dialog rendered directly now go through
-  `t()` as well; Evolution Go connection reasons and error messages returned
-  by native commands are translated too.
+  `t()` as well; Evolution Go connection reasons, error messages returned by
+  native commands, report review labels and the native image picker are
+  translated too.
 - `pnpm i18n:coverage [po/code.po]` reports strings used by the code that
   are missing from a catalog and exits nonzero, so a locale can be checked
   in CI; besides `t()`/`tn()`/`tr()` calls, it reads Svelte text nodes
@@ -525,6 +526,11 @@
   `src-tauri/`.
 - `make install` touches `src-tauri/build.rs`, so the build script reruns
   from this checkout even when another checkout shared its target directory.
+- All project documentation is now in English: `README.md`, `AGENTS.md`,
+  `docs/` and `IDEATION_UI_UX.md` are translated, internal anchors
+  (`#packaging`) and the Conventional Commits URL are updated, and the
+  guidelines state that docs, code, comments, `CHANGELOG.md` and commits
+  are in English.
 
 ### Removed
 

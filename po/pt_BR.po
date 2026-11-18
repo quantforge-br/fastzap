@@ -6056,6 +6056,42 @@ msgstr "nenhuma instância"
 msgid "not running"
 msgstr "não está em execução"
 
+#: src/lib/reporting/format.ts
+msgid "Architecture"
+msgstr "Arquitetura"
+
+#: src/lib/reporting/format.ts
+msgid "Desktop environment"
+msgstr "Ambiente gráfico"
+
+#: src/lib/reporting/format.ts
+msgid "FastZap version"
+msgstr "Versão do FastZap"
+
+#: src/lib/reporting/format.ts
+msgid "Operating system"
+msgstr "Sistema operacional"
+
+#: src/lib/reporting/format.ts
+msgid "Package type"
+msgstr "Tipo de pacote"
+
+#: src/lib/reporting/format.ts
+msgid "Session type"
+msgstr "Tipo de sessão"
+
+#: src/lib/reporting/format.ts
+msgid "The previous FastZap process did not finish cleanly."
+msgstr "O processo anterior do FastZap não foi encerrado corretamente."
+
+#: src/lib/reporting/format.ts
+msgid "Unexpected termination"
+msgstr "Encerramento inesperado"
+
+#: src/lib/reporting/format.ts
+msgid "Web view version"
+msgstr "Versão do web view"
+
 #~ msgid ""
 #~ "Show only chat avatars at a fixed width. Resizing is unavailable while "
 #~ "enabled."
