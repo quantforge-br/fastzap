@@ -415,9 +415,14 @@ automatically.
   Archived chats stay in the "Archived" folder, even without messages, and do
   not enter the unread count. `lid_map` (schema 3) stores learned LID → number
   pairs from `phoneNumberToLidMappings` and the HistorySync and
-  `/chat/settings` `pnJID`/`lidJID`/`phoneJid`; chats, senders, receipts, and
+  `/chat/settings` `pnJID`/`lidJID`/`phoneJid`, from the `Sender`/`SenderAlt`
+  and one-to-one `Chat`/`RecipientAlt` of live messages (`Change::Alias`,
+  applied before the message), and from our own message echoed under an
+  unknown LID while its outbox copy sits in a phone chat (the server sends to
+  the LID `IsOnWhatsApp` resolves for the number); chats, senders, receipts, and
   "typing" referencing a known LID are stored under the number, and learning a
-  pair merges what sat under the LID into the number's chat. An on-demand
+  pair merges what sat under the LID into the number's chat, keeping the
+  furthest delivery status of a message both held. An on-demand
   HistorySync (`syncType` 6) does not overwrite unreads. When migrating from
   schema 2 with LID chats, the journal cursor is wiped to re-read the journal
   and merge the pairs. `messages.quote_kind` (schema 4) stores the quoted
@@ -427,7 +432,9 @@ automatically.
   reply brought. `messages.buttons` (schema 5, JSON) stores the buttons; the
   migration re-reads from the proto the messages stored as unsupported and
   their quotes, deletes album openings, and rebuilds the affected chats'
-  previews.
+  previews. The schema 7 migration merges each LID chat whose own messages
+  have copies in exactly one phone chat into that chat; `messages_by_id`
+  indexes those lookups and receipts that name an unknown chat.
 - `evolution` (session): `sync` starts/stops sessions according to the enabled
   accounts, serialized by a lifecycle lock; stopping the session cancels
   in-flight work. Each session checks the instance via the admin listing and only

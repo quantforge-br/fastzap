@@ -186,6 +186,12 @@ pub enum Change {
         chat: String,
         target: String,
     },
+    /// The phone names one contact by this LID and this phone JID; it comes
+    /// before the change of the event that revealed it.
+    Alias {
+        lid: String,
+        pn: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -778,27 +784,77 @@ fn parse_body(env: Envelope<'_>, message: &Value) -> Option<Change> {
     }))
 }
 
+/// `jid` without its device and agent (`5511.0:83@s.whatsapp.net` →
+/// `5511@s.whatsapp.net`).
+fn bare_jid(jid: &str) -> String {
+    match jid.split_once('@') {
+        Some((user, server)) => {
+            let user = user.split([':', '.']).next().unwrap_or(user);
+            format!("{user}@{server}")
+        }
+        None => jid.to_owned(),
+    }
+}
+
+/// `(LID, phone JID)` when `a` and `b` are one of each.
+fn lid_pair(a: &str, b: &str) -> Option<(String, String)> {
+    let (a, b) = (bare_jid(a), bare_jid(b));
+    if is_lid(&a) && is_phone(&b) {
+        Some((a, b))
+    } else if is_lid(&b) && is_phone(&a) {
+        Some((b, a))
+    } else {
+        None
+    }
+}
+
+/// The LID ↔ phone pairs a live `MessageInfo` reveals: the sender and its
+/// `SenderAlt`, and in a one-to-one chat the other party under both
+/// (`RecipientAlt` for our own messages).
+fn live_aliases(info: &Value, chat: &str, from_me: bool) -> Vec<Change> {
+    let mut pairs = vec![lid_pair(str_at(info, "Sender"), str_at(info, "SenderAlt"))];
+    if chat.ends_with("@s.whatsapp.net") || chat.ends_with("@lid") {
+        let alt = if from_me { "RecipientAlt" } else { "SenderAlt" };
+        pairs.push(lid_pair(chat, str_at(info, alt)));
+    }
+    let mut aliases: Vec<Change> = Vec::new();
+    for (lid, pn) in pairs.into_iter().flatten() {
+        let alias = Change::Alias { lid, pn };
+        if !aliases.contains(&alias) {
+            aliases.push(alias);
+        }
+    }
+    aliases
+}
+
 /// A live `Message`/`SendMessage` event (`data.Info` + `data.Message`).
-fn parse_live_message(data: &Value) -> Option<Change> {
-    let info = data.get("Info")?;
+fn parse_live_message(data: &Value) -> Vec<Change> {
+    let Some(info) = data.get("Info") else {
+        return Vec::new();
+    };
     let id = str_at(info, "ID");
     let chat = str_at(info, "Chat");
     if id.is_empty() || chat.is_empty() || chat == "status@broadcast" {
-        return None;
+        return Vec::new();
     }
     let from_me = bool_at(info, "IsFromMe");
-    parse_body(
-        Envelope {
-            id,
-            chat,
-            sender: str_at(info, "Sender"),
-            from_me,
-            ts: rfc3339(str_at(info, "Timestamp")),
-            push_name: str_at(info, "PushName"),
-            status: Status::Sent,
-        },
-        data.get("Message")?,
-    )
+    let mut changes = live_aliases(info, chat, from_me);
+    let body = data.get("Message").and_then(|message| {
+        parse_body(
+            Envelope {
+                id,
+                chat,
+                sender: str_at(info, "Sender"),
+                from_me,
+                ts: rfc3339(str_at(info, "Timestamp")),
+                push_name: str_at(info, "PushName"),
+                status: Status::Sent,
+            },
+            message,
+        )
+    });
+    changes.extend(body);
+    changes
 }
 
 /// `HistorySync.syncType` of a sync the user asked for.
@@ -922,7 +978,7 @@ pub fn parse(payload: &Value) -> Event {
     let data = payload.get("data").unwrap_or(&Value::Null);
     let state = str_at(payload, "state");
     match str_at(payload, "event") {
-        "Message" | "SendMessage" => Event::Changes(parse_live_message(data).into_iter().collect()),
+        "Message" | "SendMessage" => Event::Changes(parse_live_message(data)),
         "Receipt" => {
             let ids = data
                 .get("MessageIDs")
@@ -1364,6 +1420,55 @@ mod tests {
                 ("99@lid".into(), "5511999990003@s.whatsapp.net".into()),
             ]
         );
+    }
+
+    fn aliases_of(event: &str, info: Value) -> Vec<(String, String)> {
+        let Event::Changes(changes) = parse(&json!({"event": event, "data": {
+            "Info": info, "Message": {"conversation": "oi"}}}))
+        else {
+            panic!()
+        };
+        assert!(matches!(changes.last(), Some(Change::New(_))));
+        changes
+            .into_iter()
+            .filter_map(|c| match c {
+                Change::Alias { lid, pn } => Some((lid, pn)),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn live_messages_reveal_lid_aliases() {
+        let pair = |lid: &str, pn: &str| (lid.to_owned(), pn.to_owned());
+        // Incoming, the server already moved the chat to the phone JID.
+        let incoming = json!({"ID": "M1", "Chat": "551@s.whatsapp.net",
+            "Sender": "551@s.whatsapp.net", "SenderAlt": "77@lid", "IsFromMe": false});
+        assert_eq!(
+            aliases_of("Message", incoming),
+            [pair("77@lid", "551@s.whatsapp.net")]
+        );
+        // Sent from the phone to a LID chat: our own devices and the recipient.
+        let own = json!({"ID": "M2", "Chat": "77@lid", "Sender": "5521:12@s.whatsapp.net",
+            "SenderAlt": "11:12@lid", "RecipientAlt": "551@s.whatsapp.net", "IsFromMe": true});
+        assert_eq!(
+            aliases_of("Message", own),
+            [
+                pair("11@lid", "5521@s.whatsapp.net"),
+                pair("77@lid", "551@s.whatsapp.net")
+            ]
+        );
+        // A group participant; the group itself has no alias.
+        let group = json!({"ID": "M3", "Chat": "1@g.us", "Sender": "88@lid",
+            "SenderAlt": "552@s.whatsapp.net", "IsFromMe": false, "IsGroup": true});
+        assert_eq!(
+            aliases_of("Message", group),
+            [pair("88@lid", "552@s.whatsapp.net")]
+        );
+        // The server's echo of a send names neither alternative.
+        let echo = json!({"ID": "M4", "Chat": "77@lid",
+            "Sender": "5521:83@s.whatsapp.net", "IsFromMe": true});
+        assert!(aliases_of("SendMessage", echo).is_empty());
     }
 
     #[test]

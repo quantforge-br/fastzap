@@ -212,6 +212,14 @@
 
 ### Fixed
 
+- Evolution Go: a contact no longer shows up twice (once by the phone
+  number, once by its LID) after sending it a message. The server sends to
+  the LID that WhatsApp resolves for the number and echoes the send under
+  it, so the echo opened a second chat that took the delivery ticks. The
+  echo of our own message now teaches the LID of the phone chat holding its
+  outbox copy, live messages teach the pairs in `SenderAlt`/`RecipientAlt`,
+  and merging keeps the furthest status of a message both chats held. Stores
+  migrate to schema 7, which merges such chats already kept apart.
 - Files dragged onto a WhatsApp Web account on Linux open its attachment
   preview again. WebKitGTK hands OS file drops to the page as a
   `text/uri-list` string with an empty `dataTransfer.files`, so WhatsApp Web

@@ -63,6 +63,8 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE INDEX IF NOT EXISTS messages_by_time ON messages (chat, ts, seq);
 -- The chat list reads the status of our newest message per chat.
 CREATE INDEX IF NOT EXISTS own_messages_by_time ON messages (chat, from_me, ts, seq);
+-- Echoes and receipts that name an unknown chat are matched by message id.
+CREATE INDEX IF NOT EXISTS messages_by_id ON messages (id);
 CREATE TABLE IF NOT EXISTS reactions (
     chat TEXT NOT NULL,
     target TEXT NOT NULL,
@@ -270,7 +272,12 @@ impl ChatStore {
         if (1..6).contains(&version) {
             add_audio_info(&conn)?;
         }
-        conn.pragma_update(None, "user_version", 6)?;
+        // Version 6 stores kept the server's echo of a send to a phone JID,
+        // addressed to the contact's LID, as a second chat.
+        if (1..7).contains(&version) {
+            merge_echoed_lids(&conn)?;
+        }
+        conn.pragma_update(None, "user_version", 7)?;
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -741,7 +748,14 @@ fn learn_lid(conn: &Connection, lid: &str, pn: &str) -> StoreResult<bool> {
     if !learned {
         return Ok(false);
     }
-    // A message both chats hold keeps the phone chat's copy.
+    // A message both chats hold keeps the phone chat's copy, with the
+    // furthest status: receipts may have reached only the LID copy.
+    conn.execute(
+        "UPDATE messages SET status = lid.status
+         FROM (SELECT id, status FROM messages WHERE chat = ?1) AS lid
+         WHERE messages.chat = ?2 AND messages.id = lid.id AND lid.status > messages.status",
+        params![lid, pn],
+    )?;
     for sql in [
         "UPDATE OR IGNORE messages SET chat = ?2 WHERE chat = ?1",
         "UPDATE messages SET sender = ?2 WHERE sender = ?1",
@@ -1176,6 +1190,27 @@ fn add_audio_info(conn: &Connection) -> StoreResult<()> {
     tx.commit()
 }
 
+/// Merge each LID chat holding our own messages whose copies sit in exactly
+/// one phone chat into that chat.
+fn merge_echoed_lids(conn: &Connection) -> StoreResult<()> {
+    let tx = conn.unchecked_transaction()?;
+    let pairs = tx
+        .prepare(
+            "SELECT lid.chat, MIN(pn.chat) FROM messages AS lid
+             JOIN messages AS pn ON pn.id = lid.id AND pn.from_me = 1
+                AND pn.chat LIKE '%@s.whatsapp.net'
+             WHERE lid.chat LIKE '%@lid' AND lid.from_me = 1
+             GROUP BY lid.chat HAVING COUNT(DISTINCT pn.chat) = 1",
+        )?
+        .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?
+        .collect::<StoreResult<Vec<_>>>()?;
+    for (lid, pn) in pairs {
+        learn_lid(&tx, &lid, &pn)?;
+    }
+    tx.pragma_update(None, "user_version", 7)?;
+    tx.commit()
+}
+
 /// Recompute a chat's preview from its newest message.
 fn refresh_preview(conn: &Connection, chat: &str) -> StoreResult<()> {
     conn.execute(
@@ -1201,8 +1236,35 @@ fn canonical_change(conn: &Connection, change: &Change) -> StoreResult<Change> {
             *sender = canonical(conn, sender)?;
         }
         Change::Edit { chat, .. } | Change::Revoke { chat, .. } => *chat = canonical(conn, chat)?,
+        Change::Alias { .. } => {}
     }
     Ok(change)
+}
+
+/// Our own message echoed under a LID the store does not know, while its
+/// outbox copy sits in a phone chat: the server sent to the LID that
+/// WhatsApp resolved for the number, so both name the same contact.
+fn learn_from_echo(conn: &Connection, change: &Change, out: &mut Applied) -> StoreResult<()> {
+    let Change::New(m) = change else {
+        return Ok(());
+    };
+    if !m.from_me || !is_lid(&m.chat) || canonical(conn, &m.chat)? != m.chat {
+        return Ok(());
+    }
+    let phone: Option<String> = conn
+        .query_row(
+            "SELECT chat FROM messages
+             WHERE id = ?1 AND from_me = 1 AND chat LIKE '%@s.whatsapp.net' LIMIT 1",
+            [&m.id],
+            |r| r.get(0),
+        )
+        .optional()?;
+    if let Some(pn) = phone
+        && learn_lid(conn, &m.chat, &pn)?
+    {
+        out.touch(&pn);
+    }
+    Ok(())
 }
 
 fn apply_change(
@@ -1211,7 +1273,13 @@ fn apply_change(
     live: bool,
     out: &mut Applied,
 ) -> StoreResult<()> {
+    learn_from_echo(conn, change, out)?;
     match &canonical_change(conn, change)? {
+        Change::Alias { lid, pn } => {
+            if learn_lid(conn, lid, pn)? {
+                out.touch(pn);
+            }
+        }
         Change::New(m) => {
             let quote = m.quote.as_ref();
             let audio = audio_info(&m.raw).unwrap_or_default();
@@ -1608,6 +1676,121 @@ CREATE TABLE IF NOT EXISTS meta (
     }
 
     #[test]
+    fn own_sends_echoed_under_an_unknown_lid_stay_in_the_phone_chat() {
+        const LID: &str = "77@lid";
+        let store = ChatStore::in_memory().unwrap();
+        store
+            .apply(&[Change::New(message("M", 10, true, "hi"))], true, None)
+            .unwrap();
+        // The server sent to the LID WhatsApp resolved for the number.
+        let echo = |id: &str, chat: &str| Message {
+            chat: chat.into(),
+            sender: "5521:83@s.whatsapp.net".into(),
+            status: Status::Sent,
+            ..message(id, 11, true, "hi")
+        };
+        let applied = store
+            .apply(&[Change::New(echo("M", LID))], true, None)
+            .unwrap();
+        assert_eq!(applied.chats, [CHAT]);
+        assert_eq!(store.canonical(LID).unwrap(), CHAT);
+        let chats = store.chats().unwrap();
+        assert_eq!(chats.len(), 1);
+        assert_eq!(chats[0].preview_status, Some(Status::Sent));
+        // Receipts naming the LID reach the phone chat's copy.
+        let read = Receipt {
+            chat: LID.into(),
+            ids: vec!["M".into()],
+            read_self: false,
+            status: Status::Read,
+        };
+        assert_eq!(store.apply_receipt(&read).unwrap().as_deref(), Some(CHAT));
+        assert_eq!(
+            store.message(CHAT, "M").unwrap().unwrap().status,
+            Status::Read
+        );
+        // An echo with no copy in a phone chat proves nothing.
+        store
+            .apply(&[Change::New(echo("X", "88@lid"))], true, None)
+            .unwrap();
+        assert_eq!(store.canonical("88@lid").unwrap(), "88@lid");
+        assert_eq!(store.chats().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn live_aliases_merge_the_lid_chat() {
+        const LID: &str = "77@lid";
+        let store = ChatStore::in_memory().unwrap();
+        let on_lid = Message {
+            chat: LID.into(),
+            sender: LID.into(),
+            ..message("A", 10, false, "older")
+        };
+        store
+            .apply(&[Change::New(message("B", 20, false, "new"))], true, None)
+            .unwrap();
+        store.apply(&[Change::New(on_lid)], true, None).unwrap();
+        assert_eq!(store.chats().unwrap().len(), 2);
+        let alias = Change::Alias {
+            lid: LID.into(),
+            pn: CHAT.into(),
+        };
+        let applied = store
+            .apply(std::slice::from_ref(&alias), true, None)
+            .unwrap();
+        assert_eq!(applied.chats, [CHAT]);
+        let chats = store.chats().unwrap();
+        assert_eq!(chats.len(), 1);
+        assert_eq!(store.messages(CHAT, None, 10).unwrap().len(), 2);
+        // Known already: nothing changes.
+        assert!(store.apply(&[alias], true, None).unwrap().chats.is_empty());
+    }
+
+    #[test]
+    fn version_6_stores_merge_echoes_kept_under_a_lid() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("chats.db");
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(SCHEMA).unwrap();
+            for (chat, id, sender, from_me, ts, status) in [
+                (CHAT, "M", "", true, 10, 3),
+                (CHAT, "N", CHAT, false, 12, 3),
+                ("77@lid", "M", "5521:83@s.whatsapp.net", true, 11, 5),
+                ("88@lid", "X", "5521:83@s.whatsapp.net", true, 5, 4),
+            ] {
+                conn.execute(
+                    "INSERT INTO messages (chat, id, sender, from_me, ts, kind, body, status)
+                     VALUES (?1, ?2, ?3, ?4, ?5, 'text', ?2, ?6)",
+                    params![chat, id, sender, from_me, ts, status],
+                )
+                .unwrap();
+            }
+            for (jid, ts) in [(CHAT, 12), ("77@lid", 11), ("88@lid", 5)] {
+                conn.execute(
+                    "INSERT INTO chats (jid, ts) VALUES (?1, ?2)",
+                    params![jid, ts],
+                )
+                .unwrap();
+            }
+            conn.pragma_update(None, "user_version", 6).unwrap();
+        }
+        let store = ChatStore::open(&path).unwrap();
+        let chats: Vec<_> = store.chats().unwrap().into_iter().map(|c| c.jid).collect();
+        assert_eq!(chats, [CHAT, "88@lid"]);
+        assert_eq!(store.canonical("77@lid").unwrap(), CHAT);
+        assert_eq!(
+            store.message(CHAT, "M").unwrap().unwrap().status,
+            Status::Read
+        );
+        assert_eq!(store.messages(CHAT, None, 10).unwrap().len(), 2);
+        drop(store);
+        // Opening again keeps the merge and the version.
+        let store = ChatStore::open(&path).unwrap();
+        assert_eq!(store.chats().unwrap().len(), 2);
+    }
+
+    #[test]
     fn notes_to_yourself_show_as_read_once_sent() {
         let store = ChatStore::in_memory().unwrap();
         store.bind(BIND_OWNER, "5511", &[]).unwrap();
@@ -1944,7 +2127,7 @@ CREATE TABLE IF NOT EXISTS meta (
             .unwrap()
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 6);
+        assert_eq!(version, 7);
     }
 
     #[test]
